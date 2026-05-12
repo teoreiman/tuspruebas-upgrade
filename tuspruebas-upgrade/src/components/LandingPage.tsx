@@ -1,332 +1,223 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ── Animated Counter ──────────────────────────────────────────────────────────
-function Counter({ end, label }: { end: number; label: string }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const started = useRef(false);
+// ── Book Icon ─────────────────────────────────────────────────────────────────
+function BookIcon({ size = 32, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          let start = 0;
-          const duration = 1800;
-          const step = Math.ceil(end / (duration / 16));
-          const timer = setInterval(() => {
-            start += step;
-            if (start >= end) {
-              setCount(end);
-              clearInterval(timer);
-            } else {
-              setCount(start);
-            }
-          }, 16);
-        }
-      },
-      { threshold: 0.4 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [end]);
+// ── File Icon ─────────────────────────────────────────────────────────────────
+function FileIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+// ── Wave Background ───────────────────────────────────────────────────────────
+function WaveBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <svg className="absolute left-0 top-0 h-full opacity-25" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" style={{ width: "38%" }}>
+        <defs>
+          <linearGradient id="waveGradL" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#b0b0b0" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#b0b0b0" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d="M-50,50 Q100,150 -30,250 Q-100,330 50,400 Q150,450 80,500" stroke="url(#waveGradL)" strokeWidth="70" fill="none" />
+        <path d="M-80,0 Q80,120 -50,230 Q-120,310 30,390 Q120,440 60,500" stroke="url(#waveGradL)" strokeWidth="45" fill="none" opacity="0.5" />
+        <path d="M-30,80 Q120,180 0,280 Q-80,350 70,430" stroke="url(#waveGradL)" strokeWidth="28" fill="none" opacity="0.3" />
+      </svg>
+
+      <svg className="absolute right-0 top-0 h-full opacity-25" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" style={{ width: "38%" }}>
+        <defs>
+          <linearGradient id="waveGradR" x1="100%" y1="0%" x2="0%" y2="0%">
+            <stop offset="0%" stopColor="#b0b0b0" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#b0b0b0" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d="M350,50 Q200,150 330,250 Q400,330 250,400 Q150,450 220,500" stroke="url(#waveGradR)" strokeWidth="70" fill="none" />
+        <path d="M380,0 Q220,120 350,230 Q420,310 270,390 Q180,440 240,500" stroke="url(#waveGradR)" strokeWidth="45" fill="none" opacity="0.5" />
+        <path d="M330,80 Q180,180 300,280 Q380,350 230,430" stroke="url(#waveGradR)" strokeWidth="28" fill="none" opacity="0.3" />
+      </svg>
+    </div>
+  );
+}
+
+// ── Year Card ─────────────────────────────────────────────────────────────────
+function YearCard({ number, label, onClick }: { number: string; label: string; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
 
   return (
-    <div ref={ref} className="flex flex-col items-center gap-1">
-      <span className="text-5xl font-black text-tp-yellow tabular-nums">
-        {count.toLocaleString()}+
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`
+        flex flex-col items-center justify-center gap-1.5
+        border-2 rounded-2xl w-full
+        transition-all duration-200
+        ${hovered ? "border-gray-800 bg-gray-50 shadow-md scale-[1.03]" : "border-gray-300 bg-white shadow-sm"}
+      `}
+      style={{ paddingTop: "22px", paddingBottom: "22px" }}
+    >
+      <span className="text-4xl font-black text-gray-900 leading-none" style={{ fontFamily: "'Syne', sans-serif" }}>
+        {number}
       </span>
-      <span className="text-sm text-tp-gray uppercase tracking-widest">{label}</span>
-    </div>
+      <span className="text-xs font-semibold text-gray-400 tracking-wide">
+        {label}
+      </span>
+    </button>
   );
 }
 
-// ── Floating pill ─────────────────────────────────────────────────────────────
-function FloatingPill({
-  text,
-  delay,
-  top,
-  left,
-  right,
-}: {
-  text: string;
-  delay: string;
-  top?: string;
-  left?: string;
-  right?: string;
-}) {
-  return (
-    <div
-      className="absolute hidden lg:flex items-center gap-2 bg-tp-card border border-white/10 rounded-full px-4 py-2 text-xs text-tp-gray shadow-lg animate-float"
-      style={{ animationDelay: delay, top, left, right }}
-    >
-      <span className="w-2 h-2 rounded-full bg-tp-yellow inline-block" />
-      {text}
-    </div>
-  );
-}
-
-// ── School Badge ──────────────────────────────────────────────────────────────
-function SchoolBadge({ name }: { name: string }) {
-  return (
-    <div className="flex items-center gap-2 bg-tp-card border border-white/8 rounded-lg px-4 py-3 text-sm text-white/70 hover:border-tp-yellow/40 hover:text-white transition-all duration-300 cursor-default">
-      <span className="text-tp-yellow text-base">◆</span>
-      {name}
-    </div>
-  );
-}
-
-// ── Feature Card ──────────────────────────────────────────────────────────────
-function FeatureCard({
-  title,
-  desc,
-  delay,
-}: {
-  title: string;
-  desc: string;
-  delay: string;
-}) {
-  return (
-    <div
-      className="group relative bg-tp-card border border-white/8 rounded-2xl p-6 hover:border-tp-yellow/30 transition-all duration-500 hover:-translate-y-1 animate-fade-up"
-      style={{ animationDelay: delay }}
-    >
-      <div className="w-12 h-12 rounded-xl bg-tp-yellow/10 flex items-center justify-center text-2xl mb-4 group-hover:bg-tp-yellow/20 transition-colors duration-300">
-      </div>
-      <h3 className="text-white font-bold text-lg mb-2">{title}</h3>
-      <p className="text-tp-gray text-sm leading-relaxed">{desc}</p>
-      <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-tp-yellow/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    </div>
-  );
-}
-
-// ── Main Component ────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [scrolled, setScrolled] = useState(false);
 
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handler);
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
-
-  const schools = ["ORT Almagro", "ORT Belgrano", "Martín Buber", "Wolfson", "Tarbut"];
-
-  const features = [
-    {
-      title: "Buscá por materia",
-      desc: "Filtrá pruebas por escuela, año, materia y profesor en segundos.",
-      delay: "0ms",
-    },
-    {
-      title: "Subí tu prueba",
-      desc: "Colaborá con la comunidad cargando exámenes que ya rendiste.",
-      delay: "80ms",
-    },
-    {
-      title: "IA integrada",
-      desc: "Generá nuevas pruebas o resolvé ejercicios con inteligencia artificial contextualizada.",
-      delay: "160ms",
-    },
-    {
-      title: "Guardá favoritas",
-      desc: "Marcá las pruebas que más te sirven y accedé a ellas desde tu perfil.",
-      delay: "240ms",
-    },
-    {
-      title: "5 colegios",
-      desc: "Material organizado de ORT, Buber, Wolfson y Tarbut en un solo lugar.",
-      delay: "320ms",
-    },
-    {
-      title: "Contenido verificado",
-      desc: "Cada prueba pasa por moderación antes de publicarse.",
-      delay: "400ms",
-    },
+  const years = [
+    { number: "7", label: "7° grado" },
+    { number: "1", label: "1° Año" },
+    { number: "2", label: "2° Año" },
+    { number: "3", label: "3° Año" },
+    { number: "4", label: "4° Año" },
+    { number: "5", label: "5° Año" },
   ];
 
+  const navLinks = ["Inicio", "Materias", "Subir pruebas"];
+
   return (
-    <div className="min-h-screen bg-tp-bg text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
       {/* ── Navbar ── */}
-      <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-tp-bg/90 backdrop-blur-md border-b border-white/8 py-3"
-            : "py-5"
-        }`}
-      >
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-tp-yellow font-black text-xl tracking-tight">
-              tus<span className="text-white">Pruebas</span>
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <BookIcon size={26} className="text-gray-900" />
+            <span className="text-lg font-black text-gray-900 tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+              tuspruebas
             </span>
           </div>
-          <div className="flex items-center gap-3">
+
+          <nav className="hidden md:flex items-center gap-10">
+            {navLinks.map((item) => (
+              <button
+                key={item}
+                onClick={() => item === "Subir pruebas" ? navigate("/home") : undefined}
+                className="text-sm text-gray-700 hover:text-gray-900 font-medium transition-colors duration-150"
+              >
+                {item}
+              </button>
+            ))}
             <button
               onClick={() => navigate("/login")}
-              className="text-tp-gray hover:text-white text-sm transition-colors duration-200 px-4 py-2"
+              className="text-sm text-gray-700 hover:text-gray-900 font-medium transition-colors duration-150"
             >
               Iniciar sesión
             </button>
-            <button
-              onClick={() => navigate("/signup")}
-              className="bg-tp-yellow text-tp-bg text-sm font-bold px-5 py-2 rounded-lg hover:bg-yellow-300 transition-colors duration-200"
-            >
-              Registrarse
-            </button>
-          </div>
+          </nav>
+
+          <button
+            className="md:hidden text-sm font-semibold text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg"
+            onClick={() => navigate("/login")}
+          >
+            Iniciar sesión
+          </button>
         </div>
-      </nav>
+      </header>
 
       {/* ── Hero ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-tp-yellow/6 blur-[120px]" />
-          <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] rounded-full bg-blue-500/4 blur-[100px]" />
+      <section className="relative bg-white py-14 px-6 text-center overflow-hidden border-b border-gray-100">
+        <WaveBackground />
+        <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center gap-3">
+          <BookIcon size={52} className="text-gray-800 mb-1" />
+          <h1 className="text-4xl md:text-[2.8rem] font-black text-gray-900 leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+            Bienvenido a tusPruebas
+          </h1>
+          <p className="text-sm text-gray-500 font-medium">
+            encontra todas las pruebas que necesites
+          </p>
         </div>
+      </section>
 
-        {/* Grid texture */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{
-            backgroundImage:
-              "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
+      {/* ── Year Selector ── */}
+      <section className="py-12 px-6 bg-white border-b border-gray-100">
+        <div className="max-w-lg mx-auto text-center">
+          <h2 className="text-lg font-black text-gray-900 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
+            ¿De que año sos?
+          </h2>
+          <p className="text-xs text-gray-400 mb-8">
+            Elige tu año para ver las pruebas disponibles
+          </p>
 
-        {/* Floating pills */}
-        <FloatingPill text="Química · ORT Almagro" delay="0s" top="22%" left="5%" />
-        <FloatingPill text="Historia · Tarbut" delay="0.4s" top="30%" right="4%" />
-        <FloatingPill text="Matemática · Wolfson" delay="0.8s" top="65%" left="3%" />
-        <FloatingPill text="Inglés · Martín Buber" delay="1.2s" top="70%" right="5%" />
-
-        {/* Badge */}
-        <div className="animate-fade-up mb-6 flex items-center gap-2 bg-tp-yellow/10 border border-tp-yellow/20 rounded-full px-4 py-1.5 text-xs text-tp-yellow font-semibold tracking-wide">
-          <span className="w-1.5 h-1.5 rounded-full bg-tp-yellow animate-pulse" />
-          BETA · Colegios judíos de Buenos Aires
+          <div className="grid grid-cols-3 gap-3">
+            {years.map((y) => (
+              <YearCard
+                key={y.number}
+                number={y.number}
+                label={y.label}
+                onClick={() => navigate("/home")}
+              />
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* Headline */}
-        <h1
-          className="animate-fade-up text-center font-black leading-[1.05] mb-6 max-w-4xl"
-          style={{ animationDelay: "80ms", fontSize: "clamp(2.8rem, 6vw, 5rem)" }}
-        >
-          Todas las pruebas.
-          <br />
-          <span className="text-tp-yellow">Un solo lugar.</span>
-        </h1>
+      {/* ── About ── */}
+      <section className="py-16 px-6 bg-white text-center flex-1">
+        <div className="max-w-md mx-auto flex flex-col items-center gap-6">
+          <h2 className="text-xl font-black text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+            ¿Que es tusPruebas?
+          </h2>
 
-        {/* Subheadline */}
-        <p
-          className="animate-fade-up text-center text-tp-gray text-lg max-w-2xl mb-10 leading-relaxed"
-          style={{ animationDelay: "160ms" }}
-        >
-          tusPruebas centraliza exámenes de años anteriores de los principales colegios judíos
-          de Buenos Aires. Buscá, filtrá y preparate mejor para cada evaluación.
-        </p>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            Somos una plataforma donde estudiantes comparten exámenes reales de todas las
+            materias y años de la secundaria, para ayudarte a estudiar mejor y practicar
+          </p>
 
-        {/* CTA */}
-        <div
-          className="animate-fade-up flex flex-col sm:flex-row gap-4"
-          style={{ animationDelay: "240ms" }}
-        >
-          <button
-            onClick={() => navigate("/signup")}
-            className="group relative bg-tp-yellow text-tp-bg font-black text-base px-8 py-4 rounded-xl hover:bg-yellow-300 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Empezar gratis
-            <span className="ml-2 group-hover:translate-x-1 inline-block transition-transform duration-200">→</span>
-          </button>
           <button
             onClick={() => navigate("/home")}
-            className="border border-white/15 text-white font-semibold text-base px-8 py-4 rounded-xl hover:border-white/30 hover:bg-white/5 transition-all duration-200"
+            className="flex items-center gap-3 text-white font-bold text-base px-10 py-4 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all duration-200 shadow-lg w-full max-w-xs justify-center"
+            style={{
+              background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)",
+              borderBottom: "3px solid #6366f1",
+            }}
           >
-            Ver pruebas
-          </button>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
-          <span className="text-xs text-tp-gray tracking-widest uppercase">Scroll</span>
-          <div className="w-px h-8 bg-gradient-to-b from-tp-gray to-transparent animate-pulse" />
-        </div>
-      </section>
-
-      {/* ── Stats ── */}
-      <section className="py-20 px-6 border-y border-white/6">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
-          <Counter end={5} label="Colegios" />
-          <Counter end={500} label="Pruebas" />
-          <Counter end={12} label="Materias" />
-          <Counter end={8} label="Años" />
-        </div>
-      </section>
-
-      {/* ── Schools ── */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-black mb-3">Colegios disponibles</h2>
-            <p className="text-tp-gray">Material organizado por institución, año y materia.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3">
-            {schools.map((s) => (
-              <SchoolBadge key={s} name={s} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="py-20 px-6 bg-tp-card/30">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-black mb-3">Todo lo que necesitás</h2>
-            <p className="text-tp-gray">Diseñado para estudiantes que quieren prepararse en serio.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f) => (
-              <FeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA Final ── */}
-      <section className="py-28 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-tp-yellow/8 blur-[100px]" />
-        </div>
-        <div className="relative max-w-2xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-black mb-5 leading-tight">
-            ¿Listo para rendir<br />
-            <span className="text-tp-yellow">con ventaja</span>?
-          </h2>
-          <p className="text-tp-gray mb-10 text-lg">
-            Unite a la comunidad y accedé a cientos de pruebas al instante.
-          </p>
-          <button
-            onClick={() => navigate("/signup")}
-            className="bg-tp-yellow text-tp-bg font-black text-lg px-10 py-4 rounded-xl hover:bg-yellow-300 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Crear cuenta gratis →
+            <FileIcon />
+            Explorar pruebas
           </button>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-white/8 py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-tp-yellow font-black text-lg">
-            tus<span className="text-white">Pruebas</span>
-          </span>
-          <p className="text-tp-gray text-sm">
-            Hecho por Teo, Fede y Manu · 5to año 2026
-          </p>
+      <footer className="border-t border-gray-200 py-5 px-6">
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-6 md:gap-14">
+          {["Sobre nosotros", "Contactanos", "Preguntas frecuentes", "Terminos y condiciones"].map((item) => (
+            <button
+              key={item}
+              className="text-xs text-gray-500 hover:text-gray-900 transition-colors duration-150"
+            >
+              {item}
+            </button>
+          ))}
         </div>
       </footer>
     </div>
