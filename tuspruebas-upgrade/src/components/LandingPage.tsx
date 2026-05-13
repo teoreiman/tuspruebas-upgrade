@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import BlurText from "../../reactBits/Blurtext";
+import FadeContent from "../../reactBits/Fadecontent";
 
 // ── Book Icon ─────────────────────────────────────────────────────────────────
 function BookIcon({ size = 32, className = "" }: { size?: number; className?: string }) {
@@ -149,9 +151,12 @@ export default function LandingPage() {
         <WaveBackground />
         <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center gap-3">
           <BookIcon size={52} className="text-gray-800 mb-1" />
-          <h1 className="text-4xl md:text-[2.8rem] font-black text-gray-900 leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
-            Bienvenido a tusPruebas
-          </h1>
+          <BlurText
+            text="Bienvenido a tusPruebas"
+            className="text-4xl md:text-[2.8rem] font-black text-gray-900 leading-tight justify-center"
+            animateBy="words"
+            delay={80}
+          />
           <p className="text-sm text-gray-500 font-medium">
             encontra todas las pruebas que necesites
           </p>
@@ -160,7 +165,7 @@ export default function LandingPage() {
 
       {/* ── Year Selector ── */}
       <section className="py-12 px-6 bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto text-center">
+        <FadeContent className="max-w-lg mx-auto text-center">
           <h2 className="text-lg font-black text-gray-900 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
             ¿De que año sos?
           </h2>
@@ -178,12 +183,12 @@ export default function LandingPage() {
               />
             ))}
           </div>
-        </div>
+        </FadeContent>
       </section>
 
       {/* ── About ── */}
       <section className="py-16 px-6 bg-white text-center flex-1">
-        <div className="max-w-md mx-auto flex flex-col items-center gap-6">
+        <FadeContent delay={0.1} className="max-w-md mx-auto flex flex-col items-center gap-6">
           <h2 className="text-xl font-black text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
             ¿Que es tusPruebas?
           </h2>
@@ -204,7 +209,7 @@ export default function LandingPage() {
             <FileIcon />
             Explorar pruebas
           </button>
-        </div>
+        </FadeContent>
       </section>
 
       {/* ── Footer ── */}

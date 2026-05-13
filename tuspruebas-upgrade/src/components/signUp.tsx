@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -9,79 +10,78 @@ export default function SignUp() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: conectar con backend
     navigate("/home");
   };
 
   return (
-    <div className="min-h-screen bg-tp-bg flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <button onClick={() => navigate("/")} className="text-tp-yellow font-black text-2xl tracking-tight">
-            tus<span className="text-white">Pruebas</span>
-          </button>
-          <p className="text-tp-gray mt-2 text-sm">Creá tu cuenta gratis</p>
+    <div className="min-h-screen bg-white flex items-center justify-center px-6 font-dm-sans">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+        <div className="text-center mb-12">
+          <motion.button onClick={() => navigate("/")} className="text-gray-900 font-black text-2xl font-syne inline-block mb-2">
+            tuspruebas
+          </motion.button>
+          <p className="text-gray-600 text-sm">Creá tu cuenta gratis</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-tp-card border border-white/8 rounded-2xl p-8">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-white/70 font-medium">Nombre</label>
+        <div className="bg-white border border-gray-200 rounded-2xl p-8">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <div>
+              <label className="text-sm text-gray-700 font-semibold block mb-2">Nombre</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Tu nombre"
                 required
-                className="bg-tp-bg border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-tp-yellow/50 transition-colors duration-200"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-gray-400 transition-colors"
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-white/70 font-medium">Email</label>
+            <div>
+              <label className="text-sm text-gray-700 font-semibold block mb-2">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tumail@ejemplo.com"
+                placeholder="tu@email.com"
                 required
-                className="bg-tp-bg border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-tp-yellow/50 transition-colors duration-200"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-gray-400 transition-colors"
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-white/70 font-medium">Contraseña</label>
+            <div>
+              <label className="text-sm text-gray-700 font-semibold block mb-2">Contraseña</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="bg-tp-bg border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-tp-yellow/50 transition-colors duration-200"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-gray-400 transition-colors"
               />
             </div>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
               type="submit"
-              className="mt-2 bg-tp-yellow text-tp-bg font-black py-3 rounded-xl hover:bg-yellow-300 transition-colors duration-200"
+              className="bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition-colors mt-2"
             >
               Crear cuenta
-            </button>
+            </motion.button>
           </form>
 
-          <div className="mt-6 text-center">
-            <span className="text-tp-gray text-sm">¿Ya tenés cuenta? </span>
-            <button
+          <div className="mt-8 text-center text-sm text-gray-600">
+            ¿Ya tenés cuenta?{" "}
+            <motion.button
               onClick={() => navigate("/login")}
-              className="text-tp-yellow text-sm font-semibold hover:underline"
+              className="text-gray-900 font-bold hover:underline transition-colors"
             >
               Iniciá sesión
-            </button>
+            </motion.button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
