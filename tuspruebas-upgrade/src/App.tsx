@@ -4,6 +4,8 @@ import HomePage from "./components/HomePage";
 import Login from "./components/login";
 import SignUp from "./components/signUp";
 import SubirPrueba from "./components/subirPrueba";
+import IA from "./components/Ia";
+import AdminPanel from "./components/AdminPanel";
 
 export default function App() {
   return (
@@ -14,6 +16,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/subir" element={<SubirPrueba />} />
+        <Route path="/ia" element={<IA />} />
+        <Route path="/admin" element={<AdminPanel />} />
       </Routes>
     </Router>
   );

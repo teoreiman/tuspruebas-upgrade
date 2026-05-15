@@ -11,7 +11,6 @@ interface Prueba {
   tema: string;
 }
 
-// ── Materias por colegio y año ────────────────────────────────────────────────
 const ORT_MATERIAS: Record<string, string[]> = {
   "7mo": ["Tecnología", "Matemática", "Lengua y Literatura", "Inglés", "Ciencias Sociales", "Ciencias Naturales", "Arte", "Hebreo"],
   "1ro": ["Arte", "Biología", "Tecnología", "Educación Judía", "Formación Ética y Ciudadana", "Geografía", "Historia", "Matemática", "Lengua y Literatura", "Inglés"],
