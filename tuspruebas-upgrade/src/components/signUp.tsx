@@ -4,26 +4,17 @@ import { motion } from "framer-motion";
 import { registerUser, loginWithGoogle, saveSession } from "../services/Auth";
 
 const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 16px",
-  border: "1.5px solid #e5e7eb",
-  borderRadius: "10px",
-  fontSize: "14px",
-  color: "#111",
-  backgroundColor: "#f9fafb",
-  outline: "none",
-  transition: "border-color 0.2s, background-color 0.2s",
-  boxSizing: "border-box",
-  fontFamily: "'DM Sans', sans-serif",
+  width: "100%", padding: "12px 16px",
+  border: "1.5px solid #e5e7eb", borderRadius: "10px",
+  fontSize: "14px", color: "#111", backgroundColor: "#f9fafb",
+  outline: "none", transition: "border-color 0.2s, background-color 0.2s",
+  boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif",
 };
 
 function Spinner() {
   return (
-    <motion.div
-      animate={{ rotate: 360 }}
-      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-      style={{ width: "16px", height: "16px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%" }}
-    />
+    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      style={{ width: "16px", height: "16px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%" }} />
   );
 }
 
@@ -38,10 +29,7 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
-      return;
-    }
+    if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres"); return; }
     setLoading(true);
     try {
       const { token, user } = await registerUser(nombre, email, password);
@@ -61,8 +49,7 @@ export default function SignUp() {
       <div style={{
         width: "45%",
         background: "linear-gradient(145deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%)",
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: "60px", position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", width: "400px", height: "400px", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.05)", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }} />
@@ -79,14 +66,8 @@ export default function SignUp() {
           <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", lineHeight: 1.65, maxWidth: "260px" }}>
             Accedé a miles de exámenes de los colegios judíos de Buenos Aires
           </p>
-
           <div style={{ marginTop: "52px", display: "flex", flexDirection: "column", gap: "14px", textAlign: "left" }}>
-            {[
-              "Pruebas de ORT, Buber, Wolfson y Tarbut",
-              "Filtrá por materia, año y profesor",
-              "IA para resolver ejercicios",
-              "Guardá tus pruebas favoritas",
-            ].map((item) => (
+            {["Pruebas de ORT, Buber y Tarbut", "Filtrá por materia, año y profesor", "IA para resolver ejercicios", "Guardá tus pruebas favoritas"].map((item) => (
               <div key={item} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.3)", flexShrink: 0 }} />
                 <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>{item}</span>
@@ -97,29 +78,36 @@ export default function SignUp() {
       </div>
 
       {/* Panel derecho */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px", backgroundColor: "#fff" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px", backgroundColor: "#fff", position: "relative" }}>
+
+        {/* Flecha volver */}
+        <motion.button
+          onClick={() => navigate("/")}
+          whileHover={{ x: -3 }}
+          style={{
+            position: "absolute", top: "28px", left: "32px",
+            display: "flex", alignItems: "center", gap: "6px",
+            fontSize: "13px", color: "#9ca3af", fontWeight: 500,
+            background: "none", border: "none", cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M5 12l7 7M5 12l7-7" />
+          </svg>
+          Volver
+        </motion.button>
+
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45 }} style={{ width: "100%", maxWidth: "400px" }}>
 
           <div style={{ marginBottom: "36px" }}>
-            <h2 style={{ fontSize: "26px", fontWeight: 900, color: "#111", fontFamily: "'Syne', sans-serif", marginBottom: "6px" }}>
-              Creá tu cuenta
-            </h2>
+            <h2 style={{ fontSize: "26px", fontWeight: 900, color: "#111", fontFamily: "'Syne', sans-serif", marginBottom: "6px" }}>Creá tu cuenta</h2>
             <p style={{ fontSize: "14px", color: "#9ca3af" }}>Gratis, para siempre</p>
           </div>
 
           {/* Google */}
-          <motion.button
-            whileHover={{ backgroundColor: "#f9fafb" }}
-            whileTap={{ scale: 0.99 }}
-            onClick={loginWithGoogle}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px",
-              padding: "12px 20px", border: "1.5px solid #e5e7eb", borderRadius: "10px",
-              backgroundColor: "#fff", cursor: "pointer", fontSize: "14px",
-              fontWeight: 600, color: "#374151", marginBottom: "24px",
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          >
+          <motion.button whileHover={{ backgroundColor: "#f9fafb" }} whileTap={{ scale: 0.99 }} onClick={loginWithGoogle}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", padding: "12px 20px", border: "1.5px solid #e5e7eb", borderRadius: "10px", backgroundColor: "#fff", cursor: "pointer", fontSize: "14px", fontWeight: 600, color: "#374151", marginBottom: "24px", fontFamily: "'DM Sans', sans-serif" }}>
             <svg width="18" height="18" viewBox="0 0 48 48">
               <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.1 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.2 29 5 24 5 12.4 5 3 14.4 3 26s9.4 21 21 21 21-9.4 21-21c0-1.3-.1-2.7-.4-3.9z"/>
               <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.9 18.9 13 24 13c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.2 29 5 24 5 16.3 5 9.7 9 6.3 14.7z"/>
@@ -129,75 +117,50 @@ export default function SignUp() {
             Registrarse con Google
           </motion.button>
 
-          {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "24px" }}>
             <div style={{ flex: 1, height: "1px", backgroundColor: "#f3f4f6" }} />
             <span style={{ fontSize: "12px", color: "#d1d5db", fontWeight: 500 }}>o con tu email</span>
             <div style={{ flex: 1, height: "1px", backgroundColor: "#f3f4f6" }} />
           </div>
 
-          {/* Error */}
           {error && (
-            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} style={{ padding: "11px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", fontSize: "13px", color: "#dc2626", marginBottom: "18px" }}>
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+              style={{ padding: "11px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", fontSize: "13px", color: "#dc2626", marginBottom: "18px" }}>
               {error}
             </motion.div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div>
               <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "7px" }}>Nombre</label>
-              <input
-                type="text" value={nombre} onChange={(e) => setNombre(e.target.value)}
-                placeholder="Tu nombre" required disabled={loading} style={inputStyle}
+              <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" required disabled={loading} style={inputStyle}
                 onFocus={(e) => { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.backgroundColor = "#fff"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#f9fafb"; }}
-              />
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#f9fafb"; }} />
             </div>
             <div>
               <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "7px" }}>Email</label>
-              <input
-                type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com" required disabled={loading} style={inputStyle}
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" required disabled={loading} style={inputStyle}
                 onFocus={(e) => { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.backgroundColor = "#fff"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#f9fafb"; }}
-              />
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#f9fafb"; }} />
             </div>
             <div>
               <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "7px" }}>Contraseña</label>
-              <input
-                type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres" required disabled={loading} style={inputStyle}
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required disabled={loading} style={inputStyle}
                 onFocus={(e) => { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.backgroundColor = "#fff"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#f9fafb"; }}
-              />
+                onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#f9fafb"; }} />
             </div>
 
-            <motion.button
-              whileHover={{ backgroundColor: loading ? "#9ca3af" : "#1f2937" }}
-              type="submit" disabled={loading}
-              style={{
-                width: "100%", padding: "13px",
-                backgroundColor: loading ? "#9ca3af" : "#111",
-                color: "#fff", fontWeight: 700, fontSize: "14px",
-                borderRadius: "10px", border: "none",
-                cursor: loading ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                marginTop: "4px", fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
+            <motion.button whileHover={{ backgroundColor: loading ? "#9ca3af" : "#1f2937" }} type="submit" disabled={loading}
+              style={{ width: "100%", padding: "13px", backgroundColor: loading ? "#9ca3af" : "#111", color: "#fff", fontWeight: 700, fontSize: "14px", borderRadius: "10px", border: "none", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "4px", fontFamily: "'DM Sans', sans-serif" }}>
               {loading ? <><Spinner /> Creando cuenta...</> : "Crear cuenta gratis"}
             </motion.button>
           </form>
 
-          <p style={{ fontSize: "11px", color: "#d1d5db", textAlign: "center", marginTop: "14px", lineHeight: 1.6 }}>
+          <p style={{ fontSize: "11px", color: "#d1d5db", textAlign: "center", marginTop: "14px" }}>
             Al registrarte aceptás los{" "}
-            <button style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: "11px", textDecoration: "underline" }}>
-              Términos y condiciones
-            </button>
+            <button style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", fontSize: "11px", textDecoration: "underline" }}>Términos y condiciones</button>
           </p>
-
-          <p style={{ textAlign: "center", fontSize: "13px", color: "#9ca3af", marginTop: "20px" }}>
+          <p style={{ textAlign: "center", fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>
             ¿Ya tenés cuenta?{" "}
             <motion.button whileHover={{ opacity: 0.7 }} onClick={() => navigate("/login")}
               style={{ fontWeight: 700, color: "#111", background: "none", border: "none", cursor: "pointer", fontSize: "13px" }}>

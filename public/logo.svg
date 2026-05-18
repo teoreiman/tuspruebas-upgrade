@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="60" viewBox="0 0 280 60">
+  <!-- Fondo del icono -->
+  <rect x="0" y="4" width="52" height="52" rx="10" ry="10" fill="#1a1f2e"/>
+  <!-- Borde azul del icono -->
+  <rect x="0" y="4" width="52" height="52" rx="10" ry="10" fill="none" stroke="#1063EF" stroke-width="2"/>
+  <!-- Texto TP dentro del icono -->
+  <text x="26" y="36" font-family="'Arial Black', Arial, sans-serif" font-size="20" font-weight="900" fill="#4782E5" text-anchor="middle" letter-spacing="-1">TP</text>
+  <!-- "tus" en blanco -->
+  <text x="68" y="40" font-family="'Arial', sans-serif" font-size="28" font-weight="400" fill="#ffffff">tus</text>
+  <!-- "Pruebas" en azul, bold -->
+  <text x="118" y="40" font-family="'Arial Black', Arial, sans-serif" font-size="28" font-weight="900" fill="#1063EF">Pruebas</text>
+</svg>
