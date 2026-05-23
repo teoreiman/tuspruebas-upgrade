@@ -15,6 +15,7 @@ const C = {
   bg:        "#070b14",
   bgCard:    "#0d1526",
   bgSection: "#080d18",
+  bgCta:     "#0a1020",
   border:    "rgba(255,255,255,0.07)",
   blue:      "#1063EF",
   blueHov:   "#0050EF",
@@ -24,130 +25,163 @@ const C = {
   text:      "#c8cdd8",
 };
 
+// ── Laptop Mockup ─────────────────────────────────────────────────────────────
 function LaptopMockup() {
-  const materias = [
-    { label: "Matemática", color: "#1063EF" },
-    { label: "Marketing",   color: "#f59e0b" },
-    { label: "Química",    color: "#10b981" },
-    { label: "Inglés",     color: "#ec4899" },
-    { label: "Lengua y Literatura",     color: "#8b5cf6" },
-    { label: "Educación Judia",   color: "#14b8a6" },
-  ];
-
   return (
     <motion.div
-      initial={{ opacity: 0, x: 40, y: 20 }}
+      initial={{ opacity: 0, x: 50, y: 10 }}
       animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      style={{ position: "relative", width: "100%", maxWidth: "560px" }}
+      transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      style={{ position: "relative", width: "100%", maxWidth: "580px" }}
     >
+      {/* Big blue glow */}
       <div style={{
-        position: "absolute", top: "20%", left: "10%",
-        width: "80%", height: "60%",
-        backgroundColor: "rgba(16,99,239,0.2)",
-        filter: "blur(60px)", borderRadius: "50%", zIndex: 0,
+        position: "absolute", top: "15%", left: "5%",
+        width: "90%", height: "70%",
+        background: "radial-gradient(ellipse, rgba(16,99,239,0.35) 0%, transparent 70%)",
+        filter: "blur(40px)", zIndex: 0, pointerEvents: "none",
       }} />
 
+      {/* Laptop */}
       <div style={{ position: "relative", zIndex: 1 }}>
+        {/* Screen */}
         <div style={{
-          backgroundColor: "#0f1923",
-          borderRadius: "16px 16px 0 0",
-          border: "2px solid rgba(255,255,255,0.12)",
+          backgroundColor: "#0d1728",
+          borderRadius: "18px 18px 0 0",
+          border: "2px solid rgba(255,255,255,0.13)",
           borderBottom: "none",
-          padding: "12px",
-          boxShadow: "0 0 60px rgba(16,99,239,0.15), inset 0 0 40px rgba(0,0,0,0.5)",
+          padding: "10px 10px 0",
+          boxShadow: "0 0 80px rgba(16,99,239,0.2)",
         }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "8px" }}>
-            <div style={{ width: "60px", height: "6px", borderRadius: "3px", backgroundColor: "rgba(255,255,255,0.06)" }} />
+          {/* Camera notch */}
+          <div style={{ display: "flex", justifyContent: "center", paddingBottom: "8px" }}>
+            <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.15)" }} />
           </div>
 
-          <div style={{
-            backgroundColor: "#0a1020",
-            borderRadius: "8px",
-            padding: "16px",
-            minHeight: "280px",
-            border: "1px solid rgba(255,255,255,0.05)",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+          {/* Screen content */}
+          <div style={{ backgroundColor: "#060e1c", borderRadius: "10px 10px 0 0", overflow: "hidden", minHeight: "300px" }}>
+            {/* Topbar inside screen */}
+            <div style={{ backgroundColor: "#0a1525", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ width: "24px", height: "24px", borderRadius: "6px", backgroundColor: C.blue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 900, color: "#fff" }}>TP</div>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: C.white }}>tusPruebas</span>
+                <div style={{ width: "22px", height: "22px", borderRadius: "5px", backgroundColor: C.blue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: 900, color: "#fff" }}>TP</div>
+                <span style={{ fontSize: "10px", fontWeight: 700, color: C.white }}>tusPruebas</span>
               </div>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <div style={{ width: "28px", height: "16px", borderRadius: "4px", backgroundColor: "rgba(255,255,255,0.06)" }} />
-                <div style={{ width: "28px", height: "16px", borderRadius: "4px", backgroundColor: "rgba(255,255,255,0.06)" }} />
+              <div style={{ fontSize: "9px", color: C.gray }}>Bienvenido de nuevo, Tomás!</div>
+              <div style={{ display: "flex", gap: "4px" }}>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444" }} />
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#f59e0b" }} />
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#22c55e" }} />
               </div>
             </div>
 
-            <div style={{ backgroundColor: "rgba(255,255,255,0.04)", borderRadius: "6px", padding: "7px 12px", marginBottom: "14px", border: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "9px", color: C.gray }}>🔍</span>
-              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)" }}>Buscar prueba, materia, profesor...</span>
-            </div>
-
-            <div style={{ display: "flex", gap: "6px", marginBottom: "14px", flexWrap: "wrap" }}>
-              {["5to año", "ORT", "Matemática"].map((chip, i) => (
-                <div key={chip} style={{ padding: "3px 8px", borderRadius: "999px", backgroundColor: i === 0 ? "rgba(16,99,239,0.3)" : "rgba(255,255,255,0.05)", border: `1px solid ${i === 0 ? "rgba(16,99,239,0.5)" : "rgba(255,255,255,0.08)"}`, fontSize: "9px", color: i === 0 ? C.blueLight : C.gray, fontWeight: i === 0 ? 700 : 400 }}>
-                  {chip}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
-              {materias.map((m) => (
-                <motion.div key={m.label} whileHover={{ scale: 1.03 }}
-                  style={{ backgroundColor: "rgba(255,255,255,0.04)", borderRadius: "8px", padding: "10px 8px", border: "1px solid rgba(255,255,255,0.06)", cursor: "default" }}>
-                  <div style={{ width: "20px", height: "20px", borderRadius: "5px", backgroundColor: m.color + "22", border: `1px solid ${m.color}44`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "6px" }}>
-                    <div style={{ width: "8px", height: "8px", borderRadius: "2px", backgroundColor: m.color }} />
+            <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 0, minHeight: "260px" }}>
+              {/* Sidebar */}
+              <div style={{ backgroundColor: "#0a1422", borderRight: "1px solid rgba(255,255,255,0.05)", padding: "12px 10px" }}>
+                <p style={{ fontSize: "8px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>Materias</p>
+                {[
+                  { name: "Matemática", color: "#1063EF" },
+                  { name: "Historia", color: "#f59e0b" },
+                  { name: "Química", color: "#10b981" },
+                  { name: "Inglés", color: "#ec4899" },
+                  { name: "Física", color: "#8b5cf6" },
+                  { name: "Biología", color: "#14b8a6" },
+                ].map((m) => (
+                  <div key={m.name} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 6px", borderRadius: "6px", marginBottom: "3px", backgroundColor: m.name === "Matemática" ? "rgba(16,99,239,0.15)" : "transparent" }}>
+                    <div style={{ width: "8px", height: "8px", borderRadius: "2px", backgroundColor: m.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: "8px", color: m.name === "Matemática" ? C.white : C.gray, fontWeight: m.name === "Matemática" ? 700 : 400 }}>{m.name}</span>
                   </div>
-                  <p style={{ fontSize: "9px", fontWeight: 700, color: C.white, marginBottom: "2px" }}>{m.label}</p>
-                  <p style={{ fontSize: "8px", color: C.gray }}>ORT · 5to</p>
-                </motion.div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div style={{ marginTop: "12px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
-              <div style={{ width: "40px", height: "4px", borderRadius: "2px", backgroundColor: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+              {/* Main content */}
+              <div style={{ padding: "12px", backgroundColor: "#060e1c" }}>
+                <p style={{ fontSize: "9px", color: C.gray, marginBottom: "10px" }}>¿Qué pruebas estudiás hoy?</p>
+
+                {/* Cards grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", marginBottom: "12px" }}>
+                  {[
+                    { label: "Matemática", color: "#1063EF", sub: "5to · García" },
+                    { label: "Historia", color: "#f59e0b", sub: "3ro · Levy" },
+                    { label: "Química", color: "#10b981", sub: "5to · Rosenfeld" },
+                    { label: "Inglés", color: "#ec4899", sub: "4to · Cohen" },
+                    { label: "Física", color: "#8b5cf6", sub: "4to · Mizrahi" },
+                    { label: "Biología", color: "#14b8a6", sub: "2do · Fernández" },
+                  ].map((m) => (
+                    <div key={m.label} style={{ backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <div style={{ width: "18px", height: "18px", borderRadius: "4px", backgroundColor: m.color + "25", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "5px" }}>
+                        <div style={{ width: "7px", height: "7px", borderRadius: "1.5px", backgroundColor: m.color }} />
+                      </div>
+                      <p style={{ fontSize: "8px", fontWeight: 700, color: C.white, marginBottom: "1px" }}>{m.label}</p>
+                      <p style={{ fontSize: "7px", color: C.gray }}>{m.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Progress / chart area */}
+                <div style={{ backgroundColor: "rgba(16,99,239,0.06)", borderRadius: "8px", padding: "10px", border: "1px solid rgba(16,99,239,0.15)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <p style={{ fontSize: "8px", color: C.gray }}>Tu progreso esta semana</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", border: `2px solid ${C.blue}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7px", fontWeight: 900, color: C.blue }}>72%</div>
+                    </div>
+                  </div>
+                  {/* Mini bar chart */}
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: "3px", height: "30px" }}>
+                    {[40, 65, 45, 80, 55, 90, 72].map((h, i) => (
+                      <motion.div key={i}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ delay: 1 + i * 0.08, duration: 0.5 }}
+                        style={{ flex: 1, backgroundColor: i === 6 ? C.blue : "rgba(16,99,239,0.3)", borderRadius: "2px" }} />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div style={{ backgroundColor: "#131d2e", height: "18px", borderRadius: "0 0 8px 8px", border: "2px solid rgba(255,255,255,0.08)", borderTop: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <div style={{ width: "60px", height: "3px", borderRadius: "2px", backgroundColor: "rgba(255,255,255,0.06)" }} />
+        {/* Base */}
+        <div style={{ backgroundColor: "#111d30", height: "16px", borderRadius: "0 0 6px 6px", border: "2px solid rgba(255,255,255,0.08)", borderTop: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ width: "50px", height: "3px", borderRadius: "2px", backgroundColor: "rgba(255,255,255,0.06)" }} />
         </div>
-        <div style={{ height: "8px", backgroundColor: "#0d1624", borderRadius: "0 0 12px 12px", border: "2px solid rgba(255,255,255,0.06)", borderTop: "none" }} />
+        <div style={{ height: "6px", backgroundColor: "#0c1828", borderRadius: "0 0 10px 10px", border: "2px solid rgba(255,255,255,0.05)", borderTop: "none", boxShadow: "0 8px 32px rgba(16,99,239,0.2)" }} />
       </div>
     </motion.div>
   );
 }
 
 // ── Step ──────────────────────────────────────────────────────────────────────
-function Step({ num, title, desc, isLast }: { num: string; title: string; desc: string; isLast?: boolean }) {
+function Step({ num, icon, title, desc, isLast }: { num: string; icon: React.ReactNode; title: string; desc: string; isLast?: boolean }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", flex: 1, position: "relative" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", flex: 1, position: "relative" }}>
+      {/* Dashed connector */}
       {!isLast && (
         <div style={{
-          position: "absolute", top: "28px",
-          left: "calc(50% + 28px)", right: "calc(-50% + 28px)",
+          position: "absolute", top: "36px",
+          left: "calc(50% + 38px)", right: "calc(-50% + 38px)",
           height: "1px",
-          background: `linear-gradient(to right, ${C.blue}80, rgba(16,99,239,0.1))`,
+          borderTop: `1.5px dashed rgba(16,99,239,0.4)`,
           zIndex: 0,
         }} />
       )}
+
+      {/* Icon circle */}
       <div style={{
-        width: "56px", height: "56px", borderRadius: "50%",
-        backgroundColor: "rgba(16,99,239,0.12)", border: `2px solid ${C.blue}`,
+        width: "72px", height: "72px", borderRadius: "50%",
+        backgroundColor: "rgba(16,99,239,0.1)",
+        border: `1.5px solid rgba(16,99,239,0.4)`,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "18px", fontWeight: 900, color: C.blue,
-        fontFamily: "'Syne', sans-serif",
-        boxShadow: `0 0 20px rgba(16,99,239,0.25)`,
-        zIndex: 1, flexShrink: 0, position: "relative",
+        zIndex: 1, position: "relative", flexShrink: 0,
+        boxShadow: "0 0 24px rgba(16,99,239,0.15)",
       }}>
-        {num}
+        {icon}
       </div>
+
       <div style={{ textAlign: "center" }}>
+        <p style={{ fontSize: "11px", fontWeight: 700, color: C.blue, marginBottom: "6px" }}>{num}</p>
         <h3 style={{ fontSize: "15px", fontWeight: 700, color: C.white, marginBottom: "8px", fontFamily: "'Syne', sans-serif" }}>{title}</h3>
-        <p style={{ fontSize: "13px", color: C.gray, lineHeight: 1.65 }}>{desc}</p>
+        <p style={{ fontSize: "12px", color: C.gray, lineHeight: 1.65, maxWidth: "180px", margin: "0 auto" }}>{desc}</p>
       </div>
     </div>
   );
@@ -160,58 +194,40 @@ export default function LandingPage() {
   const caracteristicas = [
     {
       icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-          <polyline points="10 9 9 9 8 9"/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
         </svg>
       ),
       title: "Pruebas personalizadas",
-      desc: "Filtrá por materia, año, colegio y profesor y encontrá exactamente lo que necesitás.",
+      desc: "Seleccioná el contenido y nivel de dificultad.",
     },
     {
       icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
         </svg>
       ),
-      title: "Seguimiento de progreso",
-      desc: "Guardá tus pruebas favoritas y llevá un registro de todo tu material de estudio.",
+      title: "Seguimiento de proceso",
+      desc: "Visualizá tus estadísticas y mejorá día a día.",
     },
     {
       icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
         </svg>
       ),
-      title: "Con todos tus amigos",
-      desc: "Colaborá con la comunidad subiendo tus propios exámenes y ayudá a otros.",
+      title: "Corrección inmediata",
+      desc: "Obtené resultados al instante y entendé tus errores.",
     },
     {
       icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-          <line x1="3" y1="9" x2="21" y2="9"/>
-          <line x1="9" y1="21" x2="9" y2="9"/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.white} strokeWidth="1.8">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
         </svg>
       ),
-      title: "Nosotros y el apoyo",
-      desc: "Revisamos cada prueba antes de publicarla y respondemos dudas del contenido.",
+      title: "Guardá y repetí",
+      desc: "Guardá tus pruebas y volvé a practicarlas cuando quieras.",
     },
-  ];
-
-  // Colores de fondo para las cards — mezcla azules como en el diseño de Fede
-  const cardBgs = [
-    { bg: "#1063EF", glow: "rgba(16,99,239,0.4)" },
-    { bg: "#0d4fd4", glow: "rgba(13,79,212,0.4)" },
-    { bg: "#1557d4", glow: "rgba(21,87,212,0.4)" },
-    { bg: "#0a3fb8", glow: "rgba(10,63,184,0.4)" },
   ];
 
   return (
@@ -221,26 +237,26 @@ export default function LandingPage() {
       <motion.header
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.35 }}
         style={{
           borderBottom: `1px solid ${C.border}`,
-          backgroundColor: "rgba(7,11,20,0.92)",
+          backgroundColor: "rgba(7,11,20,0.95)",
           backdropFilter: "blur(16px)",
           position: "sticky", top: 0, zIndex: 50,
         }}
       >
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "14px 48px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "12px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
 
-          <nav style={{ display: "flex", alignItems: "center", gap: "36px" }}>
+          <nav style={{ display: "flex", alignItems: "center", gap: "32px" }}>
             {[
-              { label: "Inicio",          id: "",               path: "" },
-              { label: "Características", id: "caracteristicas",path: "" },
-              { label: "¿Cómo funciona?", id: "como-funciona",  path: "" },
-              { label: "Subir pruebas",   id: "",               path: "/subir" },
+              { label: "Inicio",          id: "" },
+              { label: "Características", id: "caracteristicas" },
+              { label: "¿Cómo funciona?", id: "como-funciona" },
+              { label: "Subir pruebas",   path: "/subir" },
             ].map((item) => (
               <motion.button key={item.label}
-                onClick={() => item.path ? navigate(item.path) : item.id ? document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth" }) : window.scrollTo({ top: 0, behavior: "smooth" })}
+                onClick={() => "path" in item && item.path ? navigate(item.path) : item.id ? document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth" }) : window.scrollTo({ top: 0, behavior: "smooth" })}
                 whileHover={{ color: C.white }}
                 style={{ fontSize: "13px", color: C.gray, fontWeight: 500, background: "none", border: "none", cursor: "pointer", transition: "color 0.15s", whiteSpace: "nowrap" }}>
                 {item.label}
@@ -249,12 +265,12 @@ export default function LandingPage() {
           </nav>
 
           <ClickSpark sparkColor={C.blue} sparkCount={8}>
-            <Magnet magnetStrength={0.35} padding={20}>
+            <Magnet magnetStrength={0.35} padding={16}>
               <motion.button
-                whileHover={{ backgroundColor: C.blueHov, boxShadow: "0 0 20px rgba(16,99,239,0.4)" }}
+                whileHover={{ backgroundColor: C.blueHov, boxShadow: "0 0 20px rgba(16,99,239,0.5)" }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => navigate("/login")}
-                style={{ fontSize: "13px", fontWeight: 700, color: C.white, backgroundColor: C.blue, padding: "9px 24px", borderRadius: "9px", border: "none", cursor: "pointer", transition: "all 0.2s" }}>
+                style={{ fontSize: "13px", fontWeight: 700, color: C.white, backgroundColor: C.blue, padding: "9px 24px", borderRadius: "8px", border: "none", cursor: "pointer", transition: "all 0.2s" }}>
                 Comenzar
               </motion.button>
             </Magnet>
@@ -263,86 +279,74 @@ export default function LandingPage() {
       </motion.header>
 
       {/* ── HERO ── */}
-      <section style={{ position: "relative", overflow: "hidden", backgroundColor: C.bg }}>
-        <Aurora colorStops={["#1063EF", "#070b14", "#4782E5", "#0050EF"]} amplitude={1.1} speed={0.35} style={{ opacity: 0.45 }} />
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.025, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
+      <section style={{ position: "relative", overflow: "hidden", backgroundColor: C.bg, minHeight: "90vh", display: "flex", alignItems: "center" }}>
+        <Aurora colorStops={["#1063EF", "#070b14", "#0050EF", "#4782E5"]} amplitude={1.0} speed={0.3} style={{ opacity: 0.5 }} />
 
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 48px 100px", display: "flex", alignItems: "center", gap: "64px", position: "relative", zIndex: 1 }}>
+        {/* Subtle grid */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.02, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "52px 52px" }} />
+
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "60px 40px 80px", display: "flex", alignItems: "center", gap: "48px", position: "relative", zIndex: 1, width: "100%" }}>
+
           {/* Left */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Reviews badge */}
-            <FadeContent delay={0.1}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "28px" }}>
-                <div style={{ display: "flex" }}>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} style={{ width: "28px", height: "28px", borderRadius: "50%", backgroundColor: ["#1063EF","#4782E5","#0050EF"][i-1], border: "2px solid rgba(255,255,255,0.15)", marginLeft: i > 1 ? "-8px" : 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff", fontWeight: 700 }}>
-                      {["T","F","M"][i-1]}
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div style={{ display: "flex", gap: "2px" }}>
-                    {[1,2,3,4,5].map((i) => <span key={i} style={{ color: "#f59e0b", fontSize: "11px" }}>★</span>)}
-                  </div>
-                  <p style={{ fontSize: "11px", color: C.gray, marginTop: "1px" }}>1,000+ estudiantes confían en nosotros</p>
-                </div>
-              </div>
-            </FadeContent>
-
-            {/* Headline — SplitText letra por letra */}
-            <div style={{ marginBottom: "0" }}>
+          <div style={{ flex: "0 0 460px" }}>
+            {/* Main headline — SplitText */}
+            <div style={{ marginBottom: "16px" }}>
               <SplitText
                 text="Estudiá mejor."
                 splitBy="chars"
-                delay={20}
+                delay={18}
                 duration={0.45}
                 ease={[0.22, 1, 0.36, 1]}
                 style={{
-                  fontSize: "clamp(42px, 5vw, 62px)",
+                  fontSize: "58px",
                   fontWeight: 900,
                   color: C.white,
                   fontFamily: "'Syne', sans-serif",
-                  lineHeight: 1.05,
+                  lineHeight: 1.0,
                   justifyContent: "flex-start",
-                  marginBottom: "4px",
+                  marginBottom: "2px",
                 }}
               />
               <SplitText
                 text="Rendí al máximo"
                 splitBy="chars"
-                delay={22}
+                delay={20}
                 duration={0.45}
                 ease={[0.22, 1, 0.36, 1]}
                 style={{
-                  fontSize: "clamp(42px, 5vw, 62px)",
+                  fontSize: "58px",
                   fontWeight: 900,
                   color: C.blue,
                   fontFamily: "'Syne', sans-serif",
-                  lineHeight: 1.05,
+                  lineHeight: 1.0,
                   justifyContent: "flex-start",
                 }}
               />
             </div>
 
             {/* Subtitle */}
-            <FadeContent delay={0.6}>
-              <p style={{ fontSize: "16px", color: C.gray, lineHeight: 1.7, margin: "20px 0 36px", maxWidth: "440px" }}>
-                <ShinyText speed={7} style={{ color: C.gray }}>
-                  Tus pruebas, tu tiempo, tu forma. Practicá con material personalizado y seguí tu progreso.
+            <FadeContent delay={0.7}>
+              <p style={{ fontSize: "15px", color: C.gray, lineHeight: 1.75, margin: "18px 0 32px", maxWidth: "380px" }}>
+                <ShinyText speed={8} style={{ color: C.gray }}>
+                  Tus pruebas, tus tiempos, tu forma. Practicá con test personalizados y seguí tu progreso.
                 </ShinyText>
               </p>
             </FadeContent>
 
             {/* CTAs */}
-            <FadeContent delay={0.75}>
-              <div style={{ display: "flex", gap: "14px", alignItems: "center", flexWrap: "wrap" }}>
+            <FadeContent delay={0.85}>
+              <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
                 <ClickSpark sparkColor={C.blue} sparkCount={10}>
-                  <Magnet magnetStrength={0.35} padding={22}>
+                  <Magnet magnetStrength={0.35} padding={18}>
                     <motion.button
-                      whileHover={{ backgroundColor: C.blueHov, boxShadow: "0 0 32px rgba(16,99,239,0.5)" }}
+                      whileHover={{ backgroundColor: C.blueHov, boxShadow: "0 0 28px rgba(16,99,239,0.5)" }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => navigate("/signup")}
-                      style={{ backgroundColor: C.blue, color: C.white, fontWeight: 700, fontSize: "14px", padding: "13px 32px", borderRadius: "10px", border: "none", cursor: "pointer", transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                      style={{
+                        backgroundColor: C.blue, color: C.white, fontWeight: 700, fontSize: "14px",
+                        padding: "12px 28px", borderRadius: "9px", border: "none", cursor: "pointer",
+                        transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: "8px",
+                      }}>
                       Comenzar ahora
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -354,103 +358,77 @@ export default function LandingPage() {
                 <motion.button
                   whileHover={{ color: C.white }}
                   onClick={() => document.getElementById("como-funciona")?.scrollIntoView({ behavior: "smooth" })}
-                  style={{ backgroundColor: "transparent", color: C.text, fontWeight: 600, fontSize: "14px", padding: "13px 24px", borderRadius: "10px", border: `1px solid ${C.border}`, cursor: "pointer", transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polygon points="10 8 16 12 10 16 10 8"/>
-                  </svg>
-                  Ver cómo funciona
+                  style={{
+                    backgroundColor: "transparent", color: C.text, fontWeight: 600, fontSize: "14px",
+                    padding: "12px 20px", borderRadius: "9px", border: "none",
+                    cursor: "pointer", transition: "color 0.2s",
+                    display: "inline-flex", alignItems: "center", gap: "8px",
+                  }}>
+                  <div style={{
+                    width: "28px", height: "28px", borderRadius: "50%",
+                    border: `1.5px solid ${C.border}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                  </div>
+                  Ver como funciona
                 </motion.button>
               </div>
             </FadeContent>
           </div>
 
-          {/* Right — Laptop Mockup */}
-          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          {/* Right — Laptop */}
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
             <LaptopMockup />
           </div>
         </div>
       </section>
 
-      {/* ── STATS ── */}
-      <div style={{ backgroundColor: C.bgSection, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 48px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", backgroundColor: C.border, gap: "1px" }}>
-          {[
-            { to: 500, suffix: "+", label: "Pruebas" },
-            { to: 3, suffix: "", label: "Colegios" },
-            { to: 8, suffix: "", label: "Años" },
-            { to: 2000, suffix: "+", label: "Estudiantes" },
-          ].map((s, i) => (
-            <FadeContent key={s.label} delay={i * 0.08}>
-              <div style={{ textAlign: "center", padding: "32px 16px", backgroundColor: C.bgSection }}>
-                <p style={{ fontSize: "38px", fontWeight: 900, color: C.blue, fontFamily: "'Syne', sans-serif", lineHeight: 1, marginBottom: "6px" }}>
-                  <CountUp to={s.to} suffix={s.suffix} duration={2} />
-                </p>
-                <p style={{ fontSize: "11px", color: C.gray, textTransform: "uppercase", letterSpacing: "0.7px", fontWeight: 600 }}>{s.label}</p>
-              </div>
-            </FadeContent>
-          ))}
-        </div>
-      </div>
-
-      {/* ── CARACTERÍSTICAS — cards con fondo azul sólido ── */}
-      <section id="caracteristicas" style={{ backgroundColor: C.bg, padding: "96px 48px" }}>
+      {/* ── CARACTERÍSTICAS ── */}
+      <section id="caracteristicas" style={{ backgroundColor: C.bg, padding: "80px 40px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <FadeContent delay={0}>
-            <div style={{ marginBottom: "56px" }}>
-              <p style={{ fontSize: "12px", fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "14px" }}>
+            <div style={{ marginBottom: "48px" }}>
+              <p style={{ fontSize: "13px", fontWeight: 700, color: C.blue, marginBottom: "10px" }}>
                 Características
               </p>
-              <h2 style={{ fontSize: "36px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif" }}>
+              <h2 style={{ fontSize: "32px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif" }}>
                 Todo lo que necesitás para estudiar mejor
               </h2>
             </div>
           </FadeContent>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px" }}>
             {caracteristicas.map((c, i) => (
-              <FadeContent key={c.title} delay={i * 0.1}>
+              <FadeContent key={c.title} delay={i * 0.08}>
                 <motion.div
-                  whileHover={{ y: -6, boxShadow: `0 24px 48px ${cardBgs[i].glow}` }}
+                  whileHover={{ y: -4, boxShadow: "0 20px 40px rgba(16,99,239,0.15)" }}
                   style={{
-                    padding: "28px 24px",
-                    background: `linear-gradient(135deg, ${cardBgs[i].bg} 0%, ${cardBgs[i].bg}cc 100%)`,
+                    padding: "28px 22px",
+                    background: "linear-gradient(145deg, #1063EF 0%, #0a4fd4 60%, #0840b8 100%)",
                     borderRadius: "16px",
-                    height: "100%",
-                    position: "relative",
-                    overflow: "hidden",
-                    transition: "all 0.3s",
                     border: "1px solid rgba(255,255,255,0.12)",
+                    position: "relative", overflow: "hidden",
+                    transition: "all 0.3s",
+                    minHeight: "180px",
                   }}
                 >
-                  {/* Glow interno */}
-                  <div style={{
-                    position: "absolute", top: "-20px", right: "-20px",
-                    width: "100px", height: "100px", borderRadius: "50%",
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    filter: "blur(20px)",
-                    pointerEvents: "none",
-                  }} />
-
-                  {/* Noise texture sutil */}
-                  <div style={{
-                    position: "absolute", inset: 0, borderRadius: "16px",
-                    backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E\")",
-                    pointerEvents: "none",
-                  }} />
+                  {/* Glow top right */}
+                  <div style={{ position: "absolute", top: "-10px", right: "-10px", width: "80px", height: "80px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.08)", filter: "blur(16px)", pointerEvents: "none" }} />
 
                   <div style={{ position: "relative", zIndex: 1 }}>
                     <div style={{
                       width: "44px", height: "44px", borderRadius: "12px",
                       backgroundColor: "rgba(255,255,255,0.15)",
-                      border: "1px solid rgba(255,255,255,0.2)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      marginBottom: "18px",
+                      marginBottom: "16px",
                     }}>
                       {c.icon}
                     </div>
-                    <h3 style={{ fontSize: "15px", fontWeight: 700, color: C.white, marginBottom: "10px", fontFamily: "'Syne', sans-serif" }}>{c.title}</h3>
-                    <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.7)", lineHeight: 1.7 }}>{c.desc}</p>
+                    <h3 style={{ fontSize: "14px", fontWeight: 700, color: C.white, marginBottom: "8px", fontFamily: "'Syne', sans-serif" }}>{c.title}</h3>
+                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.65)", lineHeight: 1.65 }}>{c.desc}</p>
                   </div>
                 </motion.div>
               </FadeContent>
@@ -460,31 +438,28 @@ export default function LandingPage() {
       </section>
 
       {/* ── CÓMO FUNCIONA ── */}
-      <section id="como-funciona" style={{ backgroundColor: C.bgSection, padding: "96px 48px", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+      <section id="como-funciona" style={{ backgroundColor: C.bgSection, padding: "80px 40px", borderTop: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <FadeContent delay={0}>
-            <div style={{ textAlign: "center", marginBottom: "48px" }}>
-              <p style={{ fontSize: "12px", fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "14px" }}>
-                ¿Cómo funciona?
-              </p>
-            </div>
+            <p style={{ fontSize: "13px", fontWeight: 700, color: C.blue, marginBottom: "10px" }}>
+              ¿Cómo funciona?
+            </p>
           </FadeContent>
 
-          {/* TrueFocus para el título "Así de simple" */}
+          {/* TrueFocus title */}
           <FadeContent delay={0.05}>
-            <div style={{ textAlign: "center", marginBottom: "64px" }}>
+            <div style={{ marginBottom: "64px" }}>
               <TrueFocus
                 sentence="Así de simple"
                 borderColor={C.blue}
-                glowColor="rgba(16,99,239,0.4)"
+                glowColor="rgba(16,99,239,0.35)"
                 animationDuration={0.5}
-                pauseBetweenAnimations={1600}
+                pauseBetweenAnimations={1800}
                 style={{
                   fontSize: "36px",
                   fontWeight: 900,
                   color: C.white,
                   fontFamily: "'Syne', sans-serif",
-                  justifyContent: "center",
                   display: "inline-flex",
                 }}
               />
@@ -492,46 +467,98 @@ export default function LandingPage() {
           </FadeContent>
 
           <FadeContent delay={0.1}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", alignItems: "flex-start" }}>
-              <Step num="1" title="Elegí tu material" desc="Seleccioná tu colegio, año y materia. Encontrás pruebas y exámenes organizados para vos." />
-              <Step num="2" title="Estudiá las pruebas" desc="Accedé a pruebas reales, practicá con los exámenes anteriores y usá la IA para resolver dudas." />
-              <Step num="3" title="Revisá tus resultados" desc="Guardá tus pruebas favoritas y hacé seguimiento de tu progreso antes de cada evaluación." isLast />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", alignItems: "flex-start" }}>
+              <Step
+                num="1. Elegí tu materia"
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="1.6">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                }
+                title="Elegí tu materia"
+                desc="Seleccioná la materia que querés practicar y el tema."
+              />
+              <Step
+                num="2. Realizá la prueba"
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="1.6">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                }
+                title="Realizá la prueba"
+                desc="Responde las preguntas y ponete a prueba tus conocimientos."
+              />
+              <Step
+                num="3. Revisá tus resultados"
+                icon={
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="1.6">
+                    <polyline points="22 11.08 22 12 12 22 2 12 2.12 11.08"/>
+                    <polyline points="22 11.08 12 2 2 11.08"/>
+                    <line x1="12" y1="2" x2="12" y2="22"/>
+                  </svg>
+                }
+                title="Revisá tus resultados"
+                desc="Obtené tu puntaje, revisá tus errores y seguí mejorando."
+                isLast
+              />
             </div>
           </FadeContent>
         </div>
       </section>
 
       {/* ── CTA FINAL ── */}
-      <section style={{ backgroundColor: C.bg, padding: "100px 48px", position: "relative", overflow: "hidden" }}>
-        <Aurora colorStops={["#0050EF", "#070b14", "#1063EF"]} amplitude={0.9} speed={0.3} style={{ opacity: 0.4 }} />
+      <section style={{ backgroundColor: C.bgSection, padding: "60px 40px 80px", borderTop: `1px solid ${C.border}` }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          <FadeContent delay={0}>
+            <div style={{
+              background: "linear-gradient(135deg, #0d1a35 0%, #0a1428 50%, #0d1a35 100%)",
+              borderRadius: "20px",
+              border: "1px solid rgba(16,99,239,0.25)",
+              padding: "56px 64px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "40px",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: "0 0 60px rgba(16,99,239,0.08), inset 0 0 80px rgba(16,99,239,0.04)",
+            }}>
+              {/* Aurora inside card */}
+              <Aurora colorStops={["#0a3abf", "#0a1428", "#1063EF"]} amplitude={0.7} speed={0.25} style={{ opacity: 0.4, borderRadius: "20px" }} />
 
-        <div style={{ maxWidth: "1200px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-          <div style={{
-            backgroundColor: C.bgCard,
-            borderRadius: "24px",
-            border: `1px solid rgba(16,99,239,0.25)`,
-            padding: "64px 80px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "48px",
-            boxShadow: "0 0 80px rgba(16,99,239,0.08)",
-          }}>
-            <FadeContent delay={0}>
-              <div style={{ maxWidth: "500px" }}>
-                <h2 style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif", marginBottom: "16px", lineHeight: 1.2 }}>
-                  ¿Nos ponemos en marcha?
+              {/* Dots decoration */}
+              <div style={{ position: "absolute", top: "20px", right: "260px", opacity: 0.3 }}>
+                {[0,1,2].map((row) => (
+                  <div key={row} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                    {[0,1,2,3].map((col) => (
+                      <div key={col} style={{ width: "4px", height: "4px", borderRadius: "50%", backgroundColor: C.blue }} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Left text */}
+              <div style={{ position: "relative", zIndex: 1, maxWidth: "480px" }}>
+                <h2 style={{ fontSize: "36px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif", marginBottom: "14px", lineHeight: 1.2 }}>
+                  ¿Listo para mejorar tus resultados?
                 </h2>
-                <p style={{ fontSize: "16px", color: C.gray, lineHeight: 1.7, marginBottom: "36px" }}>
-                  Sumate a los estudiantes que ya están estudiando de forma más inteligente.
+                <p style={{ fontSize: "15px", color: C.gray, lineHeight: 1.7, marginBottom: "32px" }}>
+                  Sumate a miles de estudiantes que ya están estudiando de manera más inteligente.
                 </p>
                 <ClickSpark sparkColor={C.blue} sparkCount={10}>
-                  <Magnet magnetStrength={0.35} padding={20}>
+                  <Magnet magnetStrength={0.3} padding={16}>
                     <motion.button
-                      whileHover={{ backgroundColor: C.blueHov, boxShadow: "0 0 30px rgba(16,99,239,0.45)" }}
+                      whileHover={{ backgroundColor: C.blueHov, boxShadow: "0 0 28px rgba(16,99,239,0.5)" }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => navigate("/signup")}
-                      style={{ backgroundColor: C.blue, color: C.white, fontWeight: 700, fontSize: "15px", padding: "14px 40px", borderRadius: "12px", border: "none", cursor: "pointer", transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                      style={{
+                        backgroundColor: C.blue, color: C.white, fontWeight: 700, fontSize: "14px",
+                        padding: "12px 28px", borderRadius: "9px", border: "none", cursor: "pointer",
+                        transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: "8px",
+                      }}>
                       Comenzar ahora
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -540,39 +567,73 @@ export default function LandingPage() {
                   </Magnet>
                 </ClickSpark>
               </div>
-            </FadeContent>
 
-            <FadeContent delay={0.2}>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <div style={{ position: "absolute", inset: "-20px", backgroundColor: "rgba(16,99,239,0.12)", filter: "blur(30px)", borderRadius: "50%" }} />
-                <StarBorder color={C.blue} speed="3s" style={{ borderRadius: "50%" }}>
-                  <div style={{
-                    width: "140px", height: "140px", borderRadius: "50%",
-                    backgroundColor: "rgba(16,99,239,0.15)",
-                    border: `2px solid rgba(16,99,239,0.3)`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    position: "relative",
-                  }}>
-                    <motion.svg
-                      width="64" height="64" viewBox="0 0 24 24" fill="none"
-                      stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      initial={{ pathLength: 0, opacity: 0 }}
-                      whileInView={{ pathLength: 1, opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1, delay: 0.5, ease: "easeInOut" }}
-                    >
-                      <motion.polyline points="20 6 9 17 4 12" />
-                    </motion.svg>
-                  </div>
-                </StarBorder>
+              {/* Right — 3D Check */}
+              <div style={{ position: "relative", zIndex: 1, flexShrink: 0 }}>
+                {/* Outer glow rings */}
+                <div style={{ position: "absolute", inset: "-30px", borderRadius: "50%", background: "radial-gradient(circle, rgba(16,99,239,0.2) 0%, transparent 70%)", pointerEvents: "none" }} />
+                <div style={{ position: "relative" }}>
+                  {/* Orbiting dots */}
+                  {[0, 1, 2, 3].map((i) => {
+                    const angle = (i / 4) * 360;
+                    const rad = (angle * Math.PI) / 180;
+                    const r = 90;
+                    return (
+                      <motion.div
+                        key={i}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear", delay: i * 0.5 }}
+                        style={{
+                          position: "absolute",
+                          top: "50%", left: "50%",
+                          width: `${r * 2}px`, height: `${r * 2}px`,
+                          marginTop: `-${r}px`, marginLeft: `-${r}px`,
+                          borderRadius: "50%",
+                          border: "1px dashed rgba(16,99,239,0.2)",
+                        }}
+                      >
+                        <div style={{
+                          position: "absolute",
+                          top: 0, left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          width: "6px", height: "6px",
+                          borderRadius: "50%",
+                          backgroundColor: C.blue,
+                          boxShadow: `0 0 8px ${C.blue}`,
+                        }} />
+                      </motion.div>
+                    );
+                  })}
+
+                  <StarBorder color={C.blue} speed="4s" style={{ borderRadius: "50%" }}>
+                    <div style={{
+                      width: "140px", height: "140px", borderRadius: "50%",
+                      background: "linear-gradient(135deg, rgba(16,99,239,0.3) 0%, rgba(16,99,239,0.1) 100%)",
+                      border: "2px solid rgba(16,99,239,0.4)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 0 40px rgba(16,99,239,0.3), inset 0 0 30px rgba(16,99,239,0.1)",
+                    }}>
+                      <motion.svg
+                        width="70" height="70" viewBox="0 0 24 24" fill="none"
+                        stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        whileInView={{ pathLength: 1, opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1.2, delay: 0.4, ease: "easeInOut" }}
+                      >
+                        <motion.polyline points="20 6 9 17 4 12" />
+                      </motion.svg>
+                    </div>
+                  </StarBorder>
+                </div>
               </div>
-            </FadeContent>
-          </div>
+            </div>
+          </FadeContent>
         </div>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ backgroundColor: C.bgSection, borderTop: `1px solid ${C.border}`, padding: "24px 48px" }}>
+      <footer style={{ backgroundColor: C.bg, borderTop: `1px solid ${C.border}`, padding: "16px 40px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" />
           <nav style={{ display: "flex", gap: "28px" }}>
