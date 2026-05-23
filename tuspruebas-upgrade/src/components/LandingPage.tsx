@@ -8,7 +8,6 @@ import Aurora from "../reactBits/Aurora";
 import StarBorder from "../reactBits/StarBorder";
 import ClickSpark from "../reactBits/ClickSpark";
 import SplitText from "../reactBits/Splittext";
-import TrueFocus from "../reactBits/TrueFocus";
 import Logo from "./logo";
 
 const C = {
@@ -309,8 +308,8 @@ export default function LandingPage() {
               />
               <SplitText
                 text="Rendí al máximo"
-                splitBy="chars"
-                delay={22}
+                splitBy="words"
+                delay={120}
                 duration={0.45}
                 ease={[0.22, 1, 0.36, 1]}
                 style={{
@@ -470,24 +469,11 @@ export default function LandingPage() {
             </div>
           </FadeContent>
 
-          {/* TrueFocus para el título "Así de simple" */}
           <FadeContent delay={0.05}>
             <div style={{ textAlign: "center", marginBottom: "64px" }}>
-              <TrueFocus
-                sentence="Así de simple"
-                borderColor={C.blue}
-                glowColor="rgba(16,99,239,0.4)"
-                animationDuration={0.5}
-                pauseBetweenAnimations={1600}
-                style={{
-                  fontSize: "36px",
-                  fontWeight: 900,
-                  color: C.white,
-                  fontFamily: "'Syne', sans-serif",
-                  justifyContent: "center",
-                  display: "inline-flex",
-                }}
-              />
+              <h2 style={{ fontSize: "36px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif", margin: 0 }}>
+                Así de simple
+              </h2>
             </div>
           </FadeContent>
 
