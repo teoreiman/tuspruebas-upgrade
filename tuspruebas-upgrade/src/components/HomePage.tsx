@@ -19,25 +19,25 @@ const C = {
 interface Prueba { id: number; materia: string; escuela: string; año: string; profesor: string; tema: string; }
 
 const MOCK_PRUEBAS: Prueba[] = [
-  { id: 1,  materia: "Matemática",          escuela: "ORT Almagro",  año: "5to", profesor: "Carolina G. Pedraza",     tema: "Integrales" },
-  { id: 2,  materia: "Química",             escuela: "ORT Belgrano", año: "5to", profesor: "Leila Rodriguez",  tema: "Estructura Atómica" },
+  { id: 1,  materia: "Matemática",          escuela: "ORT Almagro",  año: "5to", profesor: "Carolina G. Pedraza",  tema: "Integrales" },
+  { id: 2,  materia: "Química",             escuela: "ORT Belgrano", año: "5to", profesor: "Leila Rodriguez",      tema: "Estructura Atómica" },
   { id: 3,  materia: "Historia",            escuela: "ORT Almagro",  año: "3ro", profesor: "Hugo Olivencia",       tema: "Revolución Francesa" },
-  { id: 4,  materia: "Inglés",              escuela: "ORT Belgrano", año: "4to", profesor: "Soña Graziano",      tema: "Conditionals" },
-  { id: 5,  materia: "Físico-Química",      escuela: "ORT Almagro",  año: "3ro", profesor: "Paniagua",    tema: "Cinemática" },
-  { id: 6,  materia: "Biología",            escuela: "ORT Almagro",  año: "2do", profesor: "Macaferro",  tema: "Herencia y Genética" },
-  { id: 7,  materia: "Matemática",          escuela: "ORT Belgrano", año: "3ro", profesor: "Federico Bianco",   tema: "Trigonometría" },
-  { id: 8,  materia: "Lengua y Literatura", escuela: "ORT Almagro",  año: "5to", profesor: "Ivan Fridman",   tema: "Operación Masacre" },
-  { id: 9,  materia: "Filosofía",           escuela: "ORT Belgrano", año: "5to", profesor: "Juan P. Todaro",   tema: "Preguntas filosoficas" },
-  { id: 10, materia: "Historia",            escuela: "ORT Almagro",  año: "4to", profesor: "Hugo Olviencia",     tema: "Revolución Francesa" },
-  { id: 11, materia: "Inglés",              escuela: "ORT Belgrano", año: "1ro", profesor: "Gabriela Dadón",      tema: "Present Perfect" },
-  { id: 12, materia: "Tecnología",          escuela: "ORT Almagro",  año: "7mo", profesor: "Clarisa Geler",      tema: "Diagrama de bloques" },
-  { id: 13, materia: "Matemática",          escuela: "ORT Almagro",  año: "4to", profesor: "Martin Davila",       tema: "Funciones logaritmicas y exponenciales" },
-  { id: 14, materia: "Geografía",           escuela: "ORT Belgrano", año: "2do", profesor: "Anahi Alvarado",      tema: "Procesos endógenos y exógenos" },
-  { id: 15, materia: "Cultura Judía",       escuela: "ORT Almagro",  año: "5to", profesor: "Mariel Goisen",    tema: "Festividades judias" },
-  { id: 16, materia: "Economía",            escuela: "ORT Almagro",  año: "3ro", profesor: "Gloria Liz",      tema: "Oferta y demanda" },
-  { id: 17, materia: "Marketing",           escuela: "ORT Belgrano", año: "5to", profesor: "Julieta. A",     tema: "Estrategias digitales" },
-  { id: 18, materia: "Ciencias Naturales",  escuela: "ORT Almagro",  año: "7mo", profesor: "Vanesa Rocío Puente",      tema: "Fotosíntesis" },
-  { id: 19, materia: "Hebreo",              escuela: "ORT Belgrano", año: "7mo", profesor: "Deborah Suez",       tema: "Verbos" },
+  { id: 4,  materia: "Inglés",              escuela: "ORT Belgrano", año: "4to", profesor: "Soña Graziano",        tema: "Conditionals" },
+  { id: 5,  materia: "Físico-Química",      escuela: "ORT Almagro",  año: "3ro", profesor: "Paniagua",             tema: "Cinemática" },
+  { id: 6,  materia: "Biología",            escuela: "ORT Almagro",  año: "2do", profesor: "Macaferro",            tema: "Herencia y Genética" },
+  { id: 7,  materia: "Matemática",          escuela: "ORT Belgrano", año: "3ro", profesor: "Federico Bianco",      tema: "Trigonometría" },
+  { id: 8,  materia: "Lengua y Literatura", escuela: "ORT Almagro",  año: "5to", profesor: "Ivan Fridman",         tema: "Operación Masacre" },
+  { id: 9,  materia: "Filosofía",           escuela: "ORT Belgrano", año: "5to", profesor: "Juan P. Todaro",       tema: "Preguntas filosoficas" },
+  { id: 10, materia: "Historia",            escuela: "ORT Almagro",  año: "4to", profesor: "Hugo Olviencia",       tema: "Revolución Francesa" },
+  { id: 11, materia: "Inglés",              escuela: "ORT Belgrano", año: "1ro", profesor: "Gabriela Dadón",       tema: "Present Perfect" },
+  { id: 12, materia: "Tecnología",          escuela: "ORT Almagro",  año: "7mo", profesor: "Clarisa Geler",        tema: "Diagrama de bloques" },
+  { id: 13, materia: "Matemática",          escuela: "ORT Almagro",  año: "4to", profesor: "Martin Davila",        tema: "Funciones logaritmicas y exponenciales" },
+  { id: 14, materia: "Geografía",           escuela: "ORT Belgrano", año: "2do", profesor: "Anahi Alvarado",       tema: "Procesos endógenos y exógenos" },
+  { id: 15, materia: "Cultura Judía",       escuela: "ORT Almagro",  año: "5to", profesor: "Mariel Goisen",        tema: "Festividades judias" },
+  { id: 16, materia: "Economía",            escuela: "ORT Almagro",  año: "3ro", profesor: "Gloria Liz",           tema: "Oferta y demanda" },
+  { id: 17, materia: "Marketing",           escuela: "ORT Belgrano", año: "5to", profesor: "Julieta. A",           tema: "Estrategias digitales" },
+  { id: 18, materia: "Ciencias Naturales",  escuela: "ORT Almagro",  año: "7mo", profesor: "Vanesa Rocío Puente",  tema: "Fotosíntesis" },
+  { id: 19, materia: "Hebreo",              escuela: "ORT Belgrano", año: "7mo", profesor: "Deborah Suez",         tema: "Verbos" },
 ];
 
 const AÑOS_TABS = ["7mo", "1ro", "2do", "3ro", "4to", "5to"];
@@ -83,33 +83,59 @@ const MATERIA_COLORS: Record<string, { bg: string; text: string; border: string 
 };
 
 function PruebaCard({ prueba }: { prueba: Prueba }) {
+  const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
   const s = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
-      whileHover={{ y: -4, borderColor: "rgba(16,99,239,0.3)" }}
-      style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}`, borderRadius: "14px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px", transition: "border-color 0.2s" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      whileHover={{ y: -3, borderColor: "rgba(16,99,239,0.25)" }}
+      onClick={() => navigate(`/prueba/${prueba.id}`)}
+      style={{
+        backgroundColor: C.bgCard, border: `1px solid ${C.border}`,
+        borderRadius: "14px", padding: "18px 20px",
+        display: "flex", flexDirection: "column", gap: "12px",
+        transition: "border-color 0.2s", position: "relative", overflow: "hidden",
+        cursor: "pointer",
+      }}
+    >
+      {/* Left accent bar */}
+      <div style={{
+        position: "absolute", left: 0, top: "16px", bottom: "16px",
+        width: "3px", borderRadius: "0 3px 3px 0",
+        backgroundColor: s.text, opacity: 0.55,
+      }} />
+
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", paddingLeft: "8px" }}>
         <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", backgroundColor: s.bg, color: s.text, border: `1px solid ${s.border}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "160px" }}>
           {prueba.materia}
         </span>
-        <motion.button whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.85 }} onClick={() => setSaved(!saved)}
+        <motion.button
+          whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.85 }}
+          onClick={(e) => { e.stopPropagation(); setSaved(!saved); }}
           style={{ fontSize: "18px", background: "none", border: "none", cursor: "pointer", color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)", lineHeight: 1, padding: 0, flexShrink: 0 }}>
           {saved ? "★" : "☆"}
         </motion.button>
       </div>
-      <div>
+
+      <div style={{ paddingLeft: "8px" }}>
         <h3 style={{ fontSize: "14px", fontWeight: 700, color: C.white, marginBottom: "4px", lineHeight: 1.35 }}>{prueba.tema}</h3>
         <p style={{ fontSize: "12px", color: C.gray }}>Prof. {prueba.profesor}</p>
       </div>
-      <div style={{ paddingTop: "10px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+
+      <div style={{ paddingTop: "10px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: "8px" }}>
         <div style={{ display: "flex", gap: "4px" }}>
           {[prueba.escuela, prueba.año].map((tag) => (
             <span key={tag} style={{ fontSize: "10px", color: C.gray, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: "5px", padding: "2px 7px", fontWeight: 500 }}>{tag}</span>
           ))}
         </div>
-        <motion.button whileHover={{ x: 2 }}
+        <motion.button
+          whileHover={{ x: 2 }}
+          onClick={(e) => { e.stopPropagation(); navigate(`/prueba/${prueba.id}`); }}
           style={{ fontSize: "12px", color: C.blue, fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
           Ver →
         </motion.button>
@@ -158,7 +184,6 @@ export default function HomePage() {
               + Subir prueba
             </motion.button>
 
-            {/* Avatar dropdown */}
             <div style={{ position: "relative" }}>
               <motion.button onClick={() => setShowUserMenu(!showUserMenu)} whileHover={{ opacity: 0.85 }}
                 style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: C.blue, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", color: C.white, fontWeight: 700 }}>
@@ -197,7 +222,7 @@ export default function HomePage() {
             <h1 style={{ fontSize: "28px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif", marginBottom: "4px" }}>Explorar pruebas</h1>
             <p style={{ fontSize: "13px", color: C.gray }}>{filtered.length} prueba{filtered.length !== 1 ? "s" : ""} · {escuela} · {añoTab}</p>
           </div>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {ESCUELAS.map((col) => (
               <motion.button key={col} onClick={() => { setEscuela(col); setMateriaFiltro("Todas"); }} whileTap={{ scale: 0.97 }}
                 style={{ padding: "8px 16px", borderRadius: "10px", border: `1.5px solid ${escuela === col ? C.blue : C.border}`, backgroundColor: escuela === col ? C.blue : "transparent", color: escuela === col ? C.white : C.text, fontSize: "13px", fontWeight: 700, cursor: "pointer", transition: "all 0.15s", fontFamily: "'DM Sans', sans-serif" }}>
@@ -248,7 +273,7 @@ export default function HomePage() {
         <div style={{ display: "flex", gap: "10px", marginBottom: "28px" }}>
           <div style={{ position: "relative", flex: 1, maxWidth: "480px" }}>
             <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", color: C.gray }}>🔍</span>
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por tema, profesor..."
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por tema, materia, profesor..."
               style={{ width: "100%", padding: "10px 16px 10px 42px", border: `1px solid ${C.border}`, borderRadius: "10px", fontSize: "13px", color: C.white, backgroundColor: C.bgCard, outline: "none", boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif" }}
               onFocus={(e) => (e.currentTarget.style.borderColor = C.blue)}
               onBlur={(e) => (e.currentTarget.style.borderColor = C.border)} />
@@ -267,7 +292,7 @@ export default function HomePage() {
         {/* Grid */}
         <AnimatePresence mode="popLayout">
           {filtered.length > 0 ? (
-            <motion.div layout style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+            <motion.div layout style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
               {filtered.map((p) => <PruebaCard key={p.id} prueba={p} />)}
             </motion.div>
           ) : (

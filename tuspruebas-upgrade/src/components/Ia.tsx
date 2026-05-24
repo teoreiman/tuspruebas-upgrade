@@ -1,6 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import Logo from "./logo";
+
+const C = {
+  bg:       "#0a0e1a",
+  bgCard:   "#111827",
+  bgSection:"#0d1120",
+  border:   "rgba(255,255,255,0.07)",
+  borderMid:"rgba(255,255,255,0.12)",
+  blue:     "#1063EF",
+  blueHov:  "#0050EF",
+  white:    "#ffffff",
+  text:     "#E8E8E8",
+  gray:     "#8A8A8A",
+  grayDim:  "rgba(255,255,255,0.2)",
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
@@ -71,7 +86,6 @@ const SUGERENCIAS: Record<string, string[]> = {
 };
 
 // ── Gemini API call ────────────────────────────────────────────────────────────
-// TODO: Manu conecta la API key real acá
 async function callGeminiAPI(
   messages: Message[],
   contexto: Contexto,
@@ -101,12 +115,7 @@ IMPORTANTE:
 - Siempre sos alentador y paciente
 - Si no tenés contexto suficiente, pedí más información al estudiante`;
 
-  // Simulación de respuesta — Manu reemplaza esto con la llamada real a Gemini
-  // const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-  // const body = { contents: [...], systemInstruction: { parts: [{ text: systemPrompt }] } }
-  // const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  // const data = await res.json();
-  // return data.candidates[0].content.parts[0].text;
+  void systemPrompt;
 
   // MOCK — eliminar cuando se conecte la API real
   await new Promise((r) => setTimeout(r, 1200));
@@ -133,7 +142,7 @@ function TypingIndicator() {
           key={i}
           animate={{ y: [0, -5, 0] }}
           transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-          style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: "#9ca3af" }}
+          style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: C.gray }}
         />
       ))}
     </div>
@@ -143,7 +152,6 @@ function TypingIndicator() {
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
 
-  // Simple markdown parser for bold (**text**)
   const parseContent = (text: string) => {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
@@ -171,19 +179,16 @@ function MessageBubble({ message }: { message: Message }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      style={{
-        display: "flex",
-        justifyContent: isUser ? "flex-end" : "flex-start",
-        marginBottom: "16px",
-      }}
+      style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: "16px" }}
     >
       {!isUser && (
         <div style={{
           width: "32px", height: "32px", borderRadius: "50%",
-          backgroundColor: "#111",
+          backgroundColor: "rgba(16,99,239,0.15)",
+          border: `1px solid rgba(16,99,239,0.3)`,
           display: "flex", alignItems: "center", justifyContent: "center",
           marginRight: "10px", flexShrink: 0, marginTop: "2px",
-          fontSize: "14px",
+          fontSize: "13px", color: C.blue,
         }}>
           ✦
         </div>
@@ -193,17 +198,17 @@ function MessageBubble({ message }: { message: Message }) {
         maxWidth: "72%",
         padding: "12px 16px",
         borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-        backgroundColor: isUser ? "#111" : "#fff",
-        color: isUser ? "#fff" : "#111",
-        border: isUser ? "none" : "1px solid #e5e7eb",
+        backgroundColor: isUser ? C.blue : C.bgCard,
+        color: C.white,
+        border: isUser ? "none" : `1px solid ${C.border}`,
         fontSize: "14px",
         lineHeight: 1.65,
-        boxShadow: isUser ? "none" : "0 1px 4px rgba(0,0,0,0.05)",
+        boxShadow: isUser ? "0 4px 16px rgba(16,99,239,0.25)" : "none",
       }}>
         {parseContent(message.content)}
         <div style={{
           fontSize: "10px",
-          color: isUser ? "rgba(255,255,255,0.45)" : "#9ca3af",
+          color: isUser ? "rgba(255,255,255,0.5)" : C.gray,
           marginTop: "6px",
           textAlign: isUser ? "right" : "left",
         }}>
@@ -214,7 +219,8 @@ function MessageBubble({ message }: { message: Message }) {
       {isUser && (
         <div style={{
           width: "32px", height: "32px", borderRadius: "50%",
-          backgroundColor: "#f3f4f6",
+          backgroundColor: C.bgCard,
+          border: `1px solid ${C.border}`,
           display: "flex", alignItems: "center", justifyContent: "center",
           marginLeft: "10px", flexShrink: 0, marginTop: "2px",
           fontSize: "14px",
@@ -280,13 +286,12 @@ export default function IA() {
 
     try {
       const response = await callGeminiAPI([...messages, userMsg], contexto);
-      const aiMsg: Message = {
+      setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: response,
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+      }]);
     } catch {
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
@@ -321,51 +326,53 @@ export default function IA() {
     }]);
   };
 
-  const contextoCompleto = contexto.colegio && contexto.año && contexto.materia;
+  const contextoCompleto = !!(contexto.colegio && contexto.año && contexto.materia);
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'DM Sans', sans-serif", backgroundColor: "#f9fafb" }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'DM Sans', sans-serif", backgroundColor: C.bg }}>
 
       {/* ── Navbar ── */}
       <nav style={{
-        backgroundColor: "#fff", borderBottom: "1px solid #e5e7eb",
+        backgroundColor: "rgba(10,14,26,0.95)",
+        backdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${C.border}`,
         padding: "0 24px", flexShrink: 0, zIndex: 40,
         position: "sticky", top: 0,
       }}>
-        <div style={{ height: "56px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <motion.button
-              onClick={() => navigate("/home")}
-              whileHover={{ color: "#111" }}
-              style={{ fontSize: "13px", color: "#9ca3af", background: "none", border: "none", cursor: "pointer" }}
-            >
-              ←
-            </motion.button>
+            <Logo size="sm" onClick={() => navigate("/home")} />
+
+            <div style={{ width: "1px", height: "20px", backgroundColor: C.border }} />
+
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{
                 width: "28px", height: "28px", borderRadius: "8px",
-                backgroundColor: "#111",
+                backgroundColor: "rgba(16,99,239,0.15)",
+                border: `1px solid rgba(16,99,239,0.3)`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "13px", color: "#fff",
+                fontSize: "13px", color: C.blue,
               }}>
                 ✦
               </div>
-              <span style={{ fontSize: "15px", fontWeight: 700, color: "#111", fontFamily: "'Syne', sans-serif" }}>
+              <span style={{ fontSize: "15px", fontWeight: 700, color: C.white, fontFamily: "'Syne', sans-serif" }}>
                 IA tusPruebas
               </span>
             </div>
+
             {contextoCompleto && (
               <motion.div
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 style={{
                   display: "flex", alignItems: "center", gap: "6px",
-                  backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0",
+                  backgroundColor: "rgba(34,197,94,0.1)",
+                  border: "1px solid rgba(34,197,94,0.25)",
                   borderRadius: "999px", padding: "3px 10px",
                 }}
               >
                 <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#22c55e" }} />
-                <span style={{ fontSize: "11px", color: "#15803d", fontWeight: 600 }}>
+                <span style={{ fontSize: "11px", color: "#4ade80", fontWeight: 600 }}>
                   {contexto.materia} · {contexto.año} · {contexto.colegio}
                 </span>
               </motion.div>
@@ -374,25 +381,25 @@ export default function IA() {
 
           <div style={{ display: "flex", gap: "8px" }}>
             <motion.button
-              whileHover={{ backgroundColor: "#f3f4f6" }}
+              whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
               onClick={clearChat}
               style={{
-                fontSize: "12px", color: "#6b7280", fontWeight: 500,
+                fontSize: "12px", color: C.gray, fontWeight: 500,
                 padding: "6px 12px", borderRadius: "8px",
-                border: "1px solid #e5e7eb", backgroundColor: "#fff",
-                cursor: "pointer",
+                border: `1px solid ${C.border}`, backgroundColor: "transparent",
+                cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
               }}
             >
               Limpiar chat
             </motion.button>
             <motion.button
-              whileHover={{ backgroundColor: "#f3f4f6" }}
+              whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
               onClick={() => setSidebarOpen(!sidebarOpen)}
               style={{
-                fontSize: "12px", color: "#6b7280", fontWeight: 500,
+                fontSize: "12px", color: C.gray, fontWeight: 500,
                 padding: "6px 12px", borderRadius: "8px",
-                border: "1px solid #e5e7eb", backgroundColor: "#fff",
-                cursor: "pointer",
+                border: `1px solid ${C.border}`, backgroundColor: "transparent",
+                cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
               }}
             >
               {sidebarOpen ? "Ocultar contexto" : "Ver contexto"}
@@ -414,20 +421,20 @@ export default function IA() {
               transition={{ duration: 0.25, ease: "easeInOut" }}
               style={{
                 flexShrink: 0,
-                backgroundColor: "#fff",
-                borderRight: "1px solid #e5e7eb",
+                backgroundColor: C.bgCard,
+                borderRight: `1px solid ${C.border}`,
                 overflowY: "auto",
                 overflowX: "hidden",
               }}
             >
               <div style={{ padding: "24px 20px", minWidth: "260px" }}>
-                <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "20px" }}>
+                <p style={{ fontSize: "11px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "20px" }}>
                   Contexto de estudio
                 </p>
 
                 {/* Colegio */}
                 <div style={{ marginBottom: "16px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Colegio
                   </label>
                   <select
@@ -435,20 +442,20 @@ export default function IA() {
                     onChange={(e) => setCtx("colegio", e.target.value)}
                     style={{
                       width: "100%", padding: "9px 12px",
-                      border: "1.5px solid #e5e7eb", borderRadius: "8px",
-                      fontSize: "13px", color: contexto.colegio ? "#111" : "#9ca3af",
-                      backgroundColor: "#fff", outline: "none",
+                      border: `1.5px solid ${C.border}`, borderRadius: "8px",
+                      fontSize: "13px", color: contexto.colegio ? C.white : C.gray,
+                      backgroundColor: C.bgSection, outline: "none",
                       cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
                     <option value="">Seleccioná colegio</option>
-                    {COLEGIOS.map((c) => <option key={c}>{c}</option>)}
+                    {COLEGIOS.map((c) => <option key={c} style={{ backgroundColor: C.bgCard }}>{c}</option>)}
                   </select>
                 </div>
 
                 {/* Año */}
                 <div style={{ marginBottom: "16px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Año
                   </label>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
@@ -460,9 +467,9 @@ export default function IA() {
                         style={{
                           padding: "8px 4px",
                           borderRadius: "8px",
-                          border: `1.5px solid ${contexto.año === a ? "#111" : "#e5e7eb"}`,
-                          backgroundColor: contexto.año === a ? "#111" : "#fff",
-                          color: contexto.año === a ? "#fff" : "#374151",
+                          border: `1.5px solid ${contexto.año === a ? C.blue : C.border}`,
+                          backgroundColor: contexto.año === a ? C.blue : "transparent",
+                          color: contexto.año === a ? C.white : C.gray,
                           fontSize: "12px", fontWeight: 600,
                           cursor: "pointer", transition: "all 0.15s",
                           fontFamily: "'DM Sans', sans-serif",
@@ -476,7 +483,7 @@ export default function IA() {
 
                 {/* Materia */}
                 <div style={{ marginBottom: "16px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Materia
                   </label>
                   {contexto.año ? (
@@ -489,9 +496,9 @@ export default function IA() {
                           style={{
                             padding: "8px 12px",
                             borderRadius: "8px",
-                            border: `1.5px solid ${contexto.materia === m ? "#111" : "#f3f4f6"}`,
-                            backgroundColor: contexto.materia === m ? "#111" : "#f9fafb",
-                            color: contexto.materia === m ? "#fff" : "#374151",
+                            border: `1.5px solid ${contexto.materia === m ? C.blue : C.border}`,
+                            backgroundColor: contexto.materia === m ? "rgba(16,99,239,0.15)" : "transparent",
+                            color: contexto.materia === m ? C.white : C.gray,
                             fontSize: "12px", fontWeight: contexto.materia === m ? 700 : 400,
                             cursor: "pointer", transition: "all 0.15s",
                             textAlign: "left", fontFamily: "'DM Sans', sans-serif",
@@ -502,15 +509,13 @@ export default function IA() {
                       ))}
                     </div>
                   ) : (
-                    <p style={{ fontSize: "12px", color: "#9ca3af" }}>
-                      Seleccioná un año primero
-                    </p>
+                    <p style={{ fontSize: "12px", color: C.gray }}>Seleccioná un año primero</p>
                   )}
                 </div>
 
                 {/* Profesor */}
                 <div style={{ marginBottom: "16px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Profesor/a
                   </label>
                   <input
@@ -520,19 +525,19 @@ export default function IA() {
                     placeholder="Nombre del profesor"
                     style={{
                       width: "100%", padding: "9px 12px",
-                      border: "1.5px solid #e5e7eb", borderRadius: "8px",
-                      fontSize: "13px", color: "#111",
-                      backgroundColor: "#fff", outline: "none",
+                      border: `1.5px solid ${C.border}`, borderRadius: "8px",
+                      fontSize: "13px", color: C.white,
+                      backgroundColor: C.bgSection, outline: "none",
                       boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif",
                     }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "#111")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = C.blue)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
                   />
                 </div>
 
                 {/* Tema */}
                 <div style={{ marginBottom: "24px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Tema de la prueba
                   </label>
                   <input
@@ -542,13 +547,13 @@ export default function IA() {
                     placeholder="Ej: Integrales, Segunda Guerra..."
                     style={{
                       width: "100%", padding: "9px 12px",
-                      border: "1.5px solid #e5e7eb", borderRadius: "8px",
-                      fontSize: "13px", color: "#111",
-                      backgroundColor: "#fff", outline: "none",
+                      border: `1.5px solid ${C.border}`, borderRadius: "8px",
+                      fontSize: "13px", color: C.white,
+                      backgroundColor: C.bgSection, outline: "none",
                       boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif",
                     }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "#111")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = C.blue)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
                   />
                 </div>
 
@@ -556,22 +561,22 @@ export default function IA() {
                 <div style={{
                   padding: "12px",
                   borderRadius: "10px",
-                  backgroundColor: contextoCompleto ? "#f0fdf4" : "#fafafa",
-                  border: `1px solid ${contextoCompleto ? "#bbf7d0" : "#f3f4f6"}`,
+                  backgroundColor: contextoCompleto ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${contextoCompleto ? "rgba(34,197,94,0.25)" : C.border}`,
                 }}>
-                  <p style={{ fontSize: "11px", fontWeight: 600, color: contextoCompleto ? "#15803d" : "#9ca3af", marginBottom: "6px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 600, color: contextoCompleto ? "#4ade80" : C.gray, marginBottom: "6px" }}>
                     {contextoCompleto ? "✓ Contexto configurado" : "⚪ Completá el contexto"}
                   </p>
                   {[
                     { label: "Colegio", val: contexto.colegio },
-                    { label: "Año", val: contexto.año },
+                    { label: "Año",     val: contexto.año },
                     { label: "Materia", val: contexto.materia },
-                    { label: "Profesor", val: contexto.profesor },
-                    { label: "Tema", val: contexto.tema },
+                    { label: "Profesor",val: contexto.profesor },
+                    { label: "Tema",    val: contexto.tema },
                   ].map((row) => (
                     <div key={row.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
-                      <span style={{ fontSize: "11px", color: "#9ca3af" }}>{row.label}</span>
-                      <span style={{ fontSize: "11px", fontWeight: 600, color: row.val ? "#374151" : "#d1d5db" }}>
+                      <span style={{ fontSize: "11px", color: C.gray }}>{row.label}</span>
+                      <span style={{ fontSize: "11px", fontWeight: 600, color: row.val ? C.text : "rgba(255,255,255,0.15)" }}>
                         {row.val || "—"}
                       </span>
                     </div>
@@ -596,22 +601,22 @@ export default function IA() {
                 transition={{ delay: 0.3 }}
                 style={{ marginBottom: "24px" }}
               >
-                <p style={{ fontSize: "12px", color: "#9ca3af", marginBottom: "10px", fontWeight: 500 }}>
+                <p style={{ fontSize: "12px", color: C.gray, marginBottom: "10px", fontWeight: 500 }}>
                   Sugerencias
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {sugerencias.map((s) => (
                     <motion.button
                       key={s}
-                      whileHover={{ backgroundColor: "#f3f4f6", borderColor: "#d1d5db" }}
+                      whileHover={{ backgroundColor: "rgba(16,99,239,0.12)", borderColor: "rgba(16,99,239,0.35)" }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => sendMessage(s)}
                       style={{
                         padding: "8px 14px",
-                        border: "1px solid #e5e7eb",
+                        border: `1px solid ${C.border}`,
                         borderRadius: "999px",
-                        backgroundColor: "#fff",
-                        fontSize: "13px", color: "#374151",
+                        backgroundColor: "transparent",
+                        fontSize: "13px", color: C.text,
                         cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                         transition: "all 0.15s",
                       }}
@@ -623,7 +628,6 @@ export default function IA() {
               </motion.div>
             )}
 
-            {/* Messages */}
             {messages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
@@ -639,18 +643,18 @@ export default function IA() {
                 >
                   <div style={{
                     width: "32px", height: "32px", borderRadius: "50%",
-                    backgroundColor: "#111",
+                    backgroundColor: "rgba(16,99,239,0.15)",
+                    border: `1px solid rgba(16,99,239,0.3)`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     marginRight: "10px", flexShrink: 0,
-                    fontSize: "14px", color: "#fff",
+                    fontSize: "13px", color: C.blue,
                   }}>
                     ✦
                   </div>
                   <div style={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
+                    backgroundColor: C.bgCard,
+                    border: `1px solid ${C.border}`,
                     borderRadius: "18px 18px 18px 4px",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
                   }}>
                     <TypingIndicator />
                   </div>
@@ -663,26 +667,27 @@ export default function IA() {
 
           {/* ── Input area ── */}
           <div style={{
-            borderTop: "1px solid #e5e7eb",
-            backgroundColor: "#fff",
+            borderTop: `1px solid ${C.border}`,
+            backgroundColor: C.bgCard,
             padding: "16px 32px 20px",
           }}>
-            {/* Sugerencias rápidas en el chat */}
+            {/* Sugerencias rápidas */}
             {messages.length > 1 && (
               <div style={{ display: "flex", gap: "6px", marginBottom: "12px", overflowX: "auto", paddingBottom: "4px" }}>
                 {sugerencias.slice(0, 3).map((s) => (
                   <motion.button
                     key={s}
-                    whileHover={{ backgroundColor: "#f3f4f6" }}
+                    whileHover={{ backgroundColor: "rgba(16,99,239,0.1)", borderColor: "rgba(16,99,239,0.3)" }}
                     onClick={() => sendMessage(s)}
                     style={{
                       padding: "5px 12px",
-                      border: "1px solid #e5e7eb",
+                      border: `1px solid ${C.border}`,
                       borderRadius: "999px",
-                      backgroundColor: "#fff",
-                      fontSize: "12px", color: "#6b7280",
+                      backgroundColor: "transparent",
+                      fontSize: "12px", color: C.gray,
                       cursor: "pointer", whiteSpace: "nowrap",
                       fontFamily: "'DM Sans', sans-serif",
+                      transition: "all 0.15s",
                     }}
                   >
                     {s}
@@ -693,14 +698,12 @@ export default function IA() {
 
             <div style={{
               display: "flex", gap: "10px", alignItems: "flex-end",
-              backgroundColor: "#f9fafb",
-              border: "1.5px solid #e5e7eb",
+              backgroundColor: C.bgSection,
+              border: `1.5px solid ${C.border}`,
               borderRadius: "14px",
               padding: "10px 14px",
               transition: "border-color 0.2s",
-            }}
-              onFocus={() => {}}
-            >
+            }}>
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -716,7 +719,7 @@ export default function IA() {
                   outline: "none",
                   resize: "none",
                   fontSize: "14px",
-                  color: "#111",
+                  color: C.white,
                   backgroundColor: "transparent",
                   fontFamily: "'DM Sans', sans-serif",
                   lineHeight: 1.6,
@@ -732,7 +735,7 @@ export default function IA() {
                 style={{
                   width: "36px", height: "36px",
                   borderRadius: "10px",
-                  backgroundColor: input.trim() && !loading ? "#111" : "#e5e7eb",
+                  backgroundColor: input.trim() && !loading ? C.blue : "rgba(255,255,255,0.08)",
                   border: "none",
                   cursor: input.trim() && !loading ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center",
@@ -740,14 +743,14 @@ export default function IA() {
                   transition: "background-color 0.15s",
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={input.trim() && !loading ? "#fff" : "#9ca3af"} strokeWidth="2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={input.trim() && !loading ? C.white : C.gray} strokeWidth="2.5">
                   <line x1="22" y1="2" x2="11" y2="13" />
                   <polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
               </motion.button>
             </div>
 
-            <p style={{ fontSize: "11px", color: "#d1d5db", textAlign: "center", marginTop: "10px" }}>
+            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", textAlign: "center", marginTop: "10px" }}>
               Enter para enviar · Shift+Enter para nueva línea
             </p>
           </div>

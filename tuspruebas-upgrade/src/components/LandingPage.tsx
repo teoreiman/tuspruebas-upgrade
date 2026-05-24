@@ -8,7 +8,6 @@ import Aurora from "../reactBits/Aurora";
 import StarBorder from "../reactBits/StarBorder";
 import ClickSpark from "../reactBits/ClickSpark";
 import SplitText from "../reactBits/Splittext";
-import TrueFocus from "../reactBits/TrueFocus";
 import Logo from "./logo";
 
 const C = {
@@ -307,21 +306,21 @@ export default function LandingPage() {
                   marginBottom: "2px",
                 }}
               />
-              <SplitText
-                text="Rendí al máximo"
-                splitBy="chars"
-                delay={20}
-                duration={0.45}
-                ease={[0.22, 1, 0.36, 1]}
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.38, ease: [0.22, 1, 0.36, 1] }}
                 style={{
                   fontSize: "58px",
                   fontWeight: 900,
                   color: C.blue,
                   fontFamily: "'Syne', sans-serif",
                   lineHeight: 1.0,
-                  justifyContent: "flex-start",
+                  margin: 0,
                 }}
-              />
+              >
+                Rendí al máximo
+              </motion.p>
             </div>
 
             {/* Subtitle */}
@@ -446,23 +445,17 @@ export default function LandingPage() {
             </p>
           </FadeContent>
 
-          {/* TrueFocus title */}
           <FadeContent delay={0.05}>
             <div style={{ marginBottom: "64px" }}>
-              <TrueFocus
-                sentence="Así de simple"
-                borderColor={C.blue}
-                glowColor="rgba(16,99,239,0.35)"
-                animationDuration={0.5}
-                pauseBetweenAnimations={1800}
-                style={{
-                  fontSize: "36px",
-                  fontWeight: 900,
-                  color: C.white,
-                  fontFamily: "'Syne', sans-serif",
-                  display: "inline-flex",
-                }}
-              />
+              <h2 style={{
+                fontSize: "36px",
+                fontWeight: 900,
+                color: C.white,
+                fontFamily: "'Syne', sans-serif",
+                margin: 0,
+              }}>
+                Así de simple
+              </h2>
             </div>
           </FadeContent>
 
