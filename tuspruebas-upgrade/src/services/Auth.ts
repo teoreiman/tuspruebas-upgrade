@@ -1,8 +1,7 @@
-const API_URL = "http://localhost:3000";
-
+const API_URL = "http://localhost:3000/api";
 // ── Cuando sea true, usa cuentas locales sin backend ─────────────────────────
 // Manu: cambiar a false cuando el backend esté listo
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 export interface User {
   id: number;

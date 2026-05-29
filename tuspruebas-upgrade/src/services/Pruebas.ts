@@ -1,9 +1,9 @@
 import { getToken } from "./Auth";
 
-const API_URL = "http://localhost:3000";
+const API_URL = "http://localhost:3000/api";
 
 // ── Manu: cambiar a false cuando el backend esté listo ───────────────────────
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface Prueba {
