@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "cd tuspruebas-upgrade && npm run build",
   "outputDirectory": "tuspruebas-upgrade/dist",
   "installCommand": "cd tuspruebas-upgrade && npm install",
   "framework": "vite",
