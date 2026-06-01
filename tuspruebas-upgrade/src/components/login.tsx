@@ -62,7 +62,7 @@ export default function Login() {
           </svg>
           <h1 style={{ fontSize: "30px", fontWeight: 900, color: "#fff", fontFamily: "'Syne', sans-serif", marginBottom: "12px" }}>tuspruebas</h1>
           <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", lineHeight: 1.65, maxWidth: "260px" }}>
-            Accedé a miles de exámenes de los colegios judíos de Buenos Aires
+            Accedé a los exámenes de Tarbut, ORT Belgrano / Almagro, Martin Buber
           </p>
           <div style={{ display: "flex", gap: "36px", marginTop: "52px" }}>
             {[{ num: "500+", label: "Pruebas" }, { num: "4", label: "Colegios" }, { num: "2k+", label: "Alumnos" }].map((s) => (
@@ -150,13 +150,6 @@ export default function Login() {
               {loading ? <><Spinner /> Iniciando sesión...</> : "Iniciar sesión"}
             </motion.button>
           </form>
-
-          {/* Cuentas de prueba */}
-          <div style={{ marginTop: "20px", padding: "12px 14px", backgroundColor: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: "10px" }}>
-            <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Cuentas de prueba</p>
-            <p style={{ fontSize: "12px", color: "#6b7280" }}>teo@tuspruebas.com / <strong>123456</strong></p>
-            <p style={{ fontSize: "12px", color: "#6b7280" }}>admin@tuspruebas.com / <strong>admin123</strong></p>
-          </div>
 
           <p style={{ textAlign: "center", fontSize: "13px", color: "#9ca3af", marginTop: "20px" }}>
             ¿No tenés cuenta?{" "}
