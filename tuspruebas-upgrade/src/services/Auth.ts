@@ -65,6 +65,10 @@ export function isLoggedIn(): boolean {
   return !!getToken();
 }
 
+export function isAdmin(): boolean {
+  return getUser()?.id === 0;
+}
+
 // ── Login ─────────────────────────────────────────────────────────────────────
 export async function loginWithEmail(email: string, password: string): Promise<AuthResponse> {
   if (USE_MOCK) {

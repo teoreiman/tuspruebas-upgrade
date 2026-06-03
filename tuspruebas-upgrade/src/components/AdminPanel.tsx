@@ -165,6 +165,7 @@ function PruebaCard({
                     </p>
                     <a
                       href={prueba.archivo_url}
+                      download={prueba.archivo_nombre}
                       target="_blank"
                       rel="noreferrer"
                       style={{
@@ -181,6 +182,17 @@ function PruebaCard({
                       </svg>
                       {prueba.archivo_nombre || "Ver archivo"}
                     </a>
+                    {/* Inline preview */}
+                    {prueba.archivo_tipo === "pdf" && (
+                      <div style={{ marginTop: "12px", borderRadius: "8px", overflow: "hidden", border: "1px solid #e5e7eb" }}>
+                        <iframe src={prueba.archivo_url} title={prueba.archivo_nombre} style={{ width: "100%", height: "420px", border: "none", backgroundColor: "#f9fafb" }} />
+                      </div>
+                    )}
+                    {prueba.archivo_tipo === "image" && (
+                      <div style={{ marginTop: "12px" }}>
+                        <img src={prueba.archivo_url} alt={prueba.archivo_nombre} style={{ maxWidth: "100%", maxHeight: "320px", borderRadius: "8px", border: "1px solid #e5e7eb", objectFit: "contain" }} />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -204,9 +216,11 @@ export default function AdminPanel() {
 
   const user = getUser();
 
-  useEffect(() => {
-    fetchAllPruebas(filtro).then(setPruebas).catch(console.error);
-  }, [filtro]);
+  const loadPruebas = () => {
+    fetchAllPruebas("todas").then(setPruebas).catch(console.error);
+  };
+
+  useEffect(() => { loadPruebas(); }, []);
 
   const showToast = (msg: string, type: "ok" | "err") => {
     setToast({ msg, type });
@@ -239,7 +253,7 @@ export default function AdminPanel() {
     }
   };
 
-  const shown = pruebas.filter((p) => filtro === "todas" || p.estado === filtro);
+  const shown = filtro === "todas" ? pruebas : pruebas.filter((p) => p.estado === filtro);
   const counts = {
     pendiente: pruebas.filter((p) => p.estado === "pendiente").length,
     aprobada:  pruebas.filter((p) => p.estado === "aprobada" ).length,
@@ -282,13 +296,23 @@ export default function AdminPanel() {
       <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 24px" }}>
 
         {/* Header */}
-        <div style={{ marginBottom: "32px" }}>
-          <h1 style={{ fontSize: "26px", fontWeight: 900, color: "#111", fontFamily: "'Syne', sans-serif", marginBottom: "4px" }}>
-            Panel de moderación
-          </h1>
-          <p style={{ fontSize: "14px", color: "#9ca3af" }}>
-            Revisá y aprobá las pruebas enviadas por los estudiantes
-          </p>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "32px" }}>
+          <div>
+            <h1 style={{ fontSize: "26px", fontWeight: 900, color: "#111", fontFamily: "'Syne', sans-serif", marginBottom: "4px" }}>
+              Panel de moderación
+            </h1>
+            <p style={{ fontSize: "14px", color: "#9ca3af" }}>
+              Revisá y aprobá las pruebas enviadas por los estudiantes
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ backgroundColor: "#f3f4f6" }}
+            whileTap={{ scale: 0.97 }}
+            onClick={loadPruebas}
+            style={{ padding: "8px 16px", borderRadius: "8px", border: "1px solid #e5e7eb", backgroundColor: "#fff", color: "#374151", fontWeight: 600, fontSize: "13px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            ↻ Actualizar
+          </motion.button>
         </div>
 
         {/* Stats */}

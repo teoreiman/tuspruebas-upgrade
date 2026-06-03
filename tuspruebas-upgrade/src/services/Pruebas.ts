@@ -174,6 +174,21 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
     const ext = file?.name?.split(".").pop()?.toLowerCase() ?? "";
     const tipo = ext === "pdf" ? "pdf" : ["jpg", "jpeg", "png"].includes(ext) ? "image" : "doc";
 
+    // Convert file to base64 data URL so it persists across page reloads
+    let archivo_url: string | undefined;
+    if (file) {
+      try {
+        archivo_url = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      } catch {
+        archivo_url = undefined;
+      }
+    }
+
     const newPrueba: Prueba = {
       id: newId,
       materia:        formData.get("materia") as string || "",
@@ -182,7 +197,7 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
       profesor:       formData.get("profesor") as string || "",
       tema:           formData.get("tema") as string || "",
       notas:          formData.get("notas") as string || "",
-      archivo_url:    file ? URL.createObjectURL(file) : undefined,
+      archivo_url,
       archivo_nombre: file?.name,
       archivo_tipo:   tipo,
       estado:         "pendiente",
@@ -192,8 +207,15 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
       created_at:     new Date().toISOString(),
     };
 
-    db.push(newPrueba);
-    saveDB(db);
+    try {
+      db.push(newPrueba);
+      saveDB(db);
+    } catch (e) {
+      // localStorage quota exceeded (large file) — save without the file URL
+      newPrueba.archivo_url = undefined;
+      db[db.length - 1] = newPrueba;
+      saveDB(db);
+    }
     return newPrueba;
   }
 

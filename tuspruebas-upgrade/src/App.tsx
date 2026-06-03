@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { isLoggedIn } from "./services/Auth";
+import { isLoggedIn, isAdmin } from "./services/Auth";
 import LandingPage from "./components/LandingPage";
 import HomePage from "./components/HomePage";
 import Login from "./components/login";
@@ -14,6 +14,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isLoggedIn() ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
+  if (!isAdmin()) return <Navigate to="/home" replace />;
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <Router>
@@ -26,7 +32,7 @@ export default function App() {
         <Route path="/subir"       element={<PrivateRoute><SubirPrueba /></PrivateRoute>} />
         <Route path="/ia"          element={<PrivateRoute><IA /></PrivateRoute>} />
         <Route path="/perfil"      element={<PrivateRoute><Perfil /></PrivateRoute>} />
-        <Route path="/admin"       element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
+        <Route path="/admin"       element={<AdminRoute><AdminPanel /></AdminRoute>} />
       </Routes>
     </Router>
   );
