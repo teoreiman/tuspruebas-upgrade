@@ -1,62 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { getToken, getUser } from "../services/Auth";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface PruebaPendiente {
-  id: number;
-  colegio: string;
-  año: string;
-  materia: string;
-  profesor: string;
-  tema: string;
-  notas: string;
-  archivo_url: string;
-  archivo_nombre: string;
-  estado: "pendiente" | "aprobada" | "rechazada";
-  usuario_nombre: string;
-  usuario_email: string;
-  usuario_id: number;
-  created_at: string;
-}
-
-// ── API ────────────────────────────────────────────────────────────────────────
-const API_URL = "http://localhost:3000";
-
-async function fetchPruebas(filtro: string): Promise<PruebaPendiente[]> {
-  const token = getToken();
-  const url = filtro === "todas" ? `${API_URL}/admin/pruebas` : `${API_URL}/admin/pruebas?estado=${filtro}`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error("Error al cargar las pruebas");
-  return res.json();
-}
-
-async function cambiarEstado(id: number, estado: "aprobada" | "rechazada", motivo?: string): Promise<void> {
-  const token = getToken();
-  const res = await fetch(`${API_URL}/admin/pruebas/${id}/estado`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ estado, motivo }),
-  });
-  if (!res.ok) throw new Error("Error al actualizar el estado");
-}
-
-// ── Mock data para desarrollo ─────────────────────────────────────────────────
-// Manu: borrar esto cuando el backend esté listo
-const MOCK_PRUEBAS: PruebaPendiente[] = [
-  { id: 1, colegio: "ORT Almagro", año: "5to", materia: "Matemática", profesor: "García", tema: "Integrales", notas: "Parcial del segundo trimestre", archivo_url: "#", archivo_nombre: "parcial_mate.pdf", estado: "pendiente", usuario_nombre: "Teo Reiman", usuario_email: "teo@example.com", usuario_id: 1, created_at: new Date().toISOString() },
-  { id: 2, colegio: "ORT Belgrano", año: "4to", materia: "Química", profesor: "Rosenfeld", tema: "Estequiometría", notas: "", archivo_url: "#", archivo_nombre: "quimica_4to.pdf", estado: "pendiente", usuario_nombre: "Fede Hanono", usuario_email: "fede@example.com", usuario_id: 2, created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: 3, colegio: "Martín Buber", año: "3ro", materia: "Historia", profesor: "Levy", tema: "Segunda Guerra Mundial", notas: "Trabajo práctico", archivo_url: "#", archivo_nombre: "historia_ww2.jpg", estado: "aprobada", usuario_nombre: "Manu Szwarc", usuario_email: "manu@example.com", usuario_id: 3, created_at: new Date(Date.now() - 172800000).toISOString() },
-];
+import { getUser } from "../services/Auth";
+import {
+  fetchAllPruebas,
+  updatePruebaEstado,
+  Prueba,
+  PruebaEstado,
+} from "../services/Pruebas";
 
 // ── Badge estado ──────────────────────────────────────────────────────────────
 function EstadoBadge({ estado }: { estado: string }) {
   const styles: Record<string, { bg: string; color: string; label: string }> = {
     pendiente: { bg: "#fffbeb", color: "#92400e", label: "Pendiente" },
-    aprobada:  { bg: "#f0fdf4", color: "#15803d", label: "Aprobada" },
+    aprobada:  { bg: "#f0fdf4", color: "#15803d", label: "Aprobada"  },
     rechazada: { bg: "#fef2f2", color: "#dc2626", label: "Rechazada" },
   };
   const s = styles[estado] ?? styles.pendiente;
@@ -73,12 +30,14 @@ function PruebaCard({
   onAprobar,
   onRechazar,
 }: {
-  prueba: PruebaPendiente;
+  prueba: Prueba;
   onAprobar: (id: number) => void;
   onRechazar: (id: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const fecha = new Date(prueba.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const fecha = new Date(prueba.created_at).toLocaleDateString("es-AR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  });
 
   return (
     <motion.div
@@ -86,25 +45,11 @@ function PruebaCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      style={{
-        backgroundColor: "#fff",
-        border: "1px solid #e5e7eb",
-        borderRadius: "14px",
-        overflow: "hidden",
-      }}
+      style={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "14px", overflow: "hidden" }}
     >
       {/* Header */}
-      <div
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          padding: "18px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          cursor: "pointer",
-          gap: "12px",
-        }}
-      >
+      <div onClick={() => setExpanded(!expanded)}
+        style={{ padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1, minWidth: 0 }}>
           {/* Avatar */}
           <div style={{
@@ -124,7 +69,7 @@ function PruebaCard({
               <EstadoBadge estado={prueba.estado} />
             </div>
             <p style={{ fontSize: "12px", color: "#9ca3af", marginTop: "2px" }}>
-              {prueba.colegio} · Subido por <strong style={{ color: "#6b7280" }}>{prueba.usuario_nombre}</strong> · {fecha}
+              {prueba.escuela} · Subido por <strong style={{ color: "#6b7280" }}>{prueba.usuario_nombre}</strong> · {fecha}
             </p>
           </div>
         </div>
@@ -183,12 +128,12 @@ function PruebaCard({
                   Detalle
                 </p>
                 {[
-                  { label: "Colegio", val: prueba.colegio },
-                  { label: "Año", val: prueba.año },
-                  { label: "Materia", val: prueba.materia },
+                  { label: "Colegio",  val: prueba.escuela         },
+                  { label: "Año",      val: prueba.año             },
+                  { label: "Materia",  val: prueba.materia         },
                   { label: "Profesor", val: prueba.profesor || "—" },
-                  { label: "Tema", val: prueba.tema || "—" },
-                  { label: "Notas", val: prueba.notas || "—" },
+                  { label: "Tema",     val: prueba.tema    || "—"  },
+                  { label: "Notas",    val: prueba.notas   || "—"  },
                 ].map((r) => (
                   <div key={r.label} style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
                     <span style={{ fontSize: "12px", color: "#9ca3af", minWidth: "70px" }}>{r.label}</span>
@@ -203,9 +148,9 @@ function PruebaCard({
                   Usuario
                 </p>
                 {[
-                  { label: "Nombre", val: prueba.usuario_nombre },
-                  { label: "Email", val: prueba.usuario_email },
-                  { label: "ID", val: String(prueba.usuario_id) },
+                  { label: "Nombre", val: prueba.usuario_nombre        },
+                  { label: "Email",  val: prueba.usuario_email || "—"  },
+                  { label: "ID",     val: String(prueba.usuario_id)    },
                 ].map((r) => (
                   <div key={r.label} style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
                     <span style={{ fontSize: "12px", color: "#9ca3af", minWidth: "70px" }}>{r.label}</span>
@@ -213,29 +158,31 @@ function PruebaCard({
                   </div>
                 ))}
 
-                <div style={{ marginTop: "16px" }}>
-                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
-                    Archivo
-                  </p>
-                  <a
-                    href={prueba.archivo_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: "6px",
-                      padding: "8px 14px", borderRadius: "8px",
-                      border: "1px solid #e5e7eb", backgroundColor: "#f9fafb",
-                      fontSize: "12px", color: "#374151", fontWeight: 600,
-                      textDecoration: "none",
-                    }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    {prueba.archivo_nombre}
-                  </a>
-                </div>
+                {prueba.archivo_url && prueba.archivo_url !== "#" && (
+                  <div style={{ marginTop: "16px" }}>
+                    <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                      Archivo
+                    </p>
+                    <a
+                      href={prueba.archivo_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: "6px",
+                        padding: "8px 14px", borderRadius: "8px",
+                        border: "1px solid #e5e7eb", backgroundColor: "#f9fafb",
+                        fontSize: "12px", color: "#374151", fontWeight: 600,
+                        textDecoration: "none",
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                      </svg>
+                      {prueba.archivo_nombre || "Ver archivo"}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -246,25 +193,20 @@ function PruebaCard({
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+type Filtro = PruebaEstado | "todas";
+
 export default function AdminPanel() {
   const navigate = useNavigate();
-  const [pruebas, setPruebas] = useState<PruebaPendiente[]>(MOCK_PRUEBAS);
-  const [filtro, setFiltro] = useState<"pendiente" | "aprobada" | "rechazada" | "todas">("pendiente");
+  const [pruebas, setPruebas] = useState<Prueba[]>([]);
+  const [filtro, setFiltro] = useState<Filtro>("pendiente");
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
-  const [useMock] = useState(true); // Manu: cambiar a false cuando el backend esté listo
 
   const user = getUser();
 
   useEffect(() => {
-    if (!useMock) {
-      fetchPruebas(filtro)
-        .then(setPruebas)
-        .catch(console.error);
-    } else {
-      setPruebas(MOCK_PRUEBAS.filter((p) => filtro === "todas" || p.estado === filtro));
-    }
-  }, [filtro, useMock]);
+    fetchAllPruebas(filtro).then(setPruebas).catch(console.error);
+  }, [filtro]);
 
   const showToast = (msg: string, type: "ok" | "err") => {
     setToast({ msg, type });
@@ -274,9 +216,9 @@ export default function AdminPanel() {
   const handleAprobar = async (id: number) => {
     setLoadingId(id);
     try {
-      if (!useMock) await cambiarEstado(id, "aprobada");
-      setPruebas((prev) => prev.map((p) => p.id === id ? { ...p, estado: "aprobada" } : p));
-      showToast("Prueba aprobada", "ok");
+      await updatePruebaEstado(id, "aprobada");
+      setPruebas((prev) => prev.map((p) => (p.id === id ? { ...p, estado: "aprobada" } : p)));
+      showToast("Prueba aprobada ✓", "ok");
     } catch {
       showToast("Error al aprobar", "err");
     } finally {
@@ -287,8 +229,8 @@ export default function AdminPanel() {
   const handleRechazar = async (id: number) => {
     setLoadingId(id);
     try {
-      if (!useMock) await cambiarEstado(id, "rechazada");
-      setPruebas((prev) => prev.map((p) => p.id === id ? { ...p, estado: "rechazada" } : p));
+      await updatePruebaEstado(id, "rechazada");
+      setPruebas((prev) => prev.map((p) => (p.id === id ? { ...p, estado: "rechazada" } : p)));
       showToast("Prueba rechazada", "err");
     } catch {
       showToast("Error al rechazar", "err");
@@ -300,16 +242,16 @@ export default function AdminPanel() {
   const shown = pruebas.filter((p) => filtro === "todas" || p.estado === filtro);
   const counts = {
     pendiente: pruebas.filter((p) => p.estado === "pendiente").length,
-    aprobada: pruebas.filter((p) => p.estado === "aprobada").length,
+    aprobada:  pruebas.filter((p) => p.estado === "aprobada" ).length,
     rechazada: pruebas.filter((p) => p.estado === "rechazada").length,
-    todas: pruebas.length,
+    todas:     pruebas.length,
   };
 
-  const tabs: { key: typeof filtro; label: string }[] = [
+  const tabs: { key: Filtro; label: string }[] = [
     { key: "pendiente", label: "Pendientes" },
-    { key: "aprobada", label: "Aprobadas" },
+    { key: "aprobada",  label: "Aprobadas"  },
     { key: "rechazada", label: "Rechazadas" },
-    { key: "todas", label: "Todas" },
+    { key: "todas",     label: "Todas"      },
   ];
 
   return (
@@ -328,11 +270,7 @@ export default function AdminPanel() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            {user && (
-              <span style={{ fontSize: "13px", color: "#6b7280" }}>
-                {user.nombre}
-              </span>
-            )}
+            {user && <span style={{ fontSize: "13px", color: "#6b7280" }}>{user.nombre}</span>}
             <motion.button onClick={() => navigate("/home")} whileHover={{ color: "#111" }}
               style={{ fontSize: "13px", color: "#9ca3af", background: "none", border: "none", cursor: "pointer" }}>
               Ir a la plataforma →
@@ -353,11 +291,11 @@ export default function AdminPanel() {
           </p>
         </div>
 
-        {/* Stats rápidas */}
+        {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "28px" }}>
           {[
             { label: "Pendientes", count: counts.pendiente, color: "#92400e", bg: "#fffbeb", border: "#fde68a" },
-            { label: "Aprobadas", count: counts.aprobada, color: "#15803d", bg: "#f0fdf4", border: "#86efac" },
+            { label: "Aprobadas",  count: counts.aprobada,  color: "#15803d", bg: "#f0fdf4", border: "#86efac" },
             { label: "Rechazadas", count: counts.rechazada, color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
           ].map((s) => (
             <div key={s.label} style={{ padding: "16px 20px", backgroundColor: s.bg, border: `1px solid ${s.border}`, borderRadius: "12px" }}>
@@ -368,10 +306,7 @@ export default function AdminPanel() {
         </div>
 
         {/* Tabs */}
-        <div style={{
-          display: "flex", gap: "4px", marginBottom: "20px",
-          backgroundColor: "#f3f4f6", padding: "4px", borderRadius: "10px", width: "fit-content",
-        }}>
+        <div style={{ display: "flex", gap: "4px", marginBottom: "20px", backgroundColor: "#f3f4f6", padding: "4px", borderRadius: "10px", width: "fit-content" }}>
           {tabs.map((tab) => (
             <motion.button
               key={tab.key}
@@ -387,7 +322,10 @@ export default function AdminPanel() {
                 transition: "all 0.15s", fontFamily: "'DM Sans', sans-serif",
               }}
             >
-              {tab.label} <span style={{ fontSize: "11px", color: "#9ca3af", marginLeft: "4px" }}>({counts[tab.key]})</span>
+              {tab.label}{" "}
+              <span style={{ fontSize: "11px", color: "#9ca3af", marginLeft: "4px" }}>
+                ({counts[tab.key]})
+              </span>
             </motion.button>
           ))}
         </div>

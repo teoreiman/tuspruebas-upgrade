@@ -1,9 +1,8 @@
 import { getToken } from "./Auth";
 
 const API_URL = "http://localhost:3000/api";
-
-// ── Manu: cambiar a false cuando el backend esté listo ───────────────────────
-const USE_MOCK = false;
+const USE_MOCK = true;
+const DB_KEY = "tp_pruebas_db";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface Prueba {
@@ -16,23 +15,26 @@ export interface Prueba {
   notas?: string;
   archivo_url?: string;
   archivo_nombre?: string;
-  archivo_tipo?: string; // "pdf" | "image" | "doc"
+  archivo_tipo?: string;
   estado: "pendiente" | "aprobada" | "rechazada";
   usuario_nombre: string;
+  usuario_email: string;
   usuario_id: number;
   created_at: string;
   favorito?: boolean;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-let MOCK_DB: Prueba[] = [
+export type PruebaEstado = "pendiente" | "aprobada" | "rechazada";
+
+// ── Seed data ─────────────────────────────────────────────────────────────────
+const SEED: Prueba[] = [
   {
     id: 1, materia: "Matemática", escuela: "ORT Almagro", año: "5to",
     profesor: "García", tema: "Integrales",
     notas: "Parcial del segundo trimestre. Entran integrales indefinidas y definidas.",
     archivo_url: "https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf",
     archivo_nombre: "parcial_mate_5to.pdf", archivo_tipo: "pdf",
-    estado: "aprobada", usuario_nombre: "Teo Reiman", usuario_id: 1,
+    estado: "aprobada", usuario_nombre: "Teo Reiman", usuario_email: "teo@tuspruebas.com", usuario_id: 1,
     created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
   },
   {
@@ -41,7 +43,7 @@ let MOCK_DB: Prueba[] = [
     notas: "Incluye problemas de estequiometría con reactivo limitante.",
     archivo_url: "https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf",
     archivo_nombre: "quimica_5to.pdf", archivo_tipo: "pdf",
-    estado: "aprobada", usuario_nombre: "Fede Hanono", usuario_id: 2,
+    estado: "aprobada", usuario_nombre: "Fede Hanono", usuario_email: "fede@tuspruebas.com", usuario_id: 2,
     created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
   },
   {
@@ -50,7 +52,7 @@ let MOCK_DB: Prueba[] = [
     notas: "Temas: causas, desarrollo, consecuencias. Mapa conceptual.",
     archivo_url: "https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf",
     archivo_nombre: "historia_3ro.pdf", archivo_tipo: "pdf",
-    estado: "aprobada", usuario_nombre: "Manu Szwarc", usuario_id: 3,
+    estado: "aprobada", usuario_nombre: "Manu Szwarc", usuario_email: "manu@tuspruebas.com", usuario_id: 3,
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
   },
   {
@@ -59,7 +61,7 @@ let MOCK_DB: Prueba[] = [
     notas: "First, second and third conditional. Reading comprehension.",
     archivo_url: "https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf",
     archivo_nombre: "ingles_4to.pdf", archivo_tipo: "pdf",
-    estado: "aprobada", usuario_nombre: "Teo Reiman", usuario_id: 1,
+    estado: "aprobada", usuario_nombre: "Teo Reiman", usuario_email: "teo@tuspruebas.com", usuario_id: 1,
     created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
   },
   {
@@ -68,7 +70,7 @@ let MOCK_DB: Prueba[] = [
     notas: "MRU y MRUA. Ejercicios de aplicación.",
     archivo_url: "https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf",
     archivo_nombre: "fisicoquimica_3ro.pdf", archivo_tipo: "pdf",
-    estado: "aprobada", usuario_nombre: "Fede Hanono", usuario_id: 2,
+    estado: "aprobada", usuario_nombre: "Fede Hanono", usuario_email: "fede@tuspruebas.com", usuario_id: 2,
     created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
   },
   {
@@ -77,14 +79,26 @@ let MOCK_DB: Prueba[] = [
     notas: "Leyes de Mendel, cuadros de Punnett.",
     archivo_url: "https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf",
     archivo_nombre: "biologia_2do.pdf", archivo_tipo: "pdf",
-    estado: "aprobada", usuario_nombre: "Manu Szwarc", usuario_id: 3,
+    estado: "aprobada", usuario_nombre: "Manu Szwarc", usuario_email: "manu@tuspruebas.com", usuario_id: 3,
     created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
   },
 ];
 
-let nextId = 7;
+// ── localStorage persistence ───────────────────────────────────────────────────
+function loadDB(): Prueba[] {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) return JSON.parse(raw) as Prueba[];
+  } catch {}
+  localStorage.setItem(DB_KEY, JSON.stringify(SEED));
+  return SEED;
+}
 
-// ── Fetch all pruebas ─────────────────────────────────────────────────────────
+function saveDB(pruebas: Prueba[]) {
+  localStorage.setItem(DB_KEY, JSON.stringify(pruebas));
+}
+
+// ── Fetch pruebas aprobadas (home) ────────────────────────────────────────────
 export async function fetchPruebas(filters?: {
   escuela?: string;
   año?: string;
@@ -92,19 +106,41 @@ export async function fetchPruebas(filters?: {
 }): Promise<Prueba[]> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 300));
-    let result = MOCK_DB.filter((p) => p.estado === "aprobada");
+    let result = loadDB().filter((p) => p.estado === "aprobada");
     if (filters?.escuela) result = result.filter((p) => p.escuela === filters.escuela);
-    if (filters?.año) result = result.filter((p) => p.año === filters.año);
+    if (filters?.año)     result = result.filter((p) => p.año === filters.año);
     if (filters?.materia) result = result.filter((p) => p.materia === filters.materia);
     return result;
   }
 
   const params = new URLSearchParams();
   if (filters?.escuela) params.set("escuela", filters.escuela);
-  if (filters?.año) params.set("año", filters.año);
+  if (filters?.año)     params.set("año", filters.año);
   if (filters?.materia) params.set("materia", filters.materia);
 
   const res = await fetch(`${API_URL}/pruebas?${params}`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!res.ok) throw new Error("Error al cargar pruebas");
+  return res.json();
+}
+
+// ── Fetch todas las pruebas (admin) ───────────────────────────────────────────
+export async function fetchAllPruebas(
+  filtro?: PruebaEstado | "todas"
+): Promise<Prueba[]> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 200));
+    const db = loadDB();
+    if (!filtro || filtro === "todas") return db;
+    return db.filter((p) => p.estado === filtro);
+  }
+
+  const url =
+    filtro && filtro !== "todas"
+      ? `${API_URL}/admin/pruebas?estado=${filtro}`
+      : `${API_URL}/admin/pruebas`;
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${getToken()}` },
   });
   if (!res.ok) throw new Error("Error al cargar pruebas");
@@ -115,7 +151,7 @@ export async function fetchPruebas(filters?: {
 export async function fetchPrueba(id: number): Promise<Prueba> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 200));
-    const p = MOCK_DB.find((p) => p.id === id);
+    const p = loadDB().find((p) => p.id === id);
     if (!p) throw new Error("Prueba no encontrada");
     return p;
   }
@@ -132,23 +168,32 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 900));
     const file = formData.get("archivo") as File | null;
+    const db = loadDB();
+    const newId = Math.max(...db.map((p) => p.id), 0) + 1;
+
+    const ext = file?.name?.split(".").pop()?.toLowerCase() ?? "";
+    const tipo = ext === "pdf" ? "pdf" : ["jpg", "jpeg", "png"].includes(ext) ? "image" : "doc";
+
     const newPrueba: Prueba = {
-      id: nextId++,
-      materia:       formData.get("materia") as string || "",
-      escuela:       formData.get("colegio") as string || "",
-      año:           formData.get("año") as string || "",
-      profesor:      formData.get("profesor") as string || "",
-      tema:          formData.get("tema") as string || "",
-      notas:         formData.get("notas") as string || "",
-      archivo_url:   file ? URL.createObjectURL(file) : undefined,
+      id: newId,
+      materia:        formData.get("materia") as string || "",
+      escuela:        formData.get("colegio") as string || "",
+      año:            formData.get("año") as string || "",
+      profesor:       formData.get("profesor") as string || "",
+      tema:           formData.get("tema") as string || "",
+      notas:          formData.get("notas") as string || "",
+      archivo_url:    file ? URL.createObjectURL(file) : undefined,
       archivo_nombre: file?.name,
-      archivo_tipo:  file?.name?.endsWith(".pdf") ? "pdf" : "image",
-      estado:        "pendiente",
+      archivo_tipo:   tipo,
+      estado:         "pendiente",
       usuario_nombre: formData.get("usuario_nombre") as string || "",
-      usuario_id:    Number(formData.get("usuario_id")) || 0,
-      created_at:    new Date().toISOString(),
+      usuario_email:  formData.get("usuario_email") as string || "",
+      usuario_id:     Number(formData.get("usuario_id")) || 0,
+      created_at:     new Date().toISOString(),
     };
-    MOCK_DB.push(newPrueba);
+
+    db.push(newPrueba);
+    saveDB(db);
     return newPrueba;
   }
 
@@ -164,12 +209,43 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   return res.json();
 }
 
+// ── Cambiar estado (admin) ────────────────────────────────────────────────────
+export async function updatePruebaEstado(
+  id: number,
+  estado: PruebaEstado
+): Promise<void> {
+  if (USE_MOCK) {
+    const db = loadDB();
+    const idx = db.findIndex((p) => p.id === id);
+    if (idx >= 0) {
+      db[idx] = { ...db[idx], estado };
+      saveDB(db);
+    }
+    return;
+  }
+
+  const res = await fetch(`${API_URL}/admin/pruebas/${id}/estado`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify({ estado }),
+  });
+  if (!res.ok) throw new Error("Error al actualizar estado");
+}
+
 // ── Toggle favorito ───────────────────────────────────────────────────────────
 export async function toggleFavorito(id: number): Promise<boolean> {
   if (USE_MOCK) {
-    const p = MOCK_DB.find((p) => p.id === id);
-    if (p) p.favorito = !p.favorito;
-    return p?.favorito ?? false;
+    const db = loadDB();
+    const idx = db.findIndex((p) => p.id === id);
+    if (idx >= 0) {
+      db[idx] = { ...db[idx], favorito: !db[idx].favorito };
+      saveDB(db);
+      return db[idx].favorito ?? false;
+    }
+    return false;
   }
 
   const res = await fetch(`${API_URL}/pruebas/${id}/favorito`, {

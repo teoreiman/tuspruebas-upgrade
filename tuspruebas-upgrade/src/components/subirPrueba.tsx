@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser } from "../services/Auth";
 import { uploadPrueba } from "../services/Pruebas";
+import { notifyAdminNewPrueba } from "../services/Email";
 import Logo from "./logo";
 
 const C = {
@@ -120,12 +121,26 @@ export default function SubirPrueba() {
       fd.append("notas", form.notas);
       fd.append("estado", "pendiente");
       fd.append("usuario_nombre", user.nombre);
+      fd.append("usuario_email", user.email);
       fd.append("usuario_id", String(user.id));
       if (form.archivo) fd.append("archivo", form.archivo);
 
       const nueva = await uploadPrueba(fd);
       setPruebaId(nueva.id);
       setSubmitted(true);
+
+      // Notificar al admin por email (no bloquea si falla)
+      notifyAdminNewPrueba({
+        usuario_nombre: user.nombre,
+        usuario_email:  user.email,
+        colegio:        form.colegio,
+        año:            form.año,
+        materia:        form.materia,
+        profesor:       form.profesor,
+        tema:           form.tema,
+        notas:          form.notas,
+        archivo_nombre: form.archivo?.name ?? "",
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error al subir");
     } finally { setLoading(false); }
