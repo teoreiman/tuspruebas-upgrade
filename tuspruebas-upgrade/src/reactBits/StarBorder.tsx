@@ -1,4 +1,4 @@
-import { ReactNode, CSSProperties } from "react";
+import { ReactNode, CSSProperties, ElementType } from "react";
 
 interface StarBorderProps {
   children: ReactNode;
@@ -6,7 +6,7 @@ interface StarBorderProps {
   speed?: string;
   className?: string;
   style?: CSSProperties;
-  as?: keyof JSX.IntrinsicElements;
+  as?: ElementType;
 }
 
 export default function StarBorder({
