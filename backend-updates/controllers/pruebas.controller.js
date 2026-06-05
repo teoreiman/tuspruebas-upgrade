@@ -22,7 +22,6 @@ export const getPruebaById = async (req, res) => {
 
 export const createPrueba = async (req, res) => {
   try {
-    // Soporta JSON body y FormData (multer)
     const colegio  = req.body.colegio  || req.body.escuela  || "";
     const año      = req.body.año      || req.body.anio     || "";
     const materia  = req.body.materia  || "";
@@ -39,19 +38,17 @@ export const createPrueba = async (req, res) => {
 
     const titulo = req.body.titulo || `${materia}${tema ? ` - ${tema}` : ""} (${colegio} ${año})`;
 
-    const archivo = req.file;
     let contenido = { notas, usuario_id, usuario_nombre, usuario_email };
-
-    // Si viene JSON con contenido ya armado, usarlo
     if (req.body.contenido) {
       contenido = typeof req.body.contenido === "string"
         ? JSON.parse(req.body.contenido)
         : req.body.contenido;
-    } else if (archivo) {
-      contenido.archivo_url    = `/uploads/${archivo.filename}`;
-      contenido.archivo_nombre = archivo.originalname;
-      contenido.archivo_tipo   = archivo.mimetype.includes("pdf") ? "pdf"
-        : archivo.mimetype.startsWith("image") ? "image" : "doc";
+    } else if (req.file) {
+      const f = req.file;
+      contenido.archivo_url    = `/uploads/${f.filename}`;
+      contenido.archivo_nombre = f.originalname;
+      contenido.archivo_tipo   = f.mimetype.includes("pdf") ? "pdf"
+        : f.mimetype.startsWith("image") ? "image" : "doc";
     }
 
     const id = await Prueba.create({
@@ -77,12 +74,10 @@ export const toggleFavorito = async (req, res) => {
   try {
     const prueba_id  = req.params.id;
     const usuario_id = req.usuario.id;
-
     const existing = await pool.query(
       "SELECT id FROM favoritos WHERE prueba_id = $1 AND usuario_id = $2",
       [prueba_id, usuario_id]
     );
-
     let favorito;
     if (existing.rows.length > 0) {
       await pool.query(
@@ -97,7 +92,6 @@ export const toggleFavorito = async (req, res) => {
       );
       favorito = true;
     }
-
     res.json({ ok: true, favorito });
   } catch (error) {
     res.status(500).json({ ok: false, message: "Error al guardar favorito", error: error.message });

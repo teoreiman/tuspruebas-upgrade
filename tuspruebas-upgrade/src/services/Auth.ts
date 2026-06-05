@@ -67,7 +67,7 @@ export async function registerUser(nombre: string, email: string, password: stri
     const err = await res.json().catch(() => ({ message: "Error al registrarse" }));
     throw new Error(err.message ?? "No se pudo crear la cuenta");
   }
-  // Backend register no devuelve token, hacemos login inmediatamente
+  // Backend register no devuelve token; hacer login inmediatamente
   return loginWithEmail(email, password);
 }
 

@@ -7,10 +7,10 @@ import { upload } from "../config/multer.js";
 
 const router = Router();
 
-router.get("/",                getPruebas);
-router.get("/:id",             getPruebaById);
-router.post("/",               upload.single("archivo"), createPrueba);
-router.post("/:id/favorito",   verificarToken, toggleFavorito);
-router.delete("/:id",          verificarToken, verificarAdmin, deletePrueba);
+router.get("/",               getPruebas);
+router.get("/:id",            getPruebaById);
+router.post("/",              upload.single("archivo"), createPrueba);
+router.post("/:id/favorito",  verificarToken, toggleFavorito);
+router.delete("/:id",         verificarToken, verificarAdmin, deletePrueba);
 
 export default router;

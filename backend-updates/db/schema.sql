@@ -1,5 +1,5 @@
 -- Schema completo para tuspruebas
--- Ejecutar en Neon (o cualquier PostgreSQL) para crear/migrar tablas
+-- Ejecutar en Neon para crear/migrar las tablas
 
 CREATE TABLE IF NOT EXISTS usuarios (
   id         SERIAL PRIMARY KEY,
@@ -35,20 +35,20 @@ CREATE TABLE IF NOT EXISTS favoritos (
   UNIQUE(usuario_id, prueba_id)
 );
 
--- Indices
 CREATE INDEX IF NOT EXISTS idx_pruebas_estado  ON pruebas(estado);
 CREATE INDEX IF NOT EXISTS idx_pruebas_materia ON pruebas(materia);
 CREATE INDEX IF NOT EXISTS idx_pruebas_escuela ON pruebas(escuela);
 CREATE INDEX IF NOT EXISTS idx_pruebas_anio    ON pruebas(anio);
 CREATE INDEX IF NOT EXISTS idx_favoritos_user  ON favoritos(usuario_id);
 
--- Migracion segura: agregar columna usuario_id si no existe
+-- Migracion segura: agrega usuario_id si no existe
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_name = 'pruebas' AND column_name = 'usuario_id'
   ) THEN
-    ALTER TABLE pruebas ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
+    ALTER TABLE pruebas
+      ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
   END IF;
 END $$;

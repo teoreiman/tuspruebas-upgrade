@@ -11,13 +11,13 @@ function mapRow(row) {
   return {
     id:             row.id,
     titulo:         row.titulo,
-    materia:        row.materia || "",
-    escuela:        row.escuela || "",
-    año:            row.anio || "",
-    anio:           row.anio || "",
+    materia:        row.materia  || "",
+    escuela:        row.escuela  || "",
+    año:            row.anio     || "",
+    anio:           row.anio     || "",
     profesor:       row.profesor || "",
-    tema:           row.tema || "",
-    notas:          c.notas || "",
+    tema:           row.tema     || "",
+    notas:          c.notas          || "",
     archivo_url:    c.archivo_url    || null,
     archivo_nombre: c.archivo_nombre || null,
     archivo_tipo:   c.archivo_tipo   || null,
@@ -35,11 +35,11 @@ const Prueba = {
     let query = "SELECT * FROM pruebas WHERE estado = 'aprobada'";
     const params = [];
     let i = 1;
-    if (materia)  { query += ` AND materia = $${i++}`;          params.push(materia); }
-    if (anio)     { query += ` AND anio = $${i++}`;             params.push(anio); }
-    if (escuela)  { query += ` AND escuela = $${i++}`;          params.push(escuela); }
-    if (profesor) { query += ` AND profesor ILIKE $${i++}`;    params.push(`%${profesor}%`); }
-    if (tema)     { query += ` AND tema ILIKE $${i++}`;         params.push(`%${tema}%`); }
+    if (materia)  { query += ` AND materia = $${i++}`;       params.push(materia); }
+    if (anio)     { query += ` AND anio = $${i++}`;          params.push(anio); }
+    if (escuela)  { query += ` AND escuela = $${i++}`;       params.push(escuela); }
+    if (profesor) { query += ` AND profesor ILIKE $${i++}`; params.push(`%${profesor}%`); }
+    if (tema)     { query += ` AND tema ILIKE $${i++}`;     params.push(`%${tema}%`); }
     query += " ORDER BY fecha DESC";
     const result = await pool.query(query, params);
     return result.rows.map(mapRow);

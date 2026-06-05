@@ -33,19 +33,19 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
   const c = safeJson(raw.contenido);
   return {
     id:             raw.id as number,
-    materia:        (raw.materia as string) || "",
-    escuela:        (raw.escuela as string) || "",
-    año:            (raw.anio as string) || (raw.año as string) || "",
+    materia:        (raw.materia as string)  || "",
+    escuela:        (raw.escuela as string)  || "",
+    año:            (raw.anio   as string)  || (raw.año as string) || "",
     profesor:       (raw.profesor as string) || "",
-    tema:           (raw.tema as string) || "",
-    notas:          (c.notas as string) || "",
-    archivo_url:    (c.archivo_url as string) || undefined,
+    tema:           (raw.tema as string)     || "",
+    notas:          (c.notas as string)      || "",
+    archivo_url:    (c.archivo_url    as string) || undefined,
     archivo_nombre: (c.archivo_nombre as string) || undefined,
-    archivo_tipo:   (c.archivo_tipo as string) || undefined,
+    archivo_tipo:   (c.archivo_tipo   as string) || undefined,
     estado:         (raw.estado as Prueba["estado"]) || "pendiente",
     usuario_nombre: (raw.usuario_nombre as string) || (c.usuario_nombre as string) || "Anónimo",
-    usuario_email:  (raw.usuario_email as string) || (c.usuario_email as string) || "",
-    usuario_id:     (raw.usuario_id as number) || (c.usuario_id as number) || 0,
+    usuario_email:  (raw.usuario_email  as string) || (c.usuario_email  as string) || "",
+    usuario_id:     (raw.usuario_id  as number) || (c.usuario_id  as number) || 0,
     created_at:     (raw.fecha as string) || (raw.created_at as string) || new Date().toISOString(),
     favorito:       (raw.favorito as boolean) ?? false,
   };
@@ -65,7 +65,7 @@ async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
   return res;
 }
 
-// ── Fetch pruebas aprobadas (home) ────────────────────────────────────────────
+// ── Pruebas aprobadas (home) ──────────────────────────────────────────────────
 export async function fetchPruebas(filters?: {
   escuela?: string;
   año?: string;
@@ -85,7 +85,7 @@ export async function fetchPruebas(filters?: {
   return Array.isArray(rows) ? rows.map(mapApiPrueba) : [];
 }
 
-// ── Fetch todas las pruebas (admin) ───────────────────────────────────────────
+// ── Todas las pruebas (admin) ─────────────────────────────────────────────────
 export async function fetchAllPruebas(
   filtro?: PruebaEstado | "todas"
 ): Promise<Prueba[]> {
@@ -106,11 +106,11 @@ export async function fetchAllPruebas(
   }
 
   if (filtro === "rechazada") {
-    // Requiere backend-updates: GET /api/admin/pruebas?estado=rechazada
+    // Requiere GET /api/admin/pruebas?estado=rechazada (ver backend-updates/)
     return [];
   }
 
-  // "todas": pendientes + aprobadas (rechazadas requieren backend actualizado)
+  // "todas": pendientes + aprobadas
   const [pendRes, aprRes] = await Promise.all([
     apiFetch(`${API_URL}/admin/pendientes`, { headers }),
     apiFetch(`${API_URL}/pruebas`,          { headers }),
@@ -125,7 +125,7 @@ export async function fetchAllPruebas(
   ];
 }
 
-// ── Fetch single prueba ───────────────────────────────────────────────────────
+// ── Prueba individual ──────────────────────────────────────────────────────────────
 export async function fetchPrueba(id: number): Promise<Prueba> {
   const res = await apiFetch(`${API_URL}/pruebas/${id}`, {
     headers: authHeaders(),
@@ -135,8 +135,7 @@ export async function fetchPrueba(id: number): Promise<Prueba> {
   return mapApiPrueba(data.data ?? data);
 }
 
-// ── Upload prueba ─────────────────────────────────────────────────────────────
-// Envía JSON (sin archivo). El archivo requiere multer en el backend (ver backend-updates/)
+// ── Subir prueba ─────────────────────────────────────────────────────────────────
 export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   const colegio        = (formData.get("colegio")        as string) || "";
   const año            = (formData.get("año")            as string) || "";
@@ -190,12 +189,11 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   };
 }
 
-// ── Cambiar estado (admin) ────────────────────────────────────────────────────
+// ── Cambiar estado (admin) ───────────────────────────────────────────────────
 export async function updatePruebaEstado(
   id: number,
   estado: PruebaEstado
 ): Promise<void> {
-  // Backend route: PATCH /api/admin/:id/estado
   const res = await apiFetch(`${API_URL}/admin/${id}/estado`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -211,7 +209,7 @@ export async function toggleFavorito(id: number): Promise<boolean> {
       method: "POST",
       headers: authHeaders(),
     });
-    if (!res.ok) throw new Error("no endpoint");
+    if (!res.ok) throw new Error("sin endpoint");
     const data = await res.json();
     return (data.favorito as boolean) ?? false;
   } catch {

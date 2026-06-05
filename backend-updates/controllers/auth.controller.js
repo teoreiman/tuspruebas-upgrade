@@ -13,7 +13,6 @@ export const register = async (req, res) => {
       return res.status(409).json({ ok: false, message: "El email ya está registrado" });
 
     const usuario = await Usuario.create({ nombre, email, password });
-    // Devolver token inmediatamente (igual que login)
     const token = jwt.sign(
       { id: usuario.id, email: usuario.email, rol: usuario.rol },
       process.env.JWT_SECRET,
@@ -44,7 +43,6 @@ export const login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-
     res.json({ ok: true, token, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol } });
   } catch (error) {
     res.status(500).json({ ok: false, message: "Error al iniciar sesión", error: error.message });
@@ -58,7 +56,6 @@ export const googleCallback = (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
-  // Redirigir al frontend con token en query params
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   const params = new URLSearchParams({
     token,
