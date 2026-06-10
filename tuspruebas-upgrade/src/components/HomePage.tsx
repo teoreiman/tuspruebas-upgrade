@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { getUser } from "../services/Auth";
+import { getUser, isSuperAdmin } from "../services/Auth";
+import { fetchAllPruebas } from "../services/Pruebas";
 import Logo from "./logo";
 
 const C = {
@@ -152,6 +153,13 @@ export default function HomePage() {
   const [escuela, setEscuela] = useState("ORT Almagro");
   const [materiaFiltro, setMateriaFiltro] = useState("Todas");
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [pendientesCount, setPendientesCount] = useState(0);
+  const esSuperAdmin = isSuperAdmin();
+
+  useEffect(() => {
+    if (!esSuperAdmin) return;
+    fetchAllPruebas("pendiente").then((p) => setPendientesCount(p.length)).catch(() => {});
+  }, [esSuperAdmin]);
 
   const materiasDelAño = MATERIAS_POR_COLEGIO[escuela]?.[añoTab] ?? [];
   const sinMaterias = materiasDelAño.length === 0;
@@ -175,6 +183,21 @@ export default function HomePage() {
           <Logo size="sm" onClick={() => navigate("/")} />
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {esSuperAdmin && (
+              <motion.button
+                whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => navigate("/admin")}
+                title="Pruebas pendientes de aprobación"
+                style={{ position: "relative", width: "36px", height: "36px", borderRadius: "10px", border: `1px solid ${C.border}`, backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
+                🔔
+                {pendientesCount > 0 && (
+                  <span style={{ position: "absolute", top: "-4px", right: "-4px", minWidth: "16px", height: "16px", padding: "0 4px", borderRadius: "999px", backgroundColor: "#dc2626", color: "#fff", fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                    {pendientesCount}
+                  </span>
+                )}
+              </motion.button>
+            )}
             <motion.button whileHover={{ backgroundColor: "rgba(16,99,239,0.1)", borderColor: "rgba(16,99,239,0.3)" }} onClick={() => navigate("/ia")}
               style={{ fontSize: "13px", color: C.blue, fontWeight: 600, padding: "7px 14px", borderRadius: "8px", border: `1px solid rgba(16,99,239,0.2)`, backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
               <span>✦</span> IA
@@ -206,6 +229,18 @@ export default function HomePage() {
                           {item.label}
                         </motion.button>
                       ))}
+                      {esSuperAdmin && (
+                        <motion.button whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                          onClick={() => { setShowUserMenu(false); navigate("/admin"); }}
+                          style={{ width: "100%", padding: "10px 14px", border: "none", backgroundColor: "transparent", cursor: "pointer", textAlign: "left", fontSize: "13px", color: C.text, fontWeight: 500, borderRadius: "8px", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span>Panel de moderación</span>
+                          {pendientesCount > 0 && (
+                            <span style={{ minWidth: "18px", height: "18px", padding: "0 5px", borderRadius: "999px", backgroundColor: "#dc2626", color: "#fff", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                              {pendientesCount}
+                            </span>
+                          )}
+                        </motion.button>
+                      )}
                     </div>
                   </motion.div>
                 )}

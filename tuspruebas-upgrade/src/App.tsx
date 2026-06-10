@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { isLoggedIn, isAdmin } from "./services/Auth";
+import { isLoggedIn, isSuperAdmin } from "./services/Auth";
 import LandingPage from "./components/LandingPage";
 import HomePage from "./components/HomePage";
 import Login from "./components/login";
@@ -17,7 +17,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn()) return <Navigate to="/login" replace />;
-  if (!isAdmin()) return <Navigate to="/home" replace />;
+  if (!isSuperAdmin()) return <Navigate to="/home" replace />;
   return <>{children}</>;
 }
 

@@ -41,6 +41,13 @@ export function isAdmin(): boolean {
   return getUser()?.rol === "admin";
 }
 
+// Único usuario habilitado para moderar (aprobar/rechazar) pruebas
+const SUPER_ADMIN_EMAIL = "manu@tuspruebas.com";
+
+export function isSuperAdmin(): boolean {
+  return getUser()?.email?.toLowerCase() === SUPER_ADMIN_EMAIL;
+}
+
 export async function loginWithEmail(email: string, password: string): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
