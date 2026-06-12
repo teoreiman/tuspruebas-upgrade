@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser, isSuperAdmin } from "../services/Auth";
-import { fetchAllPruebas } from "../services/Pruebas";
+import { fetchAllPruebas, fetchPruebas, toggleFavorito, type Prueba } from "../services/Pruebas";
 import Logo from "./logo";
 
 const C = {
@@ -16,30 +16,6 @@ const C = {
   text:     "#E8E8E8",
   gray:     "#8A8A8A",
 };
-
-interface Prueba { id: number; materia: string; escuela: string; año: string; profesor: string; tema: string; }
-
-const MOCK_PRUEBAS: Prueba[] = [
-  { id: 1,  materia: "Matemática",          escuela: "ORT Almagro",  año: "5to", profesor: "Carolina G. Pedraza",  tema: "Integrales" },
-  { id: 2,  materia: "Química",             escuela: "ORT Belgrano", año: "5to", profesor: "Leila Rodriguez",      tema: "Estructura Atómica" },
-  { id: 3,  materia: "Historia",            escuela: "ORT Almagro",  año: "3ro", profesor: "Hugo Olivencia",       tema: "Revolución Francesa" },
-  { id: 4,  materia: "Inglés",              escuela: "ORT Belgrano", año: "4to", profesor: "Soña Graziano",        tema: "Conditionals" },
-  { id: 5,  materia: "Físico-Química",      escuela: "ORT Almagro",  año: "3ro", profesor: "Paniagua",             tema: "Cinemática" },
-  { id: 6,  materia: "Biología",            escuela: "ORT Almagro",  año: "2do", profesor: "Macaferro",            tema: "Herencia y Genética" },
-  { id: 7,  materia: "Matemática",          escuela: "ORT Belgrano", año: "3ro", profesor: "Federico Bianco",      tema: "Trigonometría" },
-  { id: 8,  materia: "Lengua y Literatura", escuela: "ORT Almagro",  año: "5to", profesor: "Ivan Fridman",         tema: "Operación Masacre" },
-  { id: 9,  materia: "Filosofía",           escuela: "ORT Belgrano", año: "5to", profesor: "Juan P. Todaro",       tema: "Preguntas filosoficas" },
-  { id: 10, materia: "Historia",            escuela: "ORT Almagro",  año: "4to", profesor: "Hugo Olviencia",       tema: "Revolución Francesa" },
-  { id: 11, materia: "Inglés",              escuela: "ORT Belgrano", año: "1ro", profesor: "Gabriela Dadón",       tema: "Present Perfect" },
-  { id: 12, materia: "Tecnología",          escuela: "ORT Almagro",  año: "7mo", profesor: "Clarisa Geler",        tema: "Diagrama de bloques" },
-  { id: 13, materia: "Matemática",          escuela: "ORT Almagro",  año: "4to", profesor: "Martin Davila",        tema: "Funciones logaritmicas y exponenciales" },
-  { id: 14, materia: "Geografía",           escuela: "ORT Belgrano", año: "2do", profesor: "Anahi Alvarado",       tema: "Procesos endógenos y exógenos" },
-  { id: 15, materia: "Cultura Judía",       escuela: "ORT Almagro",  año: "5to", profesor: "Mariel Goisen",        tema: "Festividades judias" },
-  { id: 16, materia: "Economía",            escuela: "ORT Almagro",  año: "3ro", profesor: "Gloria Liz",           tema: "Oferta y demanda" },
-  { id: 17, materia: "Marketing",           escuela: "ORT Belgrano", año: "5to", profesor: "Julieta. A",           tema: "Estrategias digitales" },
-  { id: 18, materia: "Ciencias Naturales",  escuela: "ORT Almagro",  año: "7mo", profesor: "Vanesa Rocío Puente",  tema: "Fotosíntesis" },
-  { id: 19, materia: "Hebreo",              escuela: "ORT Belgrano", año: "7mo", profesor: "Deborah Suez",         tema: "Verbos" },
-];
 
 const AÑOS_TABS = ["7mo", "1ro", "2do", "3ro", "4to", "5to"];
 const ESCUELAS  = ["ORT Almagro", "ORT Belgrano", "Martín Buber", "Tarbut"];
@@ -85,7 +61,7 @@ const MATERIA_COLORS: Record<string, { bg: string; text: string; border: string 
 
 function PruebaCard({ prueba }: { prueba: Prueba }) {
   const navigate = useNavigate();
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(prueba.favorito ?? false);
   const s = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
 
   return (
@@ -117,7 +93,11 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
         </span>
         <motion.button
           whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.85 }}
-          onClick={(e) => { e.stopPropagation(); setSaved(!saved); }}
+          onClick={async (e) => {
+            e.stopPropagation();
+            const newState = await toggleFavorito(prueba.id);
+            setSaved(newState);
+          }}
           style={{ fontSize: "18px", background: "none", border: "none", cursor: "pointer", color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)", lineHeight: 1, padding: 0, flexShrink: 0 }}>
           {saved ? "★" : "☆"}
         </motion.button>
@@ -154,6 +134,8 @@ export default function HomePage() {
   const [materiaFiltro, setMateriaFiltro] = useState("Todas");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [pendientesCount, setPendientesCount] = useState(0);
+  const [pruebas, setPruebas] = useState<Prueba[]>([]);
+  const [loadingPruebas, setLoadingPruebas] = useState(true);
   const esSuperAdmin = isSuperAdmin();
 
   useEffect(() => {
@@ -161,15 +143,22 @@ export default function HomePage() {
     fetchAllPruebas("pendiente").then((p) => setPendientesCount(p.length)).catch(() => {});
   }, [esSuperAdmin]);
 
+  useEffect(() => {
+    setLoadingPruebas(true);
+    fetchPruebas({ escuela, año: añoTab })
+      .then(setPruebas)
+      .catch(() => setPruebas([]))
+      .finally(() => setLoadingPruebas(false));
+  }, [escuela, añoTab]);
+
   const materiasDelAño = MATERIAS_POR_COLEGIO[escuela]?.[añoTab] ?? [];
   const sinMaterias = materiasDelAño.length === 0;
   const MATERIAS_FILTRO = ["Todas", ...materiasDelAño];
   const materiaValida = MATERIAS_FILTRO.includes(materiaFiltro) ? materiaFiltro : "Todas";
 
   const q = search.toLowerCase();
-  const filtered = MOCK_PRUEBAS.filter((p) =>
+  const filtered = pruebas.filter((p) =>
     (search === "" || p.tema.toLowerCase().includes(q) || p.materia.toLowerCase().includes(q) || p.profesor.toLowerCase().includes(q)) &&
-    p.año === añoTab && p.escuela === escuela &&
     (materiaValida === "Todas" || p.materia === materiaValida)
   );
 
@@ -326,7 +315,12 @@ export default function HomePage() {
 
         {/* Grid */}
         <AnimatePresence mode="popLayout">
-          {filtered.length > 0 ? (
+          {loadingPruebas ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                style={{ width: "28px", height: "28px", border: `3px solid ${C.border}`, borderTopColor: C.blue, borderRadius: "50%" }} />
+            </div>
+          ) : filtered.length > 0 ? (
             <motion.div layout style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
               {filtered.map((p) => <PruebaCard key={p.id} prueba={p} />)}
             </motion.div>
