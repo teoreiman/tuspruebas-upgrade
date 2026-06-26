@@ -1,22 +1,23 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { saveSession } from "../services/Auth";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token  = params.get("token");
-    const nombre = params.get("nombre");
-    const email  = params.get("email");
-    const rol    = params.get("rol");
-    const id     = params.get("id");
+    const token  = searchParams.get("token");
+    const nombre = searchParams.get("nombre");
+    const email  = searchParams.get("email");
+    const rol    = searchParams.get("rol");
+    const id     = searchParams.get("id");
+    console.log({ token, nombre, email, rol, id });
 
     if (token && nombre && email && id) {
       saveSession(token, {
         id:     Number(id),
-        nombre: decodeURIComponent(nombre),
+        nombre: decodeURIComponent(nombre.replace(/\+/g, " ")),
         email:  decodeURIComponent(email),
         rol:    rol || "usuario",
       });
@@ -24,7 +25,7 @@ export default function AuthCallback() {
     } else {
       navigate("/login", { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   return (
     <div style={{
