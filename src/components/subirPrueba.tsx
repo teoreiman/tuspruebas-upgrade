@@ -87,6 +87,7 @@ export default function SubirPrueba() {
   const [submitted, setSubmitted] = useState(false);
   const [pruebaId, setPruebaId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("Enviando...");
   const [error, setError] = useState("");
   const user = getUser();
 
@@ -111,6 +112,7 @@ export default function SubirPrueba() {
   const handleSubmit = async () => {
     if (!user) { navigate("/login"); return; }
     setLoading(true); setError("");
+    setLoadingMsg(form.archivo ? "Subiendo archivo..." : "Enviando...");
     try {
       const fd = new FormData();
       fd.append("colegio", form.colegio);
@@ -125,6 +127,7 @@ export default function SubirPrueba() {
       fd.append("usuario_id", String(user.id));
       if (form.archivo) fd.append("archivo", form.archivo);
 
+      setLoadingMsg("Guardando prueba...");
       const nueva = await uploadPrueba(fd);
       setPruebaId(nueva.id);
       setSubmitted(true);
@@ -284,7 +287,18 @@ export default function SubirPrueba() {
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 <Field label="Archivo de la prueba" required>
-                  <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => set("archivo", e.target.files?.[0] ?? null)} style={{ display: "none" }} />
+                  <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      if (f && f.size > 10 * 1024 * 1024) {
+                        setError("El archivo no puede superar 10 MB.");
+                        e.target.value = "";
+                        return;
+                      }
+                      setError("");
+                      set("archivo", f);
+                    }}
+                    style={{ display: "none" }} />
                   <motion.button whileHover={{ borderColor: C.blue }} whileTap={{ scale: 0.99 }} onClick={() => fileRef.current?.click()}
                     style={{ width: "100%", padding: "44px 24px", border: `2px dashed ${form.archivo ? C.blue : C.border}`, borderRadius: "14px", backgroundColor: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", transition: "border-color 0.2s" }}>
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={form.archivo ? C.blue : C.gray} strokeWidth="1.5">
@@ -296,7 +310,9 @@ export default function SubirPrueba() {
                       {form.archivo ? form.archivo.name : "Hacé clic para subir"}
                     </p>
                     <p style={{ fontSize: "12px", color: C.gray, margin: 0 }}>
-                      {form.archivo ? `${(form.archivo.size / 1024 / 1024).toFixed(2)} MB` : "PDF, JPG, PNG, DOC — hasta 10MB"}
+                      {form.archivo
+                        ? `${(form.archivo.size / 1024 / 1024).toFixed(2)} MB`
+                        : "PDF, JPG, PNG, DOC — hasta 10 MB"}
                     </p>
                   </motion.button>
                 </Field>
@@ -354,7 +370,7 @@ export default function SubirPrueba() {
               style={{ padding: "11px 28px", borderRadius: "10px", backgroundColor: stepValid[2] && !loading ? C.blue : "rgba(255,255,255,0.05)", color: stepValid[2] && !loading ? C.white : C.gray, fontWeight: 700, fontSize: "14px", border: "none", cursor: stepValid[2] && !loading ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: "8px" }}>
               {loading ? (
                 <><motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: C.white, borderRadius: "50%" }} />Enviando...</>
+                  style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: C.white, borderRadius: "50%" }} />{loadingMsg}</>
               ) : "Enviar prueba ✓"}
             </motion.button>
           )}

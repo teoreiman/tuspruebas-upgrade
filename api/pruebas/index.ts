@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (anio)    { params.push(anio as string);    q += ` AND p.anio = $${params.length}`; }
     if (materia) { params.push(materia as string); q += ` AND p.materia ILIKE $${params.length}`; }
 
-    q += " ORDER BY p.fecha DESC";
+    q += " ORDER BY p.id DESC";
 
     try {
       const { rows } = await pool.query(q, params);

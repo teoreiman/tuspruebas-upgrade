@@ -103,6 +103,39 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
         </motion.button>
       </div>
 
+      {/* File preview */}
+      {prueba.archivo_url && prueba.archivo_tipo === "image" && (
+        <div style={{ paddingLeft: "8px", paddingRight: "0" }}>
+          <img
+            src={prueba.archivo_url}
+            alt="Vista previa"
+            style={{
+              width: "100%", height: "110px", objectFit: "cover",
+              borderRadius: "8px", border: `1px solid ${C.border}`,
+              display: "block",
+            }}
+          />
+        </div>
+      )}
+      {prueba.archivo_url && prueba.archivo_tipo === "pdf" && (
+        <div style={{
+          paddingLeft: "8px",
+          display: "flex", alignItems: "center", gap: "8px",
+          padding: "8px 12px", borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.03)",
+          border: `1px solid ${C.border}`,
+          marginLeft: "8px",
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span style={{ fontSize: "11px", color: C.gray, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {prueba.archivo_nombre || "Archivo PDF adjunto"}
+          </span>
+        </div>
+      )}
+
       <div style={{ paddingLeft: "8px" }}>
         <h3 style={{ fontSize: "14px", fontWeight: 700, color: C.white, marginBottom: "4px", lineHeight: 1.35 }}>{prueba.tema}</h3>
         <p style={{ fontSize: "12px", color: C.gray }}>Prof. {prueba.profesor}</p>

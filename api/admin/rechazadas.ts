@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         COALESCE(u.email,  p.contenido->>'usuario_email')  AS usuario_email
       FROM pruebas p
       LEFT JOIN usuarios u ON p.usuario_id = u.id
-      WHERE p.estado = 'pendiente'
+      WHERE p.estado = 'rechazada'
       ORDER BY p.id DESC
     `);
     return res.status(200).json({ data: rows });

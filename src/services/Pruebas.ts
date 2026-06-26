@@ -13,6 +13,7 @@ export interface Prueba {
   archivo_url?: string;
   archivo_nombre?: string;
   archivo_tipo?: string;
+  tiene_archivo?: boolean;
   estado: "pendiente" | "aprobada" | "rechazada";
   usuario_nombre: string;
   usuario_email: string;
@@ -31,6 +32,7 @@ function safeJson(raw: unknown): Record<string, unknown> {
 
 function mapApiPrueba(raw: Record<string, unknown>): Prueba {
   const c = safeJson(raw.contenido);
+  const archivoUrl = (c.archivo_url as string) || undefined;
   return {
     id:             raw.id as number,
     materia:        (raw.materia as string)  || "",
@@ -39,9 +41,10 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
     profesor:       (raw.profesor as string) || "",
     tema:           (raw.tema as string)     || "",
     notas:          (c.notas as string)      || "",
-    archivo_url:    (c.archivo_url    as string) || undefined,
+    archivo_url:    archivoUrl,
     archivo_nombre: (c.archivo_nombre as string) || undefined,
     archivo_tipo:   (c.archivo_tipo   as string) || undefined,
+    tiene_archivo:  !!archivoUrl,
     estado:         (raw.estado as Prueba["estado"]) || "pendiente",
     usuario_nombre: (raw.usuario_nombre as string) || (c.usuario_nombre as string) || "Anónimo",
     usuario_email:  (raw.usuario_email  as string) || (c.usuario_email  as string) || "",
@@ -49,6 +52,38 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
     created_at:     (raw.fecha as string) || (raw.created_at as string) || new Date().toISOString(),
     favorito:       (raw.favorito as boolean) ?? false,
   };
+}
+
+async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: string; tipo: string }> {
+  const cloudName    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME    as string | undefined;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string | undefined;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error(
+      "El almacenamiento de archivos no está configurado. " +
+      "Agregá VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET en las variables de entorno."
+    );
+  }
+
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", uploadPreset);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+    method: "POST",
+    body: fd,
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al subir el archivo a Cloudinary. Intentá de nuevo.");
+  }
+
+  const data = await res.json() as Record<string, unknown>;
+  const tipo = file.type.startsWith("image/") ? "image"
+             : file.type === "application/pdf" ? "pdf"
+             : "document";
+
+  return { url: data.secure_url as string, nombre: file.name, tipo };
 }
 
 function authHeaders(): Record<string, string> {
@@ -106,22 +141,27 @@ export async function fetchAllPruebas(
   }
 
   if (filtro === "rechazada") {
-    // Requiere GET /api/admin/pruebas?estado=rechazada (ver backend-updates/)
-    return [];
+    const res = await apiFetch(`${API_URL}/admin/rechazadas`, { headers });
+    if (!res.ok) throw new Error("Error al cargar pruebas");
+    const data = await res.json();
+    return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
   }
 
-  // "todas": pendientes + aprobadas
-  const [pendRes, aprRes] = await Promise.all([
-    apiFetch(`${API_URL}/admin/pendientes`, { headers }),
-    apiFetch(`${API_URL}/pruebas`,          { headers }),
+  // "todas": pendientes + aprobadas + rechazadas
+  const [pendRes, aprRes, rechRes] = await Promise.all([
+    apiFetch(`${API_URL}/admin/pendientes`,  { headers }),
+    apiFetch(`${API_URL}/pruebas`,           { headers }),
+    apiFetch(`${API_URL}/admin/rechazadas`,  { headers }),
   ]);
-  const [pend, apr] = await Promise.all([
+  const [pend, apr, rech] = await Promise.all([
     pendRes.ok ? pendRes.json() : { data: [] },
     aprRes.ok  ? aprRes.json()  : { data: [] },
+    rechRes.ok ? rechRes.json() : { data: [] },
   ]);
   return [
     ...((pend.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba),
     ...((apr.data  ?? []) as Record<string, unknown>[]).map(mapApiPrueba),
+    ...((rech.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba),
   ];
 }
 
@@ -147,6 +187,19 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   const usuario_email  = (formData.get("usuario_email")  as string) || "";
   const usuario_id_raw = formData.get("usuario_id");
   const usuario_id     = usuario_id_raw ? Number(usuario_id_raw) : null;
+  const archivo        = formData.get("archivo") as File | null;
+
+  // Upload file to cloud storage first
+  let archivo_url: string | undefined;
+  let archivo_nombre: string | undefined;
+  let archivo_tipo: string | undefined;
+
+  if (archivo && archivo.size > 0) {
+    const uploaded = await uploadFileToCloud(archivo);
+    archivo_url    = uploaded.url;
+    archivo_nombre = uploaded.nombre;
+    archivo_tipo   = uploaded.tipo;
+  }
 
   const titulo = `${materia}${tema ? ` - ${tema}` : ""} (${colegio} ${año})`;
 
@@ -157,7 +210,15 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
     profesor,
     tema,
     escuela:  colegio,
-    contenido: { notas, usuario_id, usuario_nombre, usuario_email },
+    contenido: {
+      notas,
+      usuario_id,
+      usuario_nombre,
+      usuario_email,
+      archivo_url,
+      archivo_nombre,
+      archivo_tipo,
+    },
   };
 
   const res = await apiFetch(`${API_URL}/pruebas`, {
@@ -180,6 +241,10 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
     profesor,
     tema,
     notas,
+    archivo_url,
+    archivo_nombre,
+    archivo_tipo,
+    tiene_archivo:  !!archivo_url,
     estado:         "pendiente",
     usuario_nombre,
     usuario_email,
