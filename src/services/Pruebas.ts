@@ -165,6 +165,26 @@ export async function fetchAllPruebas(
   ];
 }
 
+// ── Favoritos del usuario ─────────────────────────────────────────────────────
+export async function fetchFavoritos(): Promise<Prueba[]> {
+  const res = await apiFetch(`${API_URL}/pruebas/favoritos`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al cargar favoritos");
+  const data = await res.json();
+  return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
+}
+
+// ── Pruebas subidas por el usuario ────────────────────────────────────────────
+export async function fetchMisPruebas(): Promise<Prueba[]> {
+  const res = await apiFetch(`${API_URL}/pruebas/mis`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al cargar tus pruebas");
+  const data = await res.json();
+  return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
+}
+
 // ── Prueba individual ──────────────────────────────────────────────────────────────
 export async function fetchPrueba(id: number): Promise<Prueba> {
   const res = await apiFetch(`${API_URL}/pruebas/${id}`, {

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\49194244\\\\Documents\\\\GitHub\\\\tuspruebas-upgrade\" -Depth 2 -Directory)",
+      "Bash(Select-Object FullName)"
+    ]
+  }
+}

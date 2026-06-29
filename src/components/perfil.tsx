@@ -57,9 +57,9 @@ export default function Perfil() {
           <div style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}`, borderRadius: "16px", overflow: "hidden", marginBottom: "12px" }}>
             <div style={{ padding: "4px" }}>
               {[
-                { label: "Mis pruebas subidas", icon: "↑", path: "/home" },
-                { label: "Pruebas favoritas", icon: "★", path: "/home" },
-                { label: "Subir prueba", icon: "+", path: "/subir" },
+                { label: "Mis pruebas subidas", icon: "↑", path: "/mis-pruebas" },
+                { label: "Pruebas favoritas",   icon: "★", path: "/favoritas"   },
+                { label: "Subir prueba",         icon: "+", path: "/subir"       },
               ].map((item) => (
                 <motion.button key={item.label} onClick={() => navigate(item.path)} whileHover={{ backgroundColor: "rgba(255,255,255,0.04)" }}
                   style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", border: "none", backgroundColor: "transparent", cursor: "pointer", borderRadius: "12px", fontFamily: "'DM Sans', sans-serif" }}>
