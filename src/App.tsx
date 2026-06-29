@@ -6,6 +6,8 @@ import Login from "./components/login";
 import SignUp from "./components/signUp";
 import SubirPrueba from "./components/subirPrueba";
 import DetallePrueba from "./components/DetallePrueba";
+import Favoritas from "./components/Favoritas";
+import MisPruebas from "./components/MisPruebas";
 import IA from "./components/Ia";
 import AdminPanel from "./components/AdminPanel";
 import Perfil from "./components/perfil";
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/home"          element={<PrivateRoute><HomePage /></PrivateRoute>} />
         <Route path="/prueba/:id"    element={<PrivateRoute><DetallePrueba /></PrivateRoute>} />
+        <Route path="/favoritas"     element={<PrivateRoute><Favoritas /></PrivateRoute>} />
+        <Route path="/mis-pruebas"   element={<PrivateRoute><MisPruebas /></PrivateRoute>} />
         <Route path="/subir"         element={<PrivateRoute><SubirPrueba /></PrivateRoute>} />
         <Route path="/ia"            element={<PrivateRoute><IA /></PrivateRoute>} />
         <Route path="/perfil"        element={<PrivateRoute><Perfil /></PrivateRoute>} />
