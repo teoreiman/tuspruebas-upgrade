@@ -215,10 +215,19 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   let archivo_tipo: string | undefined;
 
   if (archivo && archivo.size > 0) {
-    const uploaded = await uploadFileToCloud(archivo);
-    archivo_url    = uploaded.url;
-    archivo_nombre = uploaded.nombre;
-    archivo_tipo   = uploaded.tipo;
+    try {
+      const uploaded = await uploadFileToCloud(archivo);
+      archivo_url    = uploaded.url;
+      archivo_nombre = uploaded.nombre;
+      archivo_tipo   = uploaded.tipo;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      if (msg.includes("no está configurado")) {
+        // Cloudinary not set up — skip file, submit prueba without attachment
+      } else {
+        throw e;
+      }
+    }
   }
 
   const titulo = `${materia}${tema ? ` - ${tema}` : ""} (${colegio} ${año})`;

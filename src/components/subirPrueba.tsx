@@ -106,7 +106,7 @@ export default function SubirPrueba() {
   const stepValid = [
     form.colegio !== "" && form.año !== "",
     form.materia !== "" || sinMaterias,
-    form.archivo !== null,
+    true,
   ];
 
   const handleSubmit = async () => {
@@ -286,7 +286,7 @@ export default function SubirPrueba() {
 
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                <Field label="Archivo de la prueba" required>
+                <Field label="Archivo de la prueba (opcional)">
                   <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null;

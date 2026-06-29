@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser, isSuperAdmin } from "../services/Auth";
 import { fetchAllPruebas, fetchPruebas, toggleFavorito, type Prueba } from "../services/Pruebas";
@@ -160,10 +160,11 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const user = getUser();
   const [search, setSearch] = useState("");
-  const [añoTab, setAñoTab] = useState("5to");
-  const [escuela, setEscuela] = useState("ORT Almagro");
+  const [añoTab, setAñoTab] = useState(searchParams.get("anio") || "5to");
+  const [escuela, setEscuela] = useState(searchParams.get("escuela") || "ORT Almagro");
   const [materiaFiltro, setMateriaFiltro] = useState("Todas");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [pendientesCount, setPendientesCount] = useState(0);

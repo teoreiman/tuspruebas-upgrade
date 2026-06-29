@@ -212,7 +212,7 @@ export default function AdminPanel() {
   const [pruebas, setPruebas] = useState<Prueba[]>([]);
   const [filtro, setFiltro] = useState<Filtro>("pendiente");
   const [loadingId, setLoadingId] = useState<number | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err"; link?: string } | null>(null);
 
   const user = getUser();
 
@@ -222,9 +222,9 @@ export default function AdminPanel() {
 
   useEffect(() => { loadPruebas(); }, []);
 
-  const showToast = (msg: string, type: "ok" | "err") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+  const showToast = (msg: string, type: "ok" | "err", link?: string) => {
+    setToast({ msg, type, link });
+    setTimeout(() => setToast(null), 5000);
   };
 
   const handleAprobar = async (id: number) => {
@@ -232,9 +232,11 @@ export default function AdminPanel() {
     try {
       await updatePruebaEstado(id, "aprobada");
       setPruebas((prev) => prev.map((p) => (p.id === id ? { ...p, estado: "aprobada" } : p)));
-      showToast("Prueba aprobada ✓", "ok");
+      const prueba = pruebas.find((p) => p.id === id);
+      const link = prueba ? `/home?escuela=${encodeURIComponent(prueba.escuela)}&anio=${encodeURIComponent(prueba.año)}` : "/home";
+      showToast("Prueba aprobada ✓", "ok", link);
     } catch {
-      showToast("Error al aprobar", "err");
+      showToast("Error al aprobar — verificá que tenés permisos", "err");
     } finally {
       setLoadingId(null);
     }
@@ -393,10 +395,23 @@ export default function AdminPanel() {
               backgroundColor: toast.type === "ok" ? "#111" : "#dc2626",
               color: "#fff", fontSize: "14px", fontWeight: 600,
               boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-              zIndex: 100,
+              zIndex: 100, display: "flex", alignItems: "center", gap: "14px", whiteSpace: "nowrap",
             }}
           >
-            {toast.msg}
+            <span>{toast.msg}</span>
+            {toast.link && (
+              <motion.button
+                whileHover={{ opacity: 0.8 }}
+                onClick={() => navigate(toast.link!)}
+                style={{
+                  background: "rgba(255,255,255,0.2)", border: "none", color: "#fff",
+                  fontWeight: 700, fontSize: "13px", padding: "4px 12px", borderRadius: "6px",
+                  cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                Ver en homepage →
+              </motion.button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

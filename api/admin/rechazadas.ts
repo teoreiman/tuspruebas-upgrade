@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import pool from "../lib/db";
-import { getAuthUser } from "../lib/auth";
+import { getAuthUser, isAdminUser } from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
 
   const user = getAuthUser(req);
-  if (!user || user.rol !== "admin") return res.status(403).json({ message: "Acceso denegado" });
+  if (!isAdminUser(user)) return res.status(403).json({ message: "Acceso denegado" });
 
   try {
     const { rows } = await pool.query(`
