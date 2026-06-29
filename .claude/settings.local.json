@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\49194244\\\\Documents\\\\GitHub\\\\tuspruebas-upgrade\" -Depth 2 -Directory)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(curl -s \"http://localhost:5174/src/components/subirPrueba.tsx\")",
+      "Bash(curl -s \"http://localhost:5174/src/components/HomePage.tsx\")",
+      "Bash(npx playwright *)",
+      "Bash(ls \"C:\\\\Users\\\\49194244\\\\AppData\\\\Local\\\\ms-playwright\\\\\" 2>/dev/null | head -20)",
+      "Read(//c/Users/49194244/AppData/Local/ms-playwright\" 2>/dev/**)",
+      "Bash(ls /c/Users/49194244/AppData/Local/ms-playwright/ 2>/dev/null | head -20)",
+      "Read(//c/Users/49194244/AppData/Local/ms-playwright//**)",
+      "Bash(node \"/c/Users/49194244/AppData/Local/Temp/claude/c--Users-49194244-Documents-GitHub-tuspruebas-upgrade/f4eaca80-764c-47d2-a0cd-5eef4aea8a3d/scratchpad/verify.mjs\")",
+      "Bash(cp \"/c/Users/49194244/AppData/Local/Temp/claude/c--Users-49194244-Documents-GitHub-tuspruebas-upgrade/f4eaca80-764c-47d2-a0cd-5eef4aea8a3d/scratchpad/verify.mjs\" ./verify_temp.mjs)",
+      "Bash(node verify_temp.mjs)",
+      "Bash(find /c/Users/49194244/AppData -name \"playwright\" -type d 2>/dev/null | head -5 *)",
+      "Read(//c/Users/49194244/AppData/**)",
+      "Read(//c/Users/49194244/**)",
+      "Bash(NODE_PATH=\"/c/Users/49194244/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules\" node --input-type=module)",
+      "Bash(npm install *)",
+      "Bash(node verify_temp.cjs)",
+      "Bash(npm uninstall *)"
     ]
   }
 }
