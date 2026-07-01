@@ -29,7 +29,7 @@ const MATERIA_COLORS: Record<string, { bg: string; text: string; border: string 
 // ── PDF Viewer ────────────────────────────────────────────────────────────────
 function FileViewer({ url, nombre, tipo }: { url: string; nombre: string; tipo?: string }) {
   const isPdf = tipo === "pdf" || nombre?.toLowerCase().endsWith(".pdf");
-  const isImage = ["jpg","jpeg","png","gif","webp"].some((ext) => nombre?.toLowerCase().endsWith(ext));
+  const isImage = tipo === "image" || ["jpg","jpeg","png","gif","webp","heic","avif","bmp","tiff"].some((ext) => nombre?.toLowerCase().endsWith(ext));
 
   if (isPdf) {
     return (
@@ -110,11 +110,13 @@ export default function DetallePrueba() {
   const handleFavorito = async () => {
     if (!prueba || savingFav) return;
     setSavingFav(true);
+    const prev = saved;
+    setSaved(!prev);
     try {
-      const newState = await toggleFavorito(prueba.id);
-      setSaved(newState);
+      const actual = await toggleFavorito(prueba.id);
+      setSaved(actual);
     } catch {
-      /* silent */
+      setSaved(prev);
     } finally {
       setSavingFav(false);
     }

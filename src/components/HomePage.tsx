@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { getUser, isSuperAdmin } from "../services/Auth";
+import { getUser, isSuperAdmin, clearSession } from "../services/Auth";
 import { fetchAllPruebas, fetchPruebas, toggleFavorito, type Prueba } from "../services/Pruebas";
 import Logo from "./logo";
 
@@ -95,8 +95,14 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
           whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.85 }}
           onClick={async (e) => {
             e.stopPropagation();
-            const newState = await toggleFavorito(prueba.id);
-            setSaved(newState);
+            const prev = saved;
+            setSaved(!prev);
+            try {
+              const actual = await toggleFavorito(prueba.id);
+              setSaved(actual);
+            } catch {
+              setSaved(prev);
+            }
           }}
           style={{ fontSize: "18px", background: "none", border: "none", cursor: "pointer", color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)", lineHeight: 1, padding: 0, flexShrink: 0 }}>
           {saved ? "★" : "☆"}
@@ -264,6 +270,17 @@ export default function HomePage() {
                           )}
                         </motion.button>
                       )}
+                      <div style={{ height: "1px", backgroundColor: C.border, margin: "4px 8px" }} />
+                      <motion.button whileHover={{ backgroundColor: "rgba(239,68,68,0.08)" }}
+                        onClick={() => { setShowUserMenu(false); clearSession(); navigate("/"); }}
+                        style={{ width: "100%", padding: "10px 14px", border: "none", backgroundColor: "transparent", cursor: "pointer", textAlign: "left", fontSize: "13px", color: "#ef4444", fontWeight: 600, borderRadius: "8px", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                          <polyline points="16 17 21 12 16 7"/>
+                          <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        Cerrar sesión
+                      </motion.button>
                     </div>
                   </motion.div>
                 )}

@@ -298,15 +298,11 @@ export async function updatePruebaEstado(
 
 // ── Toggle favorito ───────────────────────────────────────────────────────────
 export async function toggleFavorito(id: number): Promise<boolean> {
-  try {
-    const res = await apiFetch(`${API_URL}/pruebas/${id}/favorito`, {
-      method: "POST",
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error("sin endpoint");
-    const data = await res.json();
-    return (data.favorito as boolean) ?? false;
-  } catch {
-    return false;
-  }
+  const res = await apiFetch(`${API_URL}/pruebas/${id}/favorito`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al guardar favorito");
+  const data = await res.json();
+  return (data.favorito as boolean) ?? false;
 }

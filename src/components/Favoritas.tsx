@@ -53,8 +53,12 @@ function PruebaCard({
     e.stopPropagation();
     if (busy) return;
     setBusy(true);
-    await toggleFavorito(prueba.id);
-    onUnfavorite(prueba.id);
+    try {
+      await toggleFavorito(prueba.id);
+      onUnfavorite(prueba.id);
+    } catch {
+      setBusy(false);
+    }
   };
 
   return (
