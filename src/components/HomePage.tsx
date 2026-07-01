@@ -123,7 +123,24 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
           />
         </div>
       )}
-      {prueba.archivo_url && prueba.archivo_tipo === "pdf" && (
+      {/* Imagen guardada como base64: URL no está en el listado, mostrar indicador */}
+      {!prueba.archivo_url && prueba.archivo_tipo === "image" && (
+        <div style={{
+          marginLeft: "8px",
+          display: "flex", alignItems: "center", gap: "8px",
+          padding: "8px 12px", borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.03)",
+          border: `1px solid ${C.border}`,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span style={{ fontSize: "11px", color: C.gray }}>Foto adjunta — ver detalle</span>
+        </div>
+      )}
+      {prueba.archivo_tipo === "pdf" && (
         <div style={{
           paddingLeft: "8px",
           display: "flex", alignItems: "center", gap: "8px",

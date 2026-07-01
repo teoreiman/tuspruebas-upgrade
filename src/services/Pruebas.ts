@@ -33,6 +33,7 @@ function safeJson(raw: unknown): Record<string, unknown> {
 function mapApiPrueba(raw: Record<string, unknown>): Prueba {
   const c = safeJson(raw.contenido);
   const archivoUrl = (c.archivo_url as string) || undefined;
+  const archivoTipo = (c.archivo_tipo as string) || undefined;
   return {
     id:             raw.id as number,
     materia:        (raw.materia as string)  || "",
@@ -43,8 +44,8 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
     notas:          (c.notas as string)      || "",
     archivo_url:    archivoUrl,
     archivo_nombre: (c.archivo_nombre as string) || undefined,
-    archivo_tipo:   (c.archivo_tipo   as string) || undefined,
-    tiene_archivo:  !!archivoUrl,
+    archivo_tipo:   archivoTipo,
+    tiene_archivo:  !!archivoUrl || !!archivoTipo,
     estado:         (raw.estado as Prueba["estado"]) || "pendiente",
     usuario_nombre: (raw.usuario_nombre as string) || (c.usuario_nombre as string) || "Anónimo",
     usuario_email:  (raw.usuario_email  as string) || (c.usuario_email  as string) || "",
@@ -54,14 +55,53 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
   };
 }
 
+// Comprime una imagen usando canvas y devuelve un data URL JPEG.
+// No requiere ningún servicio externo.
+async function compressImageToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 1600;
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > MAX || h > MAX) {
+          if (w >= h) { h = Math.round((h * MAX) / w); w = MAX; }
+          else        { w = Math.round((w * MAX) / h); h = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width  = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas no disponible")); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: string; tipo: string }> {
+  // Para imágenes: comprimir con canvas y guardar como base64.
+  // Esto funciona sin ningún servicio externo.
+  if (file.type.startsWith("image/")) {
+    const dataUrl = await compressImageToBase64(file);
+    return { url: dataUrl, nombre: file.name, tipo: "image" };
+  }
+
+  // Para PDFs y otros archivos: intentar Cloudinary si está configurado.
   const cloudName    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME    as string | undefined;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string | undefined;
 
   if (!cloudName || !uploadPreset) {
     throw new Error(
-      "El almacenamiento de archivos no está configurado. " +
-      "Agregá VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET en las variables de entorno."
+      "Para subir PDFs es necesario configurar Cloudinary. " +
+      "Las fotos (JPG, PNG) se pueden subir sin configuración adicional."
     );
   }
 
@@ -75,15 +115,11 @@ async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: str
   });
 
   if (!res.ok) {
-    throw new Error("Error al subir el archivo a Cloudinary. Intentá de nuevo.");
+    throw new Error("Error al subir el PDF a Cloudinary. Verificá la configuración.");
   }
 
   const data = await res.json() as Record<string, unknown>;
-  const tipo = file.type.startsWith("image/") ? "image"
-             : file.type === "application/pdf" ? "pdf"
-             : "document";
-
-  return { url: data.secure_url as string, nombre: file.name, tipo };
+  return { url: data.secure_url as string, nombre: file.name, tipo: "pdf" };
 }
 
 function authHeaders(): Record<string, string> {
@@ -215,19 +251,10 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   let archivo_tipo: string | undefined;
 
   if (archivo && archivo.size > 0) {
-    try {
-      const uploaded = await uploadFileToCloud(archivo);
-      archivo_url    = uploaded.url;
-      archivo_nombre = uploaded.nombre;
-      archivo_tipo   = uploaded.tipo;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      if (msg.includes("no está configurado")) {
-        // Cloudinary not set up — skip file, submit prueba without attachment
-      } else {
-        throw e;
-      }
-    }
+    const uploaded = await uploadFileToCloud(archivo);
+    archivo_url    = uploaded.url;
+    archivo_nombre = uploaded.nombre;
+    archivo_tipo   = uploaded.tipo;
   }
 
   const titulo = `${materia}${tema ? ` - ${tema}` : ""} (${colegio} ${año})`;

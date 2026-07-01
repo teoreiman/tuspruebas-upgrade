@@ -28,7 +28,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
       const { rows } = await pool.query(q, params);
-      return res.status(200).json({ data: rows });
+      // Strip base64 data URLs from list to keep response lightweight.
+      // The full URL is still returned by GET /api/pruebas/:id.
+      const data = rows.map((row: Record<string, unknown>) => {
+        const c = row.contenido as Record<string, unknown> | null;
+        if (c && typeof c === "object") {
+          const url = c.archivo_url as string | undefined;
+          if (url && url.startsWith("data:")) {
+            return { ...row, contenido: { ...c, archivo_url: undefined } };
+          }
+        }
+        return row;
+      });
+      return res.status(200).json({ data });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ message: "Error interno del servidor" });

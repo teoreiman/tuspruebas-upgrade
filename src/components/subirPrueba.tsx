@@ -312,7 +312,7 @@ export default function SubirPrueba() {
                     <p style={{ fontSize: "12px", color: C.gray, margin: 0 }}>
                       {form.archivo
                         ? `${(form.archivo.size / 1024 / 1024).toFixed(2)} MB`
-                        : "PDF, JPG, PNG, DOC — hasta 10 MB"}
+                        : "Fotos JPG, PNG (se comprimen automáticamente) · PDF hasta 10 MB"}
                     </p>
                   </motion.button>
                 </Field>

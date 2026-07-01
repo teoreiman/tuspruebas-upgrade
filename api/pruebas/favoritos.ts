@@ -21,7 +21,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        ORDER BY p.id DESC`,
       [user.id]
     );
-    return res.status(200).json({ data: rows });
+    const data = rows.map((row: Record<string, unknown>) => {
+      const c = row.contenido as Record<string, unknown> | null;
+      if (c && typeof c === "object") {
+        const url = c.archivo_url as string | undefined;
+        if (url && url.startsWith("data:")) {
+          return { ...row, contenido: { ...c, archivo_url: undefined } };
+        }
+      }
+      return row;
+    });
+    return res.status(200).json({ data });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "Error interno del servidor" });
