@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import pool from "../../lib/db";
+import pool, { ensureFavoritosTable } from "../../lib/db";
 import { getAuthUser } from "../../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -11,6 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pruebaId = Number(req.query.id);
 
   try {
+    await ensureFavoritosTable();
     const existing = await pool.query(
       "SELECT id FROM favoritos WHERE usuario_id = $1 AND prueba_id = $2",
       [user.id, pruebaId]

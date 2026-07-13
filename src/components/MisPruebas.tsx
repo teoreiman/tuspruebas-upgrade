@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchMisPruebas, toggleFavorito, type Prueba, type PruebaEstado } from "../services/Pruebas";
+import { fetchMisPruebas, toggleFavorito, deletePrueba, type Prueba, type PruebaEstado } from "../services/Pruebas";
 import Logo from "./logo";
 
 const C = {
@@ -44,9 +44,10 @@ const ESTADO_STYLES: Record<PruebaEstado, { bg: string; text: string; border: st
   rechazada: { bg: "rgba(239,68,68,0.12)",   text: "#f87171", border: "rgba(248,113,113,0.3)",  label: "Rechazada"  },
 };
 
-function PruebaCard({ prueba }: { prueba: Prueba }) {
+function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: number) => void }) {
   const navigate   = useNavigate();
   const [saved, setSaved] = useState(prueba.favorito ?? false);
+  const [deleting, setDeleting] = useState(false);
   const s          = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
   const es         = ESTADO_STYLES[prueba.estado];
   const aprobada   = prueba.estado === "aprobada";
@@ -56,6 +57,19 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
     e.stopPropagation();
     const next = await toggleFavorito(prueba.id);
     setSaved(next);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deleting) return;
+    if (!window.confirm("¿Seguro que querés eliminar esta prueba? Esta acción no se puede deshacer.")) return;
+    setDeleting(true);
+    try {
+      await deletePrueba(prueba.id);
+      onDelete(prueba.id);
+    } catch {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -106,21 +120,42 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
             {es.label}
           </span>
         </div>
-        {aprobada && (
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+          {aprobada && (
+            <motion.button
+              whileHover={{ scale: 1.3 }}
+              whileTap={{ scale: 0.85 }}
+              onClick={handleFav}
+              title={saved ? "Quitar de favoritos" : "Guardar"}
+              style={{
+                fontSize: "18px", background: "none", border: "none", cursor: "pointer",
+                color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)",
+                lineHeight: 1, padding: 0,
+              }}
+            >
+              {saved ? "★" : "☆"}
+            </motion.button>
+          )}
           <motion.button
-            whileHover={{ scale: 1.3 }}
+            whileHover={{ scale: 1.15, color: "#f87171" }}
             whileTap={{ scale: 0.85 }}
-            onClick={handleFav}
-            title={saved ? "Quitar de favoritos" : "Guardar"}
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Eliminar prueba"
             style={{
-              fontSize: "18px", background: "none", border: "none", cursor: "pointer",
-              color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)",
-              lineHeight: 1, padding: 0, flexShrink: 0,
+              background: "none", border: "none", cursor: deleting ? "default" : "pointer",
+              color: "rgba(255,255,255,0.2)", padding: 0, opacity: deleting ? 0.5 : 1,
+              display: "flex", alignItems: "center",
             }}
           >
-            {saved ? "★" : "☆"}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
           </motion.button>
-        )}
+        </div>
       </div>
 
       {/* Preview imagen */}
@@ -134,6 +169,23 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
               borderRadius: "8px", border: `1px solid ${C.border}`, display: "block",
             }}
           />
+        </div>
+      )}
+      {/* Imagen guardada como base64: URL no está en el listado, mostrar indicador */}
+      {!prueba.archivo_url && prueba.archivo_tipo === "image" && (
+        <div style={{
+          marginLeft: "8px",
+          display: "flex", alignItems: "center", gap: "8px",
+          padding: "8px 12px", borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.03)",
+          border: `1px solid ${C.border}`,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span style={{ fontSize: "11px", color: C.gray }}>Foto adjunta — ver detalle</span>
         </div>
       )}
       {prueba.archivo_url && prueba.archivo_tipo === "pdf" && (
@@ -217,6 +269,10 @@ export default function MisPruebas() {
       .catch(() => setPruebas([]))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDelete = (id: number) => {
+    setPruebas((prev) => prev.filter((p) => p.id !== id));
+  };
 
   const counts = {
     todas:     pruebas.length,
@@ -333,7 +389,7 @@ export default function MisPruebas() {
           <AnimatePresence mode="popLayout">
             <motion.div layout style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
               {shown.map((p) => (
-                <PruebaCard key={p.id} prueba={p} />
+                <PruebaCard key={p.id} prueba={p} onDelete={handleDelete} />
               ))}
             </motion.div>
           </AnimatePresence>

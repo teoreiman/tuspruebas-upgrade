@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { fetchPrueba, toggleFavorito, type Prueba } from "../services/Pruebas";
+import { fetchPrueba, toggleFavorito, deletePrueba, type Prueba } from "../services/Pruebas";
+import { getUser, isAdmin, isSuperAdmin } from "../services/Auth";
 import Logo from "./logo";
 
 const C = {
@@ -28,6 +29,7 @@ const MATERIA_COLORS: Record<string, { bg: string; text: string; border: string 
 
 // ── PDF Viewer ────────────────────────────────────────────────────────────────
 function FileViewer({ url, nombre, tipo }: { url: string; nombre: string; tipo?: string }) {
+  const [imgError, setImgError] = useState(false);
   const isPdf = tipo === "pdf" || nombre?.toLowerCase().endsWith(".pdf");
   const isImage = tipo === "image" || ["jpg","jpeg","png","gif","webp","heic","avif","bmp","tiff"].some((ext) => nombre?.toLowerCase().endsWith(ext));
 
@@ -43,10 +45,33 @@ function FileViewer({ url, nombre, tipo }: { url: string; nombre: string; tipo?:
     );
   }
 
-  if (isImage) {
+  if (isImage && !imgError) {
     return (
       <div style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, display: "flex", justifyContent: "center", padding: "24px" }}>
-        <img src={url} alt={nombre} style={{ maxWidth: "100%", maxHeight: "600px", objectFit: "contain", borderRadius: "8px" }} />
+        <img
+          src={url}
+          alt={nombre}
+          onError={() => setImgError(true)}
+          style={{ maxWidth: "100%", maxHeight: "600px", objectFit: "contain", borderRadius: "8px" }}
+        />
+      </div>
+    );
+  }
+
+  if (isImage && imgError) {
+    return (
+      <div style={{ width: "100%", borderRadius: "12px", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, padding: "48px 24px", textAlign: "center" }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5" style={{ margin: "0 auto 16px", display: "block" }}>
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <p style={{ fontSize: "14px", color: C.gray, marginBottom: "4px" }}>
+          No se pudo cargar la foto de esta prueba.
+        </p>
+        <p style={{ fontSize: "13px", color: C.gray }}>
+          Puede haberse subido antes de que se habilitara la carga de fotos sin configuración externa. Probá volver a subir la prueba con la foto.
+        </p>
       </div>
     );
   }
@@ -94,6 +119,8 @@ export default function DetallePrueba() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [savingFav, setSavingFav] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const user = getUser();
 
   useEffect(() => {
     if (!id) return;
@@ -121,6 +148,20 @@ export default function DetallePrueba() {
       setSavingFav(false);
     }
   };
+
+  const handleEliminar = async () => {
+    if (!prueba || deleting) return;
+    if (!window.confirm("¿Seguro que querés eliminar esta prueba? Esta acción no se puede deshacer.")) return;
+    setDeleting(true);
+    try {
+      await deletePrueba(prueba.id);
+      navigate("/mis-pruebas");
+    } catch {
+      setDeleting(false);
+    }
+  };
+
+  const puedeEliminar = !!prueba && !!user && (user.id === prueba.usuario_id || isAdmin() || isSuperAdmin());
 
   const s = prueba ? (MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border }) : null;
   const fecha = prueba ? new Date(prueba.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" }) : "";
@@ -244,6 +285,36 @@ export default function DetallePrueba() {
                   Descargar
                 </motion.a>
               )}
+
+              {/* Eliminar */}
+              {puedeEliminar && (
+                <motion.button
+                  whileHover={{ scale: 1.05, borderColor: "rgba(239,68,68,0.4)", color: "#f87171" }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleEliminar}
+                  disabled={deleting}
+                  title="Eliminar prueba"
+                  style={{
+                    display: "flex", alignItems: "center", gap: "7px",
+                    padding: "10px 14px", borderRadius: "10px",
+                    border: `1.5px solid ${C.border}`,
+                    backgroundColor: "transparent",
+                    color: C.gray,
+                    fontWeight: 600, fontSize: "13px",
+                    cursor: deleting ? "default" : "pointer", transition: "all 0.2s",
+                    fontFamily: "'DM Sans', sans-serif",
+                    opacity: deleting ? 0.5 : 1,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                  </svg>
+                  Eliminar
+                </motion.button>
+              )}
             </div>
           </div>
 
@@ -270,8 +341,6 @@ export default function DetallePrueba() {
               <p style={{ fontSize: "13px", fontWeight: 600, color: C.white }}>{prueba.usuario_nombre}</p>
             </div>
           </div>
-
-          {/* Visor del archivo */}
           {prueba.archivo_url ? (
             <div>
               <p style={{ fontSize: "13px", fontWeight: 600, color: C.text, marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -283,13 +352,17 @@ export default function DetallePrueba() {
               </p>
               <FileViewer url={prueba.archivo_url} nombre={prueba.archivo_nombre || ""} tipo={prueba.archivo_tipo} />
             </div>
+          ) : prueba.archivo_tipo ? (
+            <div style={{ backgroundColor: C.bgCard, borderRadius: "12px", padding: "40px 24px", textAlign: "center", border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: "14px", color: C.gray, marginBottom: "4px" }}>El archivo de esta prueba no está disponible.</p>
+              <p style={{ fontSize: "13px", color: C.gray }}>Puede haberse subido antes de que se habilitara la carga de archivos sin configuración externa.</p>
+            </div>
           ) : (
             <div style={{ backgroundColor: C.bgCard, borderRadius: "12px", padding: "40px 24px", textAlign: "center", border: `1px solid ${C.border}` }}>
               <p style={{ fontSize: "14px", color: C.gray }}>Esta prueba no tiene archivo adjunto.</p>
             </div>
           )}
 
-          {/* Usar IA */}
           <div style={{ marginTop: "28px", backgroundColor: "rgba(16,99,239,0.06)", borderRadius: "12px", padding: "20px 24px", border: "1px solid rgba(16,99,239,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
             <div>
               <p style={{ fontSize: "14px", fontWeight: 700, color: C.white, marginBottom: "4px" }}>

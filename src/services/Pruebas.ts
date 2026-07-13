@@ -55,6 +55,12 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
   };
 }
 
+// Vercel Serverless Functions rechazan requests/responses de más de 4.5 MB.
+// La imagen viaja como base64 (dataURL) dentro de un JSON, así que la
+// mantenemos bien por debajo de ese límite para que la prueba después se
+// pueda leer sin problemas desde /api/pruebas/:id.
+const MAX_DATA_URL_BYTES = 1.5 * 1024 * 1024;
+
 // Comprime una imagen usando canvas y devuelve un data URL JPEG.
 // No requiere ningún servicio externo.
 async function compressImageToBase64(file: File): Promise<string> {
@@ -77,8 +83,30 @@ async function compressImageToBase64(file: File): Promise<string> {
         canvas.height = h;
         const ctx = canvas.getContext("2d");
         if (!ctx) { reject(new Error("Canvas no disponible")); return; }
+        // JPEG no soporta transparencia: sin este fondo, las zonas
+        // transparentes de un PNG se ven negras en vez de blancas.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
+
+        // Bajamos la calidad (y si hace falta el tamaño) hasta que el
+        // resultado entre cómodo dentro del límite de payload de Vercel.
+        let quality = 0.82;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        while (dataUrl.length > MAX_DATA_URL_BYTES && quality > 0.4) {
+          quality -= 0.12;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+        if (dataUrl.length > MAX_DATA_URL_BYTES) {
+          const scale = Math.sqrt(MAX_DATA_URL_BYTES / dataUrl.length);
+          canvas.width  = Math.max(1, Math.round(w * scale));
+          canvas.height = Math.max(1, Math.round(h * scale));
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        }
+        resolve(dataUrl);
       };
       img.src = e.target?.result as string;
     };
@@ -332,4 +360,16 @@ export async function toggleFavorito(id: number): Promise<boolean> {
   if (!res.ok) throw new Error("Error al guardar favorito");
   const data = await res.json();
   return (data.favorito as boolean) ?? false;
+}
+
+// ── Eliminar prueba ───────────────────────────────────────────────────────────
+export async function deletePrueba(id: number): Promise<void> {
+  const res = await apiFetch(`${API_URL}/pruebas/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Error al eliminar la prueba" }));
+    throw new Error(err.message);
+  }
 }

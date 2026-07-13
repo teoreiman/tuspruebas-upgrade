@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import pool from "../lib/db";
+import pool, { ensureFavoritosTable } from "../lib/db";
 import { getAuthUser } from "../lib/auth";
+import { stripInlineImages } from "../lib/pruebas";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
@@ -9,6 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!user) return res.status(401).json({ message: "No autenticado" });
 
   try {
+    await ensureFavoritosTable();
     const { rows } = await pool.query(
       `SELECT p.*,
         COALESCE(u.nombre, p.contenido->>'usuario_nombre') AS usuario_nombre,
@@ -21,17 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        ORDER BY p.id DESC`,
       [user.id]
     );
-    const data = rows.map((row: Record<string, unknown>) => {
-      const c = row.contenido as Record<string, unknown> | null;
-      if (c && typeof c === "object") {
-        const url = c.archivo_url as string | undefined;
-        if (url && url.startsWith("data:")) {
-          return { ...row, contenido: { ...c, archivo_url: undefined } };
-        }
-      }
-      return row;
-    });
-    return res.status(200).json({ data });
+    return res.status(200).json({ data: stripInlineImages(rows) });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "Error interno del servidor" });

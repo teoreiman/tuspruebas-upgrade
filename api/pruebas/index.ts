@@ -1,11 +1,19 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import pool from "../lib/db";
+import pool, { ensureFavoritosTable } from "../lib/db";
 import { getAuthUser } from "../lib/auth";
+import { stripInlineImages } from "../lib/pruebas";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     const user = getAuthUser(req);
     const { escuela, anio, materia } = req.query;
+
+    try {
+      await ensureFavoritosTable();
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ message: "Error interno del servidor" });
+    }
 
     let q = `
       SELECT p.*,
@@ -28,19 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
       const { rows } = await pool.query(q, params);
-      // Strip base64 data URLs from list to keep response lightweight.
-      // The full URL is still returned by GET /api/pruebas/:id.
-      const data = rows.map((row: Record<string, unknown>) => {
-        const c = row.contenido as Record<string, unknown> | null;
-        if (c && typeof c === "object") {
-          const url = c.archivo_url as string | undefined;
-          if (url && url.startsWith("data:")) {
-            return { ...row, contenido: { ...c, archivo_url: undefined } };
-          }
-        }
-        return row;
-      });
-      return res.status(200).json({ data });
+      return res.status(200).json({ data: stripInlineImages(rows) });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ message: "Error interno del servidor" });
