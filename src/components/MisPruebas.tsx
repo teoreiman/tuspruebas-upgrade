@@ -47,7 +47,9 @@ const ESTADO_STYLES: Record<PruebaEstado, { bg: string; text: string; border: st
 function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: number) => void }) {
   const navigate   = useNavigate();
   const [saved, setSaved] = useState(prueba.favorito ?? false);
+  const [savingFav, setSavingFav] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  useEffect(() => setSaved(prueba.favorito ?? false), [prueba.favorito]);
   const s          = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
   const es         = ESTADO_STYLES[prueba.estado];
   const aprobada   = prueba.estado === "aprobada";
@@ -55,8 +57,18 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
 
   const handleFav = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = await toggleFavorito(prueba.id);
-    setSaved(next);
+    if (savingFav) return;
+    setSavingFav(true);
+    const prev = saved;
+    setSaved(!prev);
+    try {
+      const actual = await toggleFavorito(prueba.id);
+      setSaved(actual);
+    } catch {
+      setSaved(prev);
+    } finally {
+      setSavingFav(false);
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -126,11 +138,13 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
               whileHover={{ scale: 1.3 }}
               whileTap={{ scale: 0.85 }}
               onClick={handleFav}
+              disabled={savingFav}
               title={saved ? "Quitar de favoritos" : "Guardar"}
               style={{
-                fontSize: "18px", background: "none", border: "none", cursor: "pointer",
+                fontSize: "18px", background: "none", border: "none",
+                cursor: savingFav ? "default" : "pointer",
                 color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)",
-                lineHeight: 1, padding: 0,
+                lineHeight: 1, padding: 0, opacity: savingFav ? 0.6 : 1,
               }}
             >
               {saved ? "★" : "☆"}

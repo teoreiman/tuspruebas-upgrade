@@ -62,6 +62,8 @@ const MATERIA_COLORS: Record<string, { bg: string; text: string; border: string 
 function PruebaCard({ prueba }: { prueba: Prueba }) {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(prueba.favorito ?? false);
+  const [savingFav, setSavingFav] = useState(false);
+  useEffect(() => setSaved(prueba.favorito ?? false), [prueba.favorito]);
   const s = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
 
   return (
@@ -93,8 +95,11 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
         </span>
         <motion.button
           whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.85 }}
+          disabled={savingFav}
           onClick={async (e) => {
             e.stopPropagation();
+            if (savingFav) return;
+            setSavingFav(true);
             const prev = saved;
             setSaved(!prev);
             try {
@@ -102,9 +107,11 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
               setSaved(actual);
             } catch {
               setSaved(prev);
+            } finally {
+              setSavingFav(false);
             }
           }}
-          style={{ fontSize: "18px", background: "none", border: "none", cursor: "pointer", color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)", lineHeight: 1, padding: 0, flexShrink: 0 }}>
+          style={{ fontSize: "18px", background: "none", border: "none", cursor: savingFav ? "default" : "pointer", color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)", lineHeight: 1, padding: 0, flexShrink: 0, opacity: savingFav ? 0.6 : 1 }}>
           {saved ? "★" : "☆"}
         </motion.button>
       </div>
