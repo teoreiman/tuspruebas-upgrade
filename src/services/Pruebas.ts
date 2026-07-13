@@ -229,13 +229,21 @@ export async function fetchAllPruebas(
   ];
 }
 
+async function jsonOrThrow(res: Response, fallback: string): Promise<Record<string, unknown>> {
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = (body?.message as string) || `HTTP ${res.status}`;
+    throw new Error(`${fallback} (${detail})`);
+  }
+  return res.json();
+}
+
 // ── Favoritos del usuario ─────────────────────────────────────────────────────
 export async function fetchFavoritos(): Promise<Prueba[]> {
   const res = await apiFetch(`${API_URL}/pruebas/favoritos`, {
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Error al cargar favoritos");
-  const data = await res.json();
+  const data = await jsonOrThrow(res, "Error al cargar favoritos");
   return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
 }
 
@@ -244,8 +252,7 @@ export async function fetchMisPruebas(): Promise<Prueba[]> {
   const res = await apiFetch(`${API_URL}/pruebas/mis`, {
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Error al cargar tus pruebas");
-  const data = await res.json();
+  const data = await jsonOrThrow(res, "Error al cargar tus pruebas");
   return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
 }
 

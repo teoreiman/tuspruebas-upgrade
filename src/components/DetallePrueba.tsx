@@ -125,6 +125,8 @@ export default function DetallePrueba() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
+    setError("");
+    setPrueba(null);
     fetchPrueba(Number(id))
       .then((p) => {
         setPrueba(p);
@@ -318,10 +320,8 @@ export default function DetallePrueba() {
             </div>
           </div>
 
-          {/* Divider */}
           <div style={{ height: "1px", backgroundColor: C.border, marginBottom: "32px" }} />
 
-          {/* Notas */}
           {prueba.notas && (
             <div style={{ backgroundColor: C.bgCard, borderRadius: "12px", padding: "16px 20px", marginBottom: "28px", border: `1px solid ${C.border}` }}>
               <p style={{ fontSize: "11px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>

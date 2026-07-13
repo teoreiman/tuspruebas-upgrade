@@ -19,7 +19,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        FROM pruebas p
        INNER JOIN favoritos fav ON fav.prueba_id = p.id AND fav.usuario_id = $1
        LEFT JOIN usuarios u ON p.usuario_id = u.id
-       WHERE p.estado = 'aprobada'
        ORDER BY p.id DESC`,
       [user.id]
     );

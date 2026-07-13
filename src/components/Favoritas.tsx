@@ -91,13 +91,26 @@ function PruebaCard({
       }} />
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", paddingLeft: "8px" }}>
-        <span style={{
-          fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px",
-          backgroundColor: s.bg, color: s.text, border: `1px solid ${s.border}`,
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "160px",
-        }}>
-          {prueba.materia}
-        </span>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{
+            fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px",
+            backgroundColor: s.bg, color: s.text, border: `1px solid ${s.border}`,
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "160px",
+          }}>
+            {prueba.materia}
+          </span>
+          {prueba.estado !== "aprobada" && (
+            <span style={{
+              fontSize: "10px", fontWeight: 700, padding: "3px 9px", borderRadius: "999px",
+              backgroundColor: prueba.estado === "rechazada" ? "rgba(239,68,68,0.12)" : "rgba(245,158,11,0.12)",
+              color: prueba.estado === "rechazada" ? "#f87171" : "#fbbf24",
+              border: `1px solid ${prueba.estado === "rechazada" ? "rgba(248,113,113,0.3)" : "rgba(251,191,36,0.3)"}`,
+              whiteSpace: "nowrap",
+            }}>
+              {prueba.estado === "rechazada" ? "Ya no disponible" : "En revisión"}
+            </span>
+          )}
+        </div>
         <motion.button
           whileHover={{ scale: 1.3 }}
           whileTap={{ scale: 0.85 }}
@@ -197,14 +210,19 @@ export default function Favoritas() {
   const navigate = useNavigate();
   const [pruebas, setPruebas]   = useState<Prueba[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [error,   setError]     = useState("");
   const [search,  setSearch]    = useState("");
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setError("");
     fetchFavoritos()
       .then(setPruebas)
-      .catch(() => setPruebas([]))
+      .catch((e) => setError(e instanceof Error ? e.message : "Error al cargar favoritos"))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(load, []);
 
   const handleUnfavorite = (id: number) => {
     setPruebas((prev) => prev.filter((p) => p.id !== id));
@@ -309,6 +327,28 @@ export default function Favoritas() {
               style={{ width: "28px", height: "28px", border: `3px solid ${C.border}`, borderTopColor: C.blue, borderRadius: "50%" }}
             />
           </div>
+        ) : error ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: "12px" }}
+          >
+            <p style={{ fontSize: "17px", fontWeight: 700, color: "#f87171" }}>No se pudieron cargar tus favoritos</p>
+            <p style={{ fontSize: "13px", color: C.gray, textAlign: "center", maxWidth: "440px" }}>{error}</p>
+            <motion.button
+              whileHover={{ backgroundColor: C.blueHov }}
+              whileTap={{ scale: 0.98 }}
+              onClick={load}
+              style={{
+                marginTop: "8px", backgroundColor: C.blue, color: C.white,
+                fontWeight: 700, fontSize: "13px", padding: "10px 24px",
+                borderRadius: "10px", border: "none", cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              Reintentar
+            </motion.button>
+          </motion.div>
         ) : filtered.length > 0 ? (
           <AnimatePresence mode="popLayout">
             <motion.div layout style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>

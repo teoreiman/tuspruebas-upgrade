@@ -275,14 +275,19 @@ export default function MisPruebas() {
   const navigate = useNavigate();
   const [pruebas, setPruebas] = useState<Prueba[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
   const [filtro,  setFiltro]  = useState<Filtro>("todas");
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setError("");
     fetchMisPruebas()
       .then(setPruebas)
-      .catch(() => setPruebas([]))
+      .catch((e) => setError(e instanceof Error ? e.message : "Error al cargar tus pruebas"))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(load, []);
 
   const handleDelete = (id: number) => {
     setPruebas((prev) => prev.filter((p) => p.id !== id));
@@ -399,6 +404,28 @@ export default function MisPruebas() {
               style={{ width: "28px", height: "28px", border: `3px solid ${C.border}`, borderTopColor: C.blue, borderRadius: "50%" }}
             />
           </div>
+        ) : error ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: "12px" }}
+          >
+            <p style={{ fontSize: "17px", fontWeight: 700, color: "#f87171" }}>No se pudieron cargar tus pruebas</p>
+            <p style={{ fontSize: "13px", color: C.gray, textAlign: "center", maxWidth: "440px" }}>{error}</p>
+            <motion.button
+              whileHover={{ backgroundColor: C.blueHov }}
+              whileTap={{ scale: 0.98 }}
+              onClick={load}
+              style={{
+                marginTop: "8px", backgroundColor: C.blue, color: C.white,
+                fontWeight: 700, fontSize: "13px", padding: "10px 24px",
+                borderRadius: "10px", border: "none", cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              Reintentar
+            </motion.button>
+          </motion.div>
         ) : shown.length > 0 ? (
           <AnimatePresence mode="popLayout">
             <motion.div layout style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
