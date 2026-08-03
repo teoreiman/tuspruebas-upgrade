@@ -180,8 +180,7 @@ export async function fetchPruebas(filters?: {
   const res = await apiFetch(`${API_URL}/pruebas?${params}`, {
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Error al cargar pruebas");
-  const data = await res.json();
+  const data = await jsonOrThrow(res, "Error al cargar pruebas");
   const rows = data.data ?? data;
   return Array.isArray(rows) ? rows.map(mapApiPrueba) : [];
 }
@@ -194,41 +193,52 @@ export async function fetchAllPruebas(
 
   if (filtro === "pendiente") {
     const res = await apiFetch(`${API_URL}/admin/pendientes`, { headers });
-    if (!res.ok) throw new Error("Error al cargar pruebas");
-    const data = await res.json();
+    const data = await jsonOrThrow(res, "Error al cargar pendientes");
     return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
   }
 
   if (filtro === "aprobada") {
     const res = await apiFetch(`${API_URL}/pruebas`, { headers });
-    if (!res.ok) throw new Error("Error al cargar pruebas");
-    const data = await res.json();
+    const data = await jsonOrThrow(res, "Error al cargar aprobadas");
     return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
   }
 
   if (filtro === "rechazada") {
     const res = await apiFetch(`${API_URL}/admin/rechazadas`, { headers });
-    if (!res.ok) throw new Error("Error al cargar pruebas");
-    const data = await res.json();
+    const data = await jsonOrThrow(res, "Error al cargar rechazadas");
     return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
   }
 
   // "todas": pendientes + aprobadas + rechazadas
-  const [pendRes, aprRes, rechRes] = await Promise.all([
-    apiFetch(`${API_URL}/admin/pendientes`,  { headers }),
-    apiFetch(`${API_URL}/pruebas`,           { headers }),
-    apiFetch(`${API_URL}/admin/rechazadas`,  { headers }),
-  ]);
-  const [pend, apr, rech] = await Promise.all([
-    pendRes.ok ? pendRes.json() : { data: [] },
-    aprRes.ok  ? aprRes.json()  : { data: [] },
-    rechRes.ok ? rechRes.json() : { data: [] },
-  ]);
-  return [
-    ...((pend.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba),
-    ...((apr.data  ?? []) as Record<string, unknown>[]).map(mapApiPrueba),
-    ...((rech.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba),
+  const fuentes = [
+    { nombre: "pendientes",  url: `${API_URL}/admin/pendientes` },
+    { nombre: "aprobadas",   url: `${API_URL}/pruebas` },
+    { nombre: "rechazadas",  url: `${API_URL}/admin/rechazadas` },
   ];
+
+  const resultados = await Promise.all(
+    fuentes.map(async (f) => {
+      try {
+        const res = await apiFetch(f.url, { headers });
+        const data = await jsonOrThrow(res, `Error al cargar ${f.nombre}`);
+        return { ok: true as const, nombre: f.nombre, rows: (data.data ?? []) as Record<string, unknown>[] };
+      } catch (e) {
+        return { ok: false as const, nombre: f.nombre, error: e instanceof Error ? e.message : "error desconocido" };
+      }
+    })
+  );
+
+  const fallidas = resultados.filter((r) => !r.ok);
+  if (fallidas.length === fuentes.length) {
+    throw new Error(fallidas.map((f) => `${f.nombre}: ${(f as { error: string }).error}`).join(" · "));
+  }
+  if (fallidas.length > 0) {
+    console.error("No se pudieron cargar algunas pruebas:", fallidas);
+  }
+
+  return resultados
+    .filter((r): r is { ok: true; nombre: string; rows: Record<string, unknown>[] } => r.ok)
+    .flatMap((r) => r.rows.map(mapApiPrueba));
 }
 
 async function jsonOrThrow(res: Response, fallback: string): Promise<Record<string, unknown>> {

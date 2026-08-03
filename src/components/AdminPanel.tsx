@@ -245,6 +245,8 @@ type Filtro = PruebaEstado | "todas";
 export default function AdminPanel() {
   const navigate = useNavigate();
   const [pruebas, setPruebas] = useState<Prueba[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("pendiente");
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err"; link?: string } | null>(null);
@@ -252,7 +254,15 @@ export default function AdminPanel() {
   const user = getUser();
 
   const loadPruebas = () => {
-    fetchAllPruebas("todas").then(setPruebas).catch(console.error);
+    setLoading(true);
+    setError("");
+    fetchAllPruebas("todas")
+      .then(setPruebas)
+      .catch((e) => {
+        console.error(e);
+        setError(e instanceof Error ? e.message : "Error al cargar las pruebas");
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { loadPruebas(); }, []);
@@ -392,29 +402,51 @@ export default function AdminPanel() {
         </div>
 
         {/* Lista */}
-        <AnimatePresence mode="popLayout">
-          {shown.length > 0 ? (
-            <motion.div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {shown.map((p) => (
-                <PruebaCard
-                  key={p.id}
-                  prueba={p}
-                  onAprobar={loadingId === p.id ? () => {} : handleAprobar}
-                  onRechazar={loadingId === p.id ? () => {} : handleRechazar}
-                />
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", padding: "60px 0" }}>
-              <p style={{ fontSize: "16px", fontWeight: 700, color: "#111", marginBottom: "6px" }}>
-                No hay pruebas {filtro !== "todas" ? filtro + "s" : ""}
-              </p>
-              <p style={{ fontSize: "13px", color: "#9ca3af" }}>
-                {filtro === "pendiente" ? "Todas las pruebas fueron revisadas" : "No hay nada acá todavía"}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {loading ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              style={{ width: "28px", height: "28px", border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%" }} />
+          </div>
+        ) : error ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", padding: "60px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+            <p style={{ fontSize: "16px", fontWeight: 700, color: "#dc2626" }}>No se pudieron cargar las pruebas</p>
+            <p style={{ fontSize: "13px", color: "#9ca3af", fontFamily: "monospace", maxWidth: "480px" }}>{error}</p>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <motion.button whileHover={{ backgroundColor: "#f3f4f6" }} onClick={loadPruebas}
+                style={{ padding: "9px 18px", borderRadius: "8px", border: "1px solid #e5e7eb", backgroundColor: "#fff", color: "#111", fontWeight: 700, fontSize: "13px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                Reintentar
+              </motion.button>
+              <motion.button whileHover={{ backgroundColor: "#f3f4f6" }} onClick={() => navigator.clipboard?.writeText(error)}
+                style={{ padding: "9px 18px", borderRadius: "8px", border: "1px solid #e5e7eb", backgroundColor: "#fff", color: "#6b7280", fontWeight: 600, fontSize: "13px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                Copiar error
+              </motion.button>
+            </div>
+          </motion.div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {shown.length > 0 ? (
+              <motion.div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {shown.map((p) => (
+                  <PruebaCard
+                    key={p.id}
+                    prueba={p}
+                    onAprobar={loadingId === p.id ? () => {} : handleAprobar}
+                    onRechazar={loadingId === p.id ? () => {} : handleRechazar}
+                  />
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", padding: "60px 0" }}>
+                <p style={{ fontSize: "16px", fontWeight: 700, color: "#111", marginBottom: "6px" }}>
+                  No hay pruebas {filtro !== "todas" ? filtro + "s" : ""}
+                </p>
+                <p style={{ fontSize: "13px", color: "#9ca3af" }}>
+                  {filtro === "pendiente" ? "Todas las pruebas fueron revisadas" : "No hay nada acá todavía"}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
       </div>
 
       {/* Toast */}

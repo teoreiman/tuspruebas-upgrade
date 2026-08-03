@@ -423,20 +423,35 @@ export default function MisPruebas() {
             style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: "12px" }}
           >
             <p style={{ fontSize: "17px", fontWeight: 700, color: "#f87171" }}>No se pudieron cargar tus pruebas</p>
-            <p style={{ fontSize: "13px", color: C.gray, textAlign: "center", maxWidth: "440px" }}>{error}</p>
-            <motion.button
-              whileHover={{ backgroundColor: C.blueHov }}
-              whileTap={{ scale: 0.98 }}
-              onClick={load}
-              style={{
-                marginTop: "8px", backgroundColor: C.blue, color: C.white,
-                fontWeight: 700, fontSize: "13px", padding: "10px 24px",
-                borderRadius: "10px", border: "none", cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              Reintentar
-            </motion.button>
+            <p style={{ fontSize: "13px", color: C.gray, textAlign: "center", maxWidth: "440px", fontFamily: "monospace" }}>{error}</p>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <motion.button
+                whileHover={{ backgroundColor: C.blueHov }}
+                whileTap={{ scale: 0.98 }}
+                onClick={load}
+                style={{
+                  marginTop: "8px", backgroundColor: C.blue, color: C.white,
+                  fontWeight: 700, fontSize: "13px", padding: "10px 24px",
+                  borderRadius: "10px", border: "none", cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                Reintentar
+              </motion.button>
+              <motion.button
+                whileHover={{ borderColor: C.blue }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigator.clipboard?.writeText(error)}
+                style={{
+                  marginTop: "8px", backgroundColor: "transparent", color: C.text,
+                  fontWeight: 600, fontSize: "13px", padding: "10px 24px",
+                  borderRadius: "10px", border: `1.5px solid ${C.border}`, cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                Copiar error
+              </motion.button>
+            </div>
           </motion.div>
         ) : shown.length > 0 ? (
           <AnimatePresence mode="popLayout">
