@@ -290,7 +290,7 @@ export default function SubirPrueba() {
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 <Field label="Foto de la prueba" required={!form.preguntas.trim()}>
-                  <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.pdf,.doc,.docx"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null;
                       if (f && f.size > 10 * 1024 * 1024) {
@@ -315,7 +315,7 @@ export default function SubirPrueba() {
                     <p style={{ fontSize: "12px", color: C.gray, margin: 0 }}>
                       {form.archivo
                         ? `${(form.archivo.size / 1024 / 1024).toFixed(2)} MB`
-                        : "Fotos JPG, PNG (se comprimen automáticamente) · PDF hasta 10 MB"}
+                        : "Fotos JPG, PNG, WEBP, HEIC, etc. (se comprimen automáticamente) · PDF hasta 10 MB"}
                     </p>
                   </motion.button>
                 </Field>

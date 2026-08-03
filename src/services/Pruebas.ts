@@ -68,10 +68,13 @@ const MAX_DATA_URL_BYTES = 1.5 * 1024 * 1024;
 async function compressImageToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
     reader.onload = (e) => {
       const img = new Image();
-      img.onerror = reject;
+      img.onerror = () => reject(new Error(
+        `El navegador no puede procesar este tipo de imagen (${file.type || file.name.split(".").pop()}). ` +
+        "Probá convertirla a JPG o PNG, o sacar una captura de pantalla."
+      ));
       img.onload = () => {
         const MAX = 1600;
         let w = img.naturalWidth;
@@ -116,10 +119,15 @@ async function compressImageToBase64(file: File): Promise<string> {
   });
 }
 
+const IMAGE_EXTENSIONS = ["jpg","jpeg","png","gif","webp","heic","heif","bmp","avif","tiff","tif"];
+
 async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: string; tipo: string }> {
   // Para imágenes: comprimir con canvas y guardar como base64.
   // Esto funciona sin ningún servicio externo.
-  if (file.type.startsWith("image/")) {
+  // Algunos navegadores/SO no informan el MIME type de HEIC/HEIF, por eso
+  // también revisamos la extensión del nombre de archivo.
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (file.type.startsWith("image/") || IMAGE_EXTENSIONS.includes(ext)) {
     const dataUrl = await compressImageToBase64(file);
     return { url: dataUrl, nombre: file.name, tipo: "image" };
   }
@@ -131,7 +139,7 @@ async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: str
   if (!cloudName || !uploadPreset) {
     throw new Error(
       "Para subir PDFs es necesario configurar Cloudinary. " +
-      "Las fotos (JPG, PNG) se pueden subir sin configuración adicional."
+      "Las fotos se pueden subir sin configuración adicional."
     );
   }
 
