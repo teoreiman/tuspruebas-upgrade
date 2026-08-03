@@ -213,10 +213,20 @@ export default function DetallePrueba() {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", marginBottom: "32px" }}>
             <div style={{ flex: 1 }}>
               {/* Materia badge */}
-              <div style={{ marginBottom: "14px" }}>
+              <div style={{ marginBottom: "14px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "12px", fontWeight: 700, padding: "4px 12px", borderRadius: "999px", backgroundColor: s!.bg, color: s!.text, border: `1px solid ${s!.border}` }}>
                   {prueba.materia}
                 </span>
+                {prueba.estado !== "aprobada" && (
+                  <span style={{
+                    fontSize: "12px", fontWeight: 700, padding: "4px 12px", borderRadius: "999px",
+                    backgroundColor: prueba.estado === "rechazada" ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)",
+                    color: prueba.estado === "rechazada" ? "#f87171" : "#fbbf24",
+                    border: `1px solid ${prueba.estado === "rechazada" ? "rgba(248,113,113,0.3)" : "rgba(251,191,36,0.3)"}`,
+                  }}>
+                    {prueba.estado === "rechazada" ? "Rechazada" : "Pendiente de aprobación"}
+                  </span>
+                )}
               </div>
 
               {/* Título */}

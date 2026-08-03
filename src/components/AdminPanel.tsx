@@ -133,7 +133,6 @@ function PruebaCard({
                   { label: "Materia",  val: prueba.materia         },
                   { label: "Profesor", val: prueba.profesor || "—" },
                   { label: "Tema",     val: prueba.tema    || "—"  },
-                  { label: "Notas",    val: prueba.notas   || "—"  },
                 ].map((r) => (
                   <div key={r.label} style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
                     <span style={{ fontSize: "12px", color: "#9ca3af", minWidth: "70px" }}>{r.label}</span>
@@ -157,57 +156,82 @@ function PruebaCard({
                     <span style={{ fontSize: "12px", color: "#111", fontWeight: 500 }}>{r.val}</span>
                   </div>
                 ))}
-
-                {prueba.archivo_url && prueba.archivo_url !== "#" && (
-                  <div style={{ marginTop: "16px" }}>
-                    <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
-                      Archivo
-                    </p>
-                    <a
-                      href={prueba.archivo_url}
-                      download={prueba.archivo_nombre}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: "6px",
-                        padding: "8px 14px", borderRadius: "8px",
-                        border: "1px solid #e5e7eb", backgroundColor: "#f9fafb",
-                        fontSize: "12px", color: "#374151", fontWeight: 600,
-                        textDecoration: "none",
-                      }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                      </svg>
-                      {prueba.archivo_nombre || "Ver archivo"}
-                    </a>
-                    {/* Inline preview */}
-                    {prueba.archivo_tipo === "pdf" && (
-                      <div style={{ marginTop: "12px", borderRadius: "8px", overflow: "hidden", border: "1px solid #e5e7eb" }}>
-                        <iframe src={prueba.archivo_url} title={prueba.archivo_nombre} style={{ width: "100%", height: "420px", border: "none", backgroundColor: "#f9fafb" }} />
-                      </div>
-                    )}
-                    {prueba.archivo_tipo === "image" && (
-                      <div style={{ marginTop: "12px" }}>
-                        <img src={prueba.archivo_url} alt={prueba.archivo_nombre} style={{ maxWidth: "100%", maxHeight: "320px", borderRadius: "8px", border: "1px solid #e5e7eb", objectFit: "contain" }} />
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
-            {prueba.preguntas && (
-              <div style={{ padding: "0 20px 20px" }}>
-                <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
-                  Preguntas escritas a mano
-                </p>
-                <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 14px" }}>
-                  <p style={{ fontSize: "13px", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap", margin: 0 }}>{prueba.preguntas}</p>
+            {/* Contenido completo de la prueba */}
+            <div style={{ padding: "0 20px 20px" }}>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
+                Contenido de la prueba
+              </p>
+
+              {prueba.archivo_url && prueba.archivo_url !== "#" && (
+                <div style={{ marginBottom: prueba.preguntas ? "16px" : 0 }}>
+                  <a
+                    href={prueba.archivo_url}
+                    download={prueba.archivo_nombre}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "6px",
+                      padding: "8px 14px", borderRadius: "8px", marginBottom: "10px",
+                      border: "1px solid #e5e7eb", backgroundColor: "#f9fafb",
+                      fontSize: "12px", color: "#374151", fontWeight: 600,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    {prueba.archivo_nombre || "Ver archivo"} · Abrir en pestaña nueva
+                  </a>
+                  {prueba.archivo_tipo === "pdf" && (
+                    <div style={{ borderRadius: "8px", overflow: "hidden", border: "1px solid #e5e7eb" }}>
+                      <iframe src={prueba.archivo_url} title={prueba.archivo_nombre} style={{ width: "100%", height: "600px", border: "none", backgroundColor: "#f9fafb" }} />
+                    </div>
+                  )}
+                  {prueba.archivo_tipo === "image" && (
+                    <a href={prueba.archivo_url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
+                      <img
+                        src={prueba.archivo_url}
+                        alt={prueba.archivo_nombre}
+                        title="Click para ver a tamaño completo"
+                        style={{
+                          width: "100%", maxHeight: "560px", borderRadius: "8px",
+                          border: "1px solid #e5e7eb", objectFit: "contain",
+                          backgroundColor: "#f9fafb", cursor: "zoom-in",
+                        }}
+                      />
+                    </a>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+
+              {prueba.preguntas && (
+                <div>
+                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#374151", marginBottom: "6px" }}>
+                    ✎ Preguntas escritas a mano
+                  </p>
+                  <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "14px 16px" }}>
+                    <p style={{ fontSize: "14px", color: "#111", lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>{prueba.preguntas}</p>
+                  </div>
+                </div>
+              )}
+
+              {!prueba.archivo_url && !prueba.preguntas && (
+                <p style={{ fontSize: "13px", color: "#9ca3af" }}>Esta prueba no tiene foto ni preguntas escritas cargadas.</p>
+              )}
+
+              {prueba.notas && (
+                <div style={{ marginTop: "16px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", marginBottom: "6px" }}>
+                    Notas adicionales del que subió (no son las preguntas)
+                  </p>
+                  <p style={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{prueba.notas}</p>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
