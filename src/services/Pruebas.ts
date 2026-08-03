@@ -10,6 +10,7 @@ export interface Prueba {
   profesor: string;
   tema: string;
   notas?: string;
+  preguntas?: string;
   archivo_url?: string;
   archivo_nombre?: string;
   archivo_tipo?: string;
@@ -42,6 +43,7 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
     profesor:       (raw.profesor as string) || "",
     tema:           (raw.tema as string)     || "",
     notas:          (c.notas as string)      || "",
+    preguntas:      (c.preguntas as string)   || "",
     archivo_url:    archivoUrl,
     archivo_nombre: (c.archivo_nombre as string) || undefined,
     archivo_tipo:   archivoTipo,
@@ -274,11 +276,16 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   const profesor       = (formData.get("profesor")       as string) || "";
   const tema           = (formData.get("tema")           as string) || "";
   const notas          = (formData.get("notas")          as string) || "";
+  const preguntas      = (formData.get("preguntas")      as string) || "";
   const usuario_nombre = (formData.get("usuario_nombre") as string) || "";
   const usuario_email  = (formData.get("usuario_email")  as string) || "";
   const usuario_id_raw = formData.get("usuario_id");
   const usuario_id     = usuario_id_raw ? Number(usuario_id_raw) : null;
   const archivo        = formData.get("archivo") as File | null;
+
+  if (!(archivo && archivo.size > 0) && !preguntas.trim()) {
+    throw new Error("Subí una foto de la prueba o escribí las preguntas a mano.");
+  }
 
   // Upload file to cloud storage first
   let archivo_url: string | undefined;
@@ -303,6 +310,7 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
     escuela:  colegio,
     contenido: {
       notas,
+      preguntas,
       usuario_id,
       usuario_nombre,
       usuario_email,
@@ -332,6 +340,7 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
     profesor,
     tema,
     notas,
+    preguntas,
     archivo_url,
     archivo_nombre,
     archivo_tipo,

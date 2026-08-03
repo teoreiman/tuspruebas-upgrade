@@ -96,6 +96,7 @@ export default function SubirPrueba() {
     profesor: "", tema: "",
     archivo: null as File | null,
     notas: "",
+    preguntas: "",
   });
 
   const set = (key: string, val: string | File | null) =>
@@ -103,10 +104,11 @@ export default function SubirPrueba() {
 
   const materias = form.colegio && form.año ? MATERIAS[form.colegio]?.[form.año] ?? [] : [];
   const sinMaterias = materias.length === 0 && form.colegio !== "" && form.año !== "";
+  const tieneContenido = !!form.archivo || form.preguntas.trim() !== "";
   const stepValid = [
     form.colegio !== "" && form.año !== "",
     form.materia !== "" || sinMaterias,
-    true,
+    tieneContenido,
   ];
 
   const handleSubmit = async () => {
@@ -121,6 +123,7 @@ export default function SubirPrueba() {
       fd.append("profesor", form.profesor);
       fd.append("tema", form.tema);
       fd.append("notas", form.notas);
+      fd.append("preguntas", form.preguntas);
       fd.append("estado", "pendiente");
       fd.append("usuario_nombre", user.nombre);
       fd.append("usuario_email", user.email);
@@ -151,7 +154,7 @@ export default function SubirPrueba() {
 
   const reset = () => {
     setSubmitted(false); setPruebaId(null); setStep(0); setError("");
-    setForm({ colegio: "", año: "", materia: "", profesor: "", tema: "", archivo: null, notas: "" });
+    setForm({ colegio: "", año: "", materia: "", profesor: "", tema: "", archivo: null, notas: "", preguntas: "" });
   };
 
   if (submitted) {
@@ -286,7 +289,7 @@ export default function SubirPrueba() {
 
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                <Field label="Archivo de la prueba (opcional)">
+                <Field label="Foto de la prueba" required={!form.preguntas.trim()}>
                   <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null;
@@ -316,6 +319,26 @@ export default function SubirPrueba() {
                     </p>
                   </motion.button>
                 </Field>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ flex: 1, height: "1px", backgroundColor: C.border }} />
+                  <span style={{ fontSize: "12px", color: C.gray, fontWeight: 600 }}>O</span>
+                  <div style={{ flex: 1, height: "1px", backgroundColor: C.border }} />
+                </div>
+
+                <Field label="Escribí las preguntas a mano" required={!form.archivo}>
+                  <textarea value={form.preguntas} onChange={(e) => set("preguntas", e.target.value)} placeholder="Copiá o escribí el texto completo de las preguntas de la prueba" rows={5}
+                    style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = C.blue)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = C.border)} />
+                </Field>
+
+                {!tieneContenido && (
+                  <div style={{ padding: "11px 14px", backgroundColor: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "9px", fontSize: "13px", color: "#fbbf24" }}>
+                    Subí una foto o escribí las preguntas para poder enviar la prueba.
+                  </div>
+                )}
+
                 <Field label="Notas adicionales">
                   <textarea value={form.notas} onChange={(e) => set("notas", e.target.value)} placeholder="Información extra (opcional)" rows={3}
                     style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}

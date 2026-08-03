@@ -147,6 +147,21 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
           <span style={{ fontSize: "11px", color: C.gray }}>Foto adjunta — ver detalle</span>
         </div>
       )}
+      {!prueba.archivo_tipo && prueba.preguntas && (
+        <div style={{
+          paddingLeft: "8px", display: "flex", alignItems: "center", gap: "8px",
+          padding: "8px 12px", borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`,
+          marginLeft: "8px",
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5">
+            <path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>
+          </svg>
+          <span style={{ fontSize: "11px", color: C.gray, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            Preguntas escritas a mano
+          </span>
+        </div>
+      )}
       {prueba.archivo_tipo === "pdf" && (
         <div style={{
           paddingLeft: "8px",

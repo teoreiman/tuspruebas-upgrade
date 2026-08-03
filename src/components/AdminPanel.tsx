@@ -197,6 +197,17 @@ function PruebaCard({
                 )}
               </div>
             </div>
+
+            {prueba.preguntas && (
+              <div style={{ padding: "0 20px 20px" }}>
+                <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                  Preguntas escritas a mano
+                </p>
+                <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 14px" }}>
+                  <p style={{ fontSize: "13px", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap", margin: 0 }}>{prueba.preguntas}</p>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

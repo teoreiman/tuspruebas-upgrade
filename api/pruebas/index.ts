@@ -51,6 +51,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!titulo || !materia || !anio || !escuela) {
       return res.status(400).json({ message: "Faltan campos obligatorios" });
     }
+    const tieneArchivo  = !!contenido?.archivo_url;
+    const tienePreguntas = !!(contenido?.preguntas && String(contenido.preguntas).trim());
+    if (!tieneArchivo && !tienePreguntas) {
+      return res.status(400).json({ message: "Subí una foto de la prueba o escribí las preguntas a mano." });
+    }
 
     try {
       const { rows } = await pool.query(

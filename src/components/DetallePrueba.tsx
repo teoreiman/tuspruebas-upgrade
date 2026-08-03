@@ -341,6 +341,20 @@ export default function DetallePrueba() {
               <p style={{ fontSize: "13px", fontWeight: 600, color: C.white }}>{prueba.usuario_nombre}</p>
             </div>
           </div>
+          {prueba.preguntas && (
+            <div style={{ backgroundColor: C.bgCard, borderRadius: "12px", padding: "20px 24px", marginBottom: "28px", border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: "13px", fontWeight: 600, color: C.text, marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2">
+                  <path d="M4 7V4h16v3"/>
+                  <path d="M9 20h6"/>
+                  <path d="M12 4v16"/>
+                </svg>
+                Preguntas de la prueba
+              </p>
+              <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{prueba.preguntas}</p>
+            </div>
+          )}
+
           {prueba.archivo_url ? (
             <div>
               <p style={{ fontSize: "13px", fontWeight: 600, color: C.text, marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -357,11 +371,11 @@ export default function DetallePrueba() {
               <p style={{ fontSize: "14px", color: C.gray, marginBottom: "4px" }}>El archivo de esta prueba no está disponible.</p>
               <p style={{ fontSize: "13px", color: C.gray }}>Puede haberse subido antes de que se habilitara la carga de archivos sin configuración externa.</p>
             </div>
-          ) : (
+          ) : !prueba.preguntas ? (
             <div style={{ backgroundColor: C.bgCard, borderRadius: "12px", padding: "40px 24px", textAlign: "center", border: `1px solid ${C.border}` }}>
               <p style={{ fontSize: "14px", color: C.gray }}>Esta prueba no tiene archivo adjunto.</p>
             </div>
-          )}
+          ) : null}
 
           <div style={{ marginTop: "28px", backgroundColor: "rgba(16,99,239,0.06)", borderRadius: "12px", padding: "20px 24px", border: "1px solid rgba(16,99,239,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
             <div>
