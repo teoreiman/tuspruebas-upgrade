@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { enviarMensajeIA } from "../services/Ia";
+import { fetchPrueba, type Prueba } from "../services/Pruebas";
 import Logo from "./logo";
 
 const C = {
@@ -85,53 +87,13 @@ const SUGERENCIAS: Record<string, string[]> = {
   ],
 };
 
-// ── Gemini API call ────────────────────────────────────────────────────────────
-async function callGeminiAPI(
-  messages: Message[],
-  contexto: Contexto,
-  _apiKey: string = "YOUR_GEMINI_API_KEY"
-): Promise<string> {
-  const systemPrompt = `Sos un asistente educativo especializado para estudiantes de colegios judíos de Buenos Aires.
-
-CONTEXTO DEL ESTUDIANTE:
-- Colegio: ${contexto.colegio || "No especificado"}
-- Año: ${contexto.año || "No especificado"}
-- Materia: ${contexto.materia || "No especificada"}
-- Profesor/a: ${contexto.profesor || "No especificado"}
-- Tema: ${contexto.tema || "No especificado"}
-
-TU ROL:
-- Ayudás a resolver ejercicios de pruebas y exámenes
-- Explicás conceptos de forma clara y adaptada al nivel del año
-- Analizás y resumís contenido académico
-- Generás ejercicios de práctica similares a los de las pruebas reales
-- Siempre respondés en español argentino (usás "vos", "te", etc.)
-- Cuando resolvés ejercicios, explicás el razonamiento paso a paso
-- Adaptás el nivel de complejidad al año escolar del estudiante
-
-IMPORTANTE:
-- Si el estudiante comparte el texto de una prueba, la analizás en detalle
-- Si pedís que generes ejercicios, los hacés similares al estilo de ${contexto.colegio}
-- Siempre sos alentador y paciente
-- Si no tenés contexto suficiente, pedí más información al estudiante`;
-
-  void systemPrompt;
-
-  // MOCK — eliminar cuando se conecte la API real
-  await new Promise((r) => setTimeout(r, 1200));
-  const lastMsg = messages[messages.length - 1].content.toLowerCase();
-
-  if (lastMsg.includes("ejercicio") || lastMsg.includes("resolvé") || lastMsg.includes("resolver")) {
-    return `Claro, te ayudo con eso${contexto.materia ? ` de ${contexto.materia}` : ""}.\n\n**Paso 1:** Primero identificamos los datos del problema...\n\n**Paso 2:** Aplicamos el concepto principal...\n\n**Paso 3:** Llegamos al resultado.\n\n¿Querés que profundice en algún paso en particular?`;
-  }
-  if (lastMsg.includes("resumen") || lastMsg.includes("resumí")) {
-    return `Acá te hago un resumen de **${contexto.tema || "este tema"}**:\n\n• Concepto clave 1\n• Concepto clave 2\n• Concepto clave 3\n\nLos temas más importantes para la prueba suelen ser... ¿Querés que genere ejercicios de práctica?`;
-  }
-  if (lastMsg.includes("ejercicios") || lastMsg.includes("práctica")) {
-    return `Te genero 3 ejercicios de práctica${contexto.materia ? ` de ${contexto.materia}` : ""}:\n\n**Ejercicio 1:** ...\n\n**Ejercicio 2:** ...\n\n**Ejercicio 3:** ...\n\n¿Querés que los resuelva o que genere más?`;
-  }
-  return `Entendido. Estoy listo para ayudarte${contexto.materia ? ` con ${contexto.materia}` : ""}${contexto.año ? ` de ${contexto.año}` : ""}. ¿Qué necesitás?`;
-}
+// Cuando se entra desde una prueba concreta, las sugerencias apuntan a resolverla.
+const SUGERENCIAS_PRUEBA = [
+  "Resolvé toda la prueba paso a paso",
+  "Explicame la primera consigna",
+  "¿Qué temas tengo que estudiar para esta prueba?",
+  "Generame una prueba de práctica parecida",
+];
 
 // ── Subcomponents ─────────────────────────────────────────────────────────────
 function TypingIndicator() {
@@ -233,13 +195,20 @@ function MessageBubble({ message }: { message: Message }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+const MENSAJE_BIENVENIDA =
+  "¡Hola! Soy la IA de tusPruebas. Puedo ayudarte a resolver ejercicios, explicar conceptos, resumir temas y prepararte para tus pruebas. Configurá el contexto de la izquierda para que pueda ayudarte mejor.";
+
 export default function IA() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const pruebaIdParam = Number(searchParams.get("prueba"));
+  const pruebaId = Number.isInteger(pruebaIdParam) && pruebaIdParam > 0 ? pruebaIdParam : null;
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: "¡Hola! Soy la IA de tusPruebas. Puedo ayudarte a resolver ejercicios, explicar conceptos, resumir temas y prepararte para tus pruebas. Configurá el contexto de la izquierda para que pueda ayudarte mejor.",
+      content: MENSAJE_BIENVENIDA,
       timestamp: new Date(),
     },
   ]);
@@ -248,12 +217,58 @@ export default function IA() {
   const [contexto, setContexto] = useState<Contexto>({
     colegio: "", año: "", materia: "", profesor: "", tema: "",
   });
+  const [prueba, setPrueba] = useState<Prueba | null>(null);
+  const [cargandoPrueba, setCargandoPrueba] = useState(!!pruebaId);
+  const [errorPrueba, setErrorPrueba] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const materias = contexto.año ? MATERIAS_POR_AÑO[contexto.año] ?? [] : [];
-  const sugerencias = SUGERENCIAS[contexto.materia] ?? SUGERENCIAS.default;
+  const sugerencias = prueba
+    ? SUGERENCIAS_PRUEBA
+    : SUGERENCIAS[contexto.materia] ?? SUGERENCIAS.default;
+
+  // Si venimos desde una prueba ("Resolver con IA"), la cargamos para llenar el
+  // contexto. El backend además le adjunta la foto y las preguntas al modelo.
+  useEffect(() => {
+    if (!pruebaId) {
+      setPrueba(null);
+      setCargandoPrueba(false);
+      return;
+    }
+    let cancelado = false;
+    setCargandoPrueba(true);
+    setErrorPrueba("");
+    fetchPrueba(pruebaId)
+      .then((p) => {
+        if (cancelado) return;
+        setPrueba(p);
+        setContexto({
+          colegio: p.escuela || "",
+          año: p.año || "",
+          materia: p.materia || "",
+          profesor: p.profesor || "",
+          tema: p.tema || "",
+        });
+        setMessages([
+          {
+            id: "welcome-prueba",
+            role: "assistant",
+            content: `Ya tengo cargada la prueba de **${p.materia || "esta materia"}**${p.tema ? ` sobre **${p.tema}**` : ""}${p.profesor ? ` (Prof. ${p.profesor})` : ""}.\n\n${p.archivo_tipo === "image" ? "Puedo ver la foto de la prueba" : p.preguntas ? "Tengo las preguntas que subieron" : "Tengo los datos de la prueba"}, así que preguntame lo que quieras: te la resuelvo paso a paso, te explico un tema o te armo ejercicios de práctica.`,
+            timestamp: new Date(),
+          },
+        ]);
+      })
+      .catch((e) => {
+        if (cancelado) return;
+        setErrorPrueba(e instanceof Error ? e.message : "No se pudo cargar la prueba");
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoPrueba(false);
+      });
+    return () => { cancelado = true; };
+  }, [pruebaId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -285,18 +300,28 @@ export default function IA() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
-      const response = await callGeminiAPI([...messages, userMsg], contexto);
+      // El mensaje de bienvenida es de la interfaz, no parte de la conversación.
+      const historial = [...messages, userMsg]
+        .filter((m) => !m.id.startsWith("welcome"))
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const response = await enviarMensajeIA({
+        mensajes: historial,
+        contexto,
+        pruebaId: prueba?.id ?? pruebaId,
+      });
+
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: response,
         timestamp: new Date(),
       }]);
-    } catch {
+    } catch (e) {
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Hubo un error al conectarme. Verificá tu conexión e intentá de nuevo.",
+        content: e instanceof Error ? e.message : "Hubo un error al conectarme. Verificá tu conexión e intentá de nuevo.",
         timestamp: new Date(),
       }]);
     } finally {
@@ -321,7 +346,9 @@ export default function IA() {
     setMessages([{
       id: "welcome-new",
       role: "assistant",
-      content: "Chat limpiado. ¿En qué te puedo ayudar?",
+      content: prueba
+        ? `Chat limpiado. Sigo con la prueba de ${prueba.materia}${prueba.tema ? ` sobre ${prueba.tema}` : ""} cargada. ¿En qué te ayudo?`
+        : "Chat limpiado. ¿En qué te puedo ayudar?",
       timestamp: new Date(),
     }]);
   };
@@ -431,6 +458,43 @@ export default function IA() {
                 <p style={{ fontSize: "11px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "20px" }}>
                   Contexto de estudio
                 </p>
+
+                {/* Prueba abierta desde "Resolver con IA" */}
+                {cargandoPrueba && (
+                  <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "10px", border: `1px solid ${C.border}`, fontSize: "12px", color: C.gray }}>
+                    Cargando la prueba...
+                  </div>
+                )}
+                {errorPrueba && !cargandoPrueba && (
+                  <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", backgroundColor: "rgba(239,68,68,0.08)", fontSize: "12px", color: "#f87171" }}>
+                    {errorPrueba}
+                  </div>
+                )}
+                {prueba && !cargandoPrueba && (
+                  <div style={{ marginBottom: "20px", padding: "12px 14px", borderRadius: "10px", border: "1px solid rgba(16,99,239,0.3)", backgroundColor: "rgba(16,99,239,0.08)" }}>
+                    <p style={{ fontSize: "11px", fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                      Prueba cargada
+                    </p>
+                    <p style={{ fontSize: "13px", fontWeight: 600, color: C.white, marginBottom: "2px" }}>
+                      {prueba.tema || prueba.materia}
+                    </p>
+                    <p style={{ fontSize: "11px", color: C.gray, marginBottom: "8px" }}>
+                      {prueba.archivo_tipo === "image"
+                        ? "La IA puede ver la foto de la prueba"
+                        : prueba.archivo_tipo === "pdf"
+                        ? "La IA puede leer el PDF de la prueba"
+                        : prueba.preguntas
+                        ? "La IA tiene las preguntas escritas"
+                        : "Sin archivo adjunto"}
+                    </p>
+                    <button
+                      onClick={() => navigate(`/prueba/${prueba.id}`)}
+                      style={{ fontSize: "11px", fontWeight: 700, color: C.blue, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      Ver la prueba →
+                    </button>
+                  </div>
+                )}
 
                 {/* Colegio */}
                 <div style={{ marginBottom: "16px" }}>

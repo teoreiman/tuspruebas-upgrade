@@ -1,6 +1,5 @@
-import { getToken, clearSession } from "./Auth";
-
-const API_URL = "/api";
+import { API_URL, apiFetch, authHeaders, jsonHeaders, jsonOrThrow, mensajeDeError } from "./Api";
+import { sincronizarFavoritos } from "./Favoritos";
 
 export interface Prueba {
   id: number;
@@ -53,15 +52,36 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
     usuario_email:  (raw.usuario_email  as string) || (c.usuario_email  as string) || "",
     usuario_id:     (raw.usuario_id  as number) || (c.usuario_id  as number) || 0,
     created_at:     (raw.fecha as string) || (raw.created_at as string) || new Date().toISOString(),
-    favorito:       (raw.favorito as boolean) ?? false,
+    // Los endpoints de admin no calculan favoritos: ahí queda undefined (que no
+    // es lo mismo que "no es favorita") para no pisar el estado real del store.
+    favorito:       typeof raw.favorito === "boolean" ? raw.favorito : undefined,
   };
+}
+
+// Los listados vienen con el favorito ya resuelto para el usuario logueado:
+// es la fuente de verdad del store compartido de estrellas.
+function mapYSincronizar(rows: Record<string, unknown>[]): Prueba[] {
+  const pruebas = rows.map(mapApiPrueba);
+  sincronizarFavoritos(pruebas);
+  return pruebas;
 }
 
 // Vercel Serverless Functions rechazan requests/responses de más de 4.5 MB.
 // La imagen viaja como base64 (dataURL) dentro de un JSON, así que la
-// mantenemos bien por debajo de ese límite para que la prueba después se
-// pueda leer sin problemas desde /api/pruebas/:id.
-const MAX_DATA_URL_BYTES = 1.5 * 1024 * 1024;
+// mantenemos por debajo de ese límite para que la prueba después se
+// pueda leer sin problemas desde /api/pruebas/:id. 3.2 MB deja margen para el
+// resto del JSON y es más del doble de lo que entraba antes.
+const MAX_DATA_URL_BYTES = 3.2 * 1024 * 1024;
+
+// Lado más largo de la foto ya comprimida. Con 2600 px una hoja A4 fotografiada
+// se lee sin problemas (antes eran 1600 px y el texto chico quedaba borroso).
+const MAX_LADO_PX = 2600;
+
+// Tamaño máximo del archivo original que aceptamos. Las fotos se recomprimen en
+// el navegador antes de subirse, así que puede entrar mucho más peso del que
+// después viaja al servidor.
+export const MAX_FOTO_BYTES = 30 * 1024 * 1024;
+export const MAX_ARCHIVO_BYTES = 10 * 1024 * 1024;
 
 // Comprime una imagen usando canvas y devuelve un data URL JPEG.
 // No requiere ningún servicio externo.
@@ -76,7 +96,7 @@ async function compressImageToBase64(file: File): Promise<string> {
         "Probá convertirla a JPG o PNG, o sacar una captura de pantalla."
       ));
       img.onload = () => {
-        const MAX = 1600;
+        const MAX = MAX_LADO_PX;
         let w = img.naturalWidth;
         let h = img.naturalHeight;
         if (w > MAX || h > MAX) {
@@ -94,22 +114,27 @@ async function compressImageToBase64(file: File): Promise<string> {
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
 
-        // Bajamos la calidad (y si hace falta el tamaño) hasta que el
-        // resultado entre cómodo dentro del límite de payload de Vercel.
-        let quality = 0.82;
+        // Arrancamos con calidad alta y sólo bajamos si no entra en el límite
+        // de payload de Vercel. Como el límite ahora es más grande, la mayoría
+        // de las fotos se guardan en calidad casi original.
+        let quality = 0.92;
         let dataUrl = canvas.toDataURL("image/jpeg", quality);
-        while (dataUrl.length > MAX_DATA_URL_BYTES && quality > 0.4) {
-          quality -= 0.12;
+        while (dataUrl.length > MAX_DATA_URL_BYTES && quality > 0.45) {
+          quality -= 0.08;
           dataUrl = canvas.toDataURL("image/jpeg", quality);
         }
-        if (dataUrl.length > MAX_DATA_URL_BYTES) {
-          const scale = Math.sqrt(MAX_DATA_URL_BYTES / dataUrl.length);
-          canvas.width  = Math.max(1, Math.round(w * scale));
-          canvas.height = Math.max(1, Math.round(h * scale));
+        // Última red de contención: si ni con calidad baja entra (fotos
+        // enormes), recortamos resolución hasta que entre.
+        let intentos = 0;
+        while (dataUrl.length > MAX_DATA_URL_BYTES && intentos < 4) {
+          const scale = Math.sqrt((MAX_DATA_URL_BYTES / dataUrl.length) * 0.95);
+          canvas.width  = Math.max(1, Math.round(canvas.width  * scale));
+          canvas.height = Math.max(1, Math.round(canvas.height * scale));
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          intentos++;
         }
         resolve(dataUrl);
       };
@@ -119,17 +144,24 @@ async function compressImageToBase64(file: File): Promise<string> {
   });
 }
 
-const IMAGE_EXTENSIONS = ["jpg","jpeg","png","gif","webp","heic","heif","bmp","avif","tiff","tif"];
+export const IMAGE_EXTENSIONS = ["jpg","jpeg","png","gif","webp","heic","heif","bmp","avif","tiff","tif"];
+
+export function esImagen(file: File): boolean {
+  // Algunos navegadores/SO no informan el MIME type de HEIC/HEIF (y Windows a
+  // veces tampoco el de .jpg), por eso también miramos la extensión.
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return file.type.startsWith("image/") || IMAGE_EXTENSIONS.includes(ext);
+}
 
 async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: string; tipo: string }> {
   // Para imágenes: comprimir con canvas y guardar como base64.
   // Esto funciona sin ningún servicio externo.
-  // Algunos navegadores/SO no informan el MIME type de HEIC/HEIF, por eso
-  // también revisamos la extensión del nombre de archivo.
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (file.type.startsWith("image/") || IMAGE_EXTENSIONS.includes(ext)) {
+  if (esImagen(file)) {
     const dataUrl = await compressImageToBase64(file);
-    return { url: dataUrl, nombre: file.name, tipo: "image" };
+    // Se guarda re-codificada a JPEG, así que el nombre tiene que decir .jpg
+    // (si no, la descarga sale con una extensión que no corresponde).
+    const base = file.name.replace(/\.[^.]+$/, "") || "prueba";
+    return { url: dataUrl, nombre: `${base}.jpg`, tipo: "image" };
   }
 
   // Para PDFs y otros archivos: intentar Cloudinary si está configurado.
@@ -160,20 +192,6 @@ async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: str
   return { url: data.secure_url as string, nombre: file.name, tipo: "pdf" };
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
-  const res = await fetch(url, options);
-  if (res.status === 401) {
-    clearSession();
-    window.location.href = "/login";
-  }
-  return res;
-}
-
 // ── Pruebas aprobadas (home) ──────────────────────────────────────────────────
 export async function fetchPruebas(filters?: {
   escuela?: string;
@@ -190,7 +208,7 @@ export async function fetchPruebas(filters?: {
   });
   const data = await jsonOrThrow(res, "Error al cargar pruebas");
   const rows = data.data ?? data;
-  return Array.isArray(rows) ? rows.map(mapApiPrueba) : [];
+  return Array.isArray(rows) ? mapYSincronizar(rows) : [];
 }
 
 // ── Todas las pruebas (admin) ─────────────────────────────────────────────────
@@ -208,7 +226,7 @@ export async function fetchAllPruebas(
   if (filtro === "aprobada") {
     const res = await apiFetch(`${API_URL}/pruebas`, { headers });
     const data = await jsonOrThrow(res, "Error al cargar aprobadas");
-    return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
+    return mapYSincronizar((data.data ?? []) as Record<string, unknown>[]);
   }
 
   if (filtro === "rechazada") {
@@ -249,22 +267,13 @@ export async function fetchAllPruebas(
     .flatMap((r) => r.rows.map(mapApiPrueba));
 }
 
-async function jsonOrThrow(res: Response, fallback: string): Promise<Record<string, unknown>> {
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    const detail = (body?.message as string) || `HTTP ${res.status}`;
-    throw new Error(`${fallback} (${detail})`);
-  }
-  return res.json();
-}
-
 // ── Favoritos del usuario ─────────────────────────────────────────────────────
 export async function fetchFavoritos(): Promise<Prueba[]> {
   const res = await apiFetch(`${API_URL}/pruebas/favoritos`, {
     headers: authHeaders(),
   });
   const data = await jsonOrThrow(res, "Error al cargar favoritos");
-  return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
+  return mapYSincronizar((data.data ?? []) as Record<string, unknown>[]);
 }
 
 // ── Pruebas subidas por el usuario ────────────────────────────────────────────
@@ -273,7 +282,7 @@ export async function fetchMisPruebas(): Promise<Prueba[]> {
     headers: authHeaders(),
   });
   const data = await jsonOrThrow(res, "Error al cargar tus pruebas");
-  return ((data.data ?? []) as Record<string, unknown>[]).map(mapApiPrueba);
+  return mapYSincronizar((data.data ?? []) as Record<string, unknown>[]);
 }
 
 // ── Prueba individual ──────────────────────────────────────────────────────────────
@@ -281,9 +290,11 @@ export async function fetchPrueba(id: number): Promise<Prueba> {
   const res = await apiFetch(`${API_URL}/pruebas/${id}`, {
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Prueba no encontrada");
+  if (!res.ok) throw new Error(await mensajeDeError(res, "Prueba no encontrada"));
   const data = await res.json();
-  return mapApiPrueba(data.data ?? data);
+  const prueba = mapApiPrueba((data.data ?? data) as Record<string, unknown>);
+  sincronizarFavoritos([prueba]);
+  return prueba;
 }
 
 // ── Subir prueba ─────────────────────────────────────────────────────────────────
@@ -340,13 +351,12 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
 
   const res = await apiFetch(`${API_URL}/pruebas`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: jsonHeaders(),
     body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Error al subir" }));
-    throw new Error(err.message);
+    throw new Error(await mensajeDeError(res, "Error al subir la prueba"));
   }
 
   const data = await res.json();
@@ -379,22 +389,14 @@ export async function updatePruebaEstado(
 ): Promise<void> {
   const res = await apiFetch(`${API_URL}/admin/${id}/estado`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: jsonHeaders(),
     body: JSON.stringify({ estado }),
   });
-  if (!res.ok) throw new Error("Error al actualizar estado");
+  if (!res.ok) throw new Error(await mensajeDeError(res, "Error al actualizar estado"));
 }
 
-// ── Toggle favorito ───────────────────────────────────────────────────────────
-export async function toggleFavorito(id: number): Promise<boolean> {
-  const res = await apiFetch(`${API_URL}/pruebas/${id}/favorito`, {
-    method: "POST",
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error("Error al guardar favorito");
-  const data = await res.json();
-  return (data.favorito as boolean) ?? false;
-}
+// El manejo de favoritos vive en ./Favoritos (store compartido entre pantallas).
+export { toggleFavorito, setFavorito, useFavorito } from "./Favoritos";
 
 // ── Eliminar prueba ───────────────────────────────────────────────────────────
 export async function deletePrueba(id: number): Promise<void> {
@@ -403,7 +405,6 @@ export async function deletePrueba(id: number): Promise<void> {
     headers: authHeaders(),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Error al eliminar la prueba" }));
-    throw new Error(err.message);
+    throw new Error(await mensajeDeError(res, "Error al eliminar la prueba"));
   }
 }

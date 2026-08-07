@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser } from "../services/Auth";
-import { uploadPrueba } from "../services/Pruebas";
+import { uploadPrueba, esImagen, MAX_FOTO_BYTES, MAX_ARCHIVO_BYTES } from "../services/Pruebas";
 import { notifyAdminNewPrueba } from "../services/Email";
 import Logo from "./logo";
 
@@ -290,13 +290,25 @@ export default function SubirPrueba() {
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 <Field label="Foto de la prueba" required={!form.preguntas.trim()}>
-                  <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.pdf,.doc,.docx"
+                  {/* Windows a veces no reporta el MIME type de .jpg/.jpeg, así que
+                      además de image/* listamos las extensiones una por una. */}
+                  <input ref={fileRef} type="file"
+                    accept="image/*,.jpg,.jpeg,.jpe,.png,.webp,.heic,.heif,.avif,.bmp,.gif,.tif,.tiff,.pdf,.doc,.docx"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null;
-                      if (f && f.size > 10 * 1024 * 1024) {
-                        setError("El archivo no puede superar 10 MB.");
-                        e.target.value = "";
-                        return;
+                      if (f) {
+                        const foto = esImagen(f);
+                        const limite = foto ? MAX_FOTO_BYTES : MAX_ARCHIVO_BYTES;
+                        if (f.size > limite) {
+                          const mb = Math.round(limite / 1024 / 1024);
+                          setError(
+                            foto
+                              ? `La foto no puede superar ${mb} MB.`
+                              : `El archivo no puede superar ${mb} MB. Si es una foto, subila como JPG o PNG.`
+                          );
+                          e.target.value = "";
+                          return;
+                        }
                       }
                       setError("");
                       set("archivo", f);
@@ -315,7 +327,7 @@ export default function SubirPrueba() {
                     <p style={{ fontSize: "12px", color: C.gray, margin: 0 }}>
                       {form.archivo
                         ? `${(form.archivo.size / 1024 / 1024).toFixed(2)} MB`
-                        : "Fotos JPG, PNG, WEBP, HEIC, etc. (se comprimen automáticamente) · PDF hasta 10 MB"}
+                        : `Fotos JPG, JPEG, PNG, WEBP, HEIC, AVIF... hasta ${Math.round(MAX_FOTO_BYTES / 1024 / 1024)} MB (se optimizan solas) · PDF hasta ${Math.round(MAX_ARCHIVO_BYTES / 1024 / 1024)} MB`}
                     </p>
                   </motion.button>
                 </Field>

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchFavoritos, toggleFavorito, type Prueba } from "../services/Pruebas";
+import { fetchFavoritos, type Prueba } from "../services/Pruebas";
+import { setFavorito } from "../services/Favoritos";
 import Logo from "./logo";
 
 const C = {
@@ -47,16 +48,19 @@ function PruebaCard({
 }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [errorFav, setErrorFav] = useState("");
   const s = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
 
   const handleUnfav = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (busy) return;
     setBusy(true);
+    setErrorFav("");
     try {
-      await toggleFavorito(prueba.id);
+      await setFavorito(prueba.id, false);
       onUnfavorite(prueba.id);
-    } catch {
+    } catch (err) {
+      setErrorFav(err instanceof Error ? err.message : "No se pudo quitar de guardadas");
       setBusy(false);
     }
   };
@@ -115,16 +119,20 @@ function PruebaCard({
           whileHover={{ scale: 1.3 }}
           whileTap={{ scale: 0.85 }}
           onClick={handleUnfav}
-          title="Quitar de favoritos"
+          title={errorFav || "Quitar de guardadas"}
           style={{
             fontSize: "18px", background: "none", border: "none", cursor: "pointer",
-            color: "#f59e0b", lineHeight: 1, padding: 0, flexShrink: 0,
+            color: errorFav ? "#f87171" : "#f59e0b", lineHeight: 1, padding: 0, flexShrink: 0,
             opacity: busy ? 0.5 : 1,
           }}
         >
           ★
         </motion.button>
       </div>
+
+      {errorFav && (
+        <p style={{ marginLeft: "8px", fontSize: "11px", color: "#f87171" }}>{errorFav}</p>
+      )}
 
       {/* Preview imagen */}
       {prueba.archivo_url && prueba.archivo_tipo === "image" && (

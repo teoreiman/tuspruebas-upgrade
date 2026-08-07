@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser, isSuperAdmin, clearSession } from "../services/Auth";
-import { fetchAllPruebas, fetchPruebas, toggleFavorito, type Prueba } from "../services/Pruebas";
+import { fetchAllPruebas, fetchPruebas, type Prueba } from "../services/Pruebas";
+import { useFavorito } from "../services/Favoritos";
 import Logo from "./logo";
 
 const C = {
@@ -61,9 +62,7 @@ const MATERIA_COLORS: Record<string, { bg: string; text: string; border: string 
 
 function PruebaCard({ prueba }: { prueba: Prueba }) {
   const navigate = useNavigate();
-  const [saved, setSaved] = useState(prueba.favorito ?? false);
-  const [savingFav, setSavingFav] = useState(false);
-  useEffect(() => setSaved(prueba.favorito ?? false), [prueba.favorito]);
+  const { saved, saving: savingFav, error: errorFav, toggle } = useFavorito(prueba.id, prueba.favorito ?? false);
   const s = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
 
   return (
@@ -96,22 +95,9 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
         <motion.button
           whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.85 }}
           disabled={savingFav}
-          onClick={async (e) => {
-            e.stopPropagation();
-            if (savingFav) return;
-            setSavingFav(true);
-            const prev = saved;
-            setSaved(!prev);
-            try {
-              const actual = await toggleFavorito(prueba.id);
-              setSaved(actual);
-            } catch {
-              setSaved(prev);
-            } finally {
-              setSavingFav(false);
-            }
-          }}
-          style={{ fontSize: "18px", background: "none", border: "none", cursor: savingFav ? "default" : "pointer", color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)", lineHeight: 1, padding: 0, flexShrink: 0, opacity: savingFav ? 0.6 : 1 }}>
+          title={errorFav || (saved ? "Quitar de mis pruebas guardadas" : "Guardar en mi perfil")}
+          onClick={(e) => { e.stopPropagation(); toggle(); }}
+          style={{ fontSize: "18px", background: "none", border: "none", cursor: savingFav ? "default" : "pointer", color: errorFav ? "#f87171" : saved ? "#f59e0b" : "rgba(255,255,255,0.2)", lineHeight: 1, padding: 0, flexShrink: 0, opacity: savingFav ? 0.6 : 1 }}>
           {saved ? "★" : "☆"}
         </motion.button>
       </div>

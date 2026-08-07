@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchMisPruebas, toggleFavorito, deletePrueba, type Prueba, type PruebaEstado } from "../services/Pruebas";
+import { fetchMisPruebas, deletePrueba, type Prueba, type PruebaEstado } from "../services/Pruebas";
+import { useFavorito } from "../services/Favoritos";
 import Logo from "./logo";
 
 const C = {
@@ -46,29 +47,16 @@ const ESTADO_STYLES: Record<PruebaEstado, { bg: string; text: string; border: st
 
 function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: number) => void }) {
   const navigate   = useNavigate();
-  const [saved, setSaved] = useState(prueba.favorito ?? false);
-  const [savingFav, setSavingFav] = useState(false);
+  const { saved, saving: savingFav, error: errorFav, toggle } = useFavorito(prueba.id, prueba.favorito ?? false);
   const [deleting, setDeleting] = useState(false);
-  useEffect(() => setSaved(prueba.favorito ?? false), [prueba.favorito]);
   const s          = MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border };
   const es         = ESTADO_STYLES[prueba.estado];
   const aprobada   = prueba.estado === "aprobada";
   const fecha      = new Date(prueba.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 
-  const handleFav = async (e: React.MouseEvent) => {
+  const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (savingFav) return;
-    setSavingFav(true);
-    const prev = saved;
-    setSaved(!prev);
-    try {
-      const actual = await toggleFavorito(prueba.id);
-      setSaved(actual);
-    } catch {
-      setSaved(prev);
-    } finally {
-      setSavingFav(false);
-    }
+    toggle();
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -139,11 +127,11 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
               whileTap={{ scale: 0.85 }}
               onClick={handleFav}
               disabled={savingFav}
-              title={saved ? "Quitar de favoritos" : "Guardar"}
+              title={errorFav || (saved ? "Quitar de guardadas" : "Guardar en mi perfil")}
               style={{
                 fontSize: "18px", background: "none", border: "none",
                 cursor: savingFav ? "default" : "pointer",
-                color: saved ? "#f59e0b" : "rgba(255,255,255,0.2)",
+                color: errorFav ? "#f87171" : saved ? "#f59e0b" : "rgba(255,255,255,0.2)",
                 lineHeight: 1, padding: 0, opacity: savingFav ? 0.6 : 1,
               }}
             >

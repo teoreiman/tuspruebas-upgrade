@@ -25,7 +25,8 @@
       "Bash(npm uninstall *)",
       "Bash(npx vite *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "PowerShell(npx tsc -b --force 2>&1)"
     ]
   }
 }

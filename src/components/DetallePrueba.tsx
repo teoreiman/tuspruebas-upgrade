@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { fetchPrueba, toggleFavorito, deletePrueba, type Prueba } from "../services/Pruebas";
+import { AnimatePresence, motion } from "framer-motion";
+import { fetchPrueba, deletePrueba, type Prueba } from "../services/Pruebas";
+import { useFavorito } from "../services/Favoritos";
+import { descargarArchivo } from "../services/Descargas";
 import { getUser, isAdmin, isSuperAdmin } from "../services/Auth";
 import Logo from "./logo";
 
@@ -27,34 +29,162 @@ const MATERIA_COLORS: Record<string, { bg: string; text: string; border: string 
   "Marketing":                   { bg: "rgba(244,63,94,0.15)",  text: "#fb7185", border: "rgba(251,113,133,0.3)" },
 };
 
-// ── PDF Viewer ────────────────────────────────────────────────────────────────
-function FileViewer({ url, nombre, tipo }: { url: string; nombre: string; tipo?: string }) {
+const IconoDescarga = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+);
+
+const IconoLupa = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="7"/>
+    <line x1="20" y1="20" x2="16.65" y2="16.65"/>
+    <line x1="11" y1="8" x2="11" y2="14"/>
+    <line x1="8" y1="11" x2="14" y2="11"/>
+  </svg>
+);
+
+// Visor a pantalla completa para mirar la foto en grande.
+function Lightbox({ url, nombre, onClose }: { url: string; nombre: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflowPrevio;
+    };
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 100,
+        backgroundColor: "rgba(3,6,12,0.94)", backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "32px", cursor: "zoom-out",
+      }}
+    >
+      <motion.img
+        initial={{ scale: 0.96 }} animate={{ scale: 1 }}
+        src={url}
+        alt={nombre}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: "100%", maxHeight: "100%", objectFit: "contain",
+          borderRadius: "8px", cursor: "default",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        }}
+      />
+      <button
+        onClick={onClose}
+        aria-label="Cerrar"
+        style={{
+          position: "fixed", top: "20px", right: "24px",
+          width: "38px", height: "38px", borderRadius: "10px",
+          border: `1px solid ${C.border}`, backgroundColor: "rgba(13,21,38,0.9)",
+          color: C.white, fontSize: "18px", cursor: "pointer", lineHeight: 1,
+        }}
+      >
+        ✕
+      </button>
+    </motion.div>
+  );
+}
+
+function FileViewer({
+  url, nombre, tipo, onDescargar, descargando,
+}: {
+  url: string;
+  nombre: string;
+  tipo?: string;
+  onDescargar: () => void;
+  descargando: boolean;
+}) {
   const [imgError, setImgError] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const isPdf = tipo === "pdf" || nombre?.toLowerCase().endsWith(".pdf");
   const isImage = tipo === "image" || ["jpg","jpeg","png","gif","webp","heic","avif","bmp","tiff"].some((ext) => nombre?.toLowerCase().endsWith(ext));
 
+  const botonDescarga = (
+    <motion.button
+      onClick={onDescargar}
+      disabled={descargando}
+      whileHover={{ backgroundColor: descargando ? undefined : C.blueHov }}
+      whileTap={{ scale: 0.98 }}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: "8px",
+        backgroundColor: C.blue, color: C.white,
+        fontWeight: 700, fontSize: "13px",
+        padding: "10px 20px", borderRadius: "10px",
+        border: "none", cursor: descargando ? "default" : "pointer",
+        opacity: descargando ? 0.6 : 1,
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <IconoDescarga />
+      {descargando ? "Descargando..." : "Descargar archivo"}
+    </motion.button>
+  );
+
   if (isPdf) {
     return (
-      <div style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: `1px solid ${C.border}` }}>
-        <iframe
-          src={url}
-          title={nombre}
-          style={{ width: "100%", height: "600px", border: "none", backgroundColor: "#0a0e1a" }}
-        />
+      <div>
+        <div style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: `1px solid ${C.border}` }}>
+          <iframe
+            src={url}
+            title={nombre}
+            style={{ width: "100%", height: "min(85vh, 1000px)", border: "none", backgroundColor: "#0a0e1a" }}
+          />
+        </div>
+        <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>{botonDescarga}</div>
       </div>
     );
   }
 
   if (isImage && !imgError) {
     return (
-      <div style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, display: "flex", justifyContent: "center", padding: "24px" }}>
-        <img
-          src={url}
-          alt={nombre}
-          onError={() => setImgError(true)}
-          style={{ maxWidth: "100%", maxHeight: "600px", objectFit: "contain", borderRadius: "8px" }}
-        />
-      </div>
+      <>
+        <div style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, display: "flex", justifyContent: "center", padding: "16px" }}>
+          <img
+            src={url}
+            alt={nombre}
+            onError={() => setImgError(true)}
+            onClick={() => setZoom(true)}
+            title="Clic para ver en grande"
+            style={{ maxWidth: "100%", maxHeight: "min(85vh, 1100px)", objectFit: "contain", borderRadius: "8px", cursor: "zoom-in" }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", marginTop: "12px", flexWrap: "wrap" }}>
+          {botonDescarga}
+          <motion.button
+            onClick={() => setZoom(true)}
+            whileHover={{ borderColor: C.blue, color: C.white }}
+            whileTap={{ scale: 0.98 }}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "8px",
+              backgroundColor: "transparent", color: C.text,
+              fontWeight: 600, fontSize: "13px",
+              padding: "10px 20px", borderRadius: "10px",
+              border: `1.5px solid ${C.border}`, cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            <IconoLupa />
+            Ver en pantalla completa
+          </motion.button>
+        </div>
+
+        <AnimatePresence>
+          {zoom && <Lightbox url={url} nombre={nombre} onClose={() => setZoom(false)} />}
+        </AnimatePresence>
+      </>
     );
   }
 
@@ -69,9 +199,10 @@ function FileViewer({ url, nombre, tipo }: { url: string; nombre: string; tipo?:
         <p style={{ fontSize: "14px", color: C.gray, marginBottom: "4px" }}>
           No se pudo cargar la foto de esta prueba.
         </p>
-        <p style={{ fontSize: "13px", color: C.gray }}>
+        <p style={{ fontSize: "13px", color: C.gray, marginBottom: "20px" }}>
           Puede haberse subido antes de que se habilitara la carga de fotos sin configuración externa. Probá volver a subir la prueba con la foto.
         </p>
+        {botonDescarga}
       </div>
     );
   }
@@ -86,26 +217,7 @@ function FileViewer({ url, nombre, tipo }: { url: string; nombre: string; tipo?:
       <p style={{ fontSize: "14px", color: C.gray, marginBottom: "20px" }}>
         Este archivo no se puede previsualizar directamente.
       </p>
-      <motion.a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        whileHover={{ backgroundColor: C.blueHov }}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: "8px",
-          backgroundColor: C.blue, color: C.white,
-          fontWeight: 700, fontSize: "14px",
-          padding: "11px 24px", borderRadius: "10px",
-          textDecoration: "none", transition: "background-color 0.2s",
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        Descargar archivo
-      </motion.a>
+      {botonDescarga}
     </div>
   );
 }
@@ -117,10 +229,13 @@ export default function DetallePrueba() {
   const [prueba, setPrueba] = useState<Prueba | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [savingFav, setSavingFav] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [descargando, setDescargando] = useState(false);
+  const [errorDescarga, setErrorDescarga] = useState("");
   const user = getUser();
+
+  const pruebaId = Number(id);
+  const { saved, saving: savingFav, error: errorFav, toggle } = useFavorito(pruebaId, prueba?.favorito ?? false);
 
   useEffect(() => {
     if (!id) return;
@@ -128,28 +243,26 @@ export default function DetallePrueba() {
     setError("");
     setPrueba(null);
     fetchPrueba(Number(id))
-      .then((p) => {
-        setPrueba(p);
-        setSaved(p.favorito ?? false);
-      })
-      .catch(() => setError("No se encontró esta prueba"))
+      .then(setPrueba)
+      .catch((e) => setError(e instanceof Error ? e.message : "No se encontró esta prueba"))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleFavorito = async () => {
-    if (!prueba || savingFav) return;
-    setSavingFav(true);
-    const prev = saved;
-    setSaved(!prev);
+  const handleDescargar = useCallback(async () => {
+    if (!prueba?.archivo_url || descargando) return;
+    setDescargando(true);
+    setErrorDescarga("");
     try {
-      const actual = await toggleFavorito(prueba.id);
-      setSaved(actual);
-    } catch {
-      setSaved(prev);
+      const nombre =
+        prueba.archivo_nombre ||
+        `${prueba.materia || "prueba"}${prueba.tema ? ` - ${prueba.tema}` : ""}`;
+      await descargarArchivo(prueba.archivo_url, nombre);
+    } catch (e) {
+      setErrorDescarga(e instanceof Error ? e.message : "No se pudo descargar el archivo");
     } finally {
-      setSavingFav(false);
+      setDescargando(false);
     }
-  };
+  }, [prueba, descargando]);
 
   const handleEliminar = async () => {
     if (!prueba || deleting) return;
@@ -256,8 +369,9 @@ export default function DetallePrueba() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleFavorito}
+                onClick={toggle}
                 disabled={savingFav}
+                title={saved ? "Quitar de mis pruebas guardadas" : "Guardar en mi perfil"}
                 style={{
                   display: "flex", alignItems: "center", gap: "7px",
                   padding: "10px 18px", borderRadius: "10px",
@@ -265,37 +379,36 @@ export default function DetallePrueba() {
                   backgroundColor: saved ? "rgba(245,158,11,0.1)" : "transparent",
                   color: saved ? "#f59e0b" : C.gray,
                   fontWeight: 600, fontSize: "13px",
-                  cursor: "pointer", transition: "all 0.2s",
+                  cursor: savingFav ? "default" : "pointer", transition: "all 0.2s",
                   fontFamily: "'DM Sans', sans-serif",
+                  opacity: savingFav ? 0.6 : 1,
                 }}
               >
                 <span style={{ fontSize: "16px" }}>{saved ? "★" : "☆"}</span>
-                {saved ? "Guardado" : "Guardar"}
+                {saved ? "Guardada" : "Guardar"}
               </motion.button>
 
               {/* Descargar */}
               {prueba.archivo_url && (
-                <motion.a
-                  href={prueba.archivo_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  whileHover={{ backgroundColor: C.blueHov }}
+                <motion.button
+                  onClick={handleDescargar}
+                  disabled={descargando}
+                  whileHover={{ backgroundColor: descargando ? undefined : C.blueHov }}
+                  whileTap={{ scale: 0.97 }}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: "7px",
                     padding: "10px 18px", borderRadius: "10px",
                     backgroundColor: C.blue, color: C.white,
                     fontWeight: 700, fontSize: "13px",
-                    textDecoration: "none", transition: "background-color 0.2s",
+                    border: "none", cursor: descargando ? "default" : "pointer",
+                    opacity: descargando ? 0.6 : 1,
+                    transition: "background-color 0.2s",
                     fontFamily: "'DM Sans', sans-serif",
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  Descargar
-                </motion.a>
+                  <IconoDescarga />
+                  {descargando ? "Descargando..." : "Descargar"}
+                </motion.button>
               )}
 
               {/* Eliminar */}
@@ -329,6 +442,12 @@ export default function DetallePrueba() {
               )}
             </div>
           </div>
+
+          {(errorDescarga || errorFav) && (
+            <div style={{ marginBottom: "20px", padding: "11px 14px", backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "9px", fontSize: "13px", color: "#f87171" }}>
+              {errorDescarga || errorFav}
+            </div>
+          )}
 
           <div style={{ height: "1px", backgroundColor: C.border, marginBottom: "32px" }} />
 
@@ -374,7 +493,13 @@ export default function DetallePrueba() {
                 </svg>
                 {prueba.archivo_nombre}
               </p>
-              <FileViewer url={prueba.archivo_url} nombre={prueba.archivo_nombre || ""} tipo={prueba.archivo_tipo} />
+              <FileViewer
+                url={prueba.archivo_url}
+                nombre={prueba.archivo_nombre || ""}
+                tipo={prueba.archivo_tipo}
+                onDescargar={handleDescargar}
+                descargando={descargando}
+              />
             </div>
           ) : prueba.archivo_tipo ? (
             <div style={{ backgroundColor: C.bgCard, borderRadius: "12px", padding: "40px 24px", textAlign: "center", border: `1px solid ${C.border}` }}>
@@ -393,16 +518,16 @@ export default function DetallePrueba() {
                 ✦ Resolver con IA
               </p>
               <p style={{ fontSize: "13px", color: C.gray }}>
-                Usá la IA de tusPruebas para resolver ejercicios o explicarte los temas de esta prueba.
+                La IA abre con esta prueba cargada: ve la foto y las preguntas, y te las resuelve o te explica los temas.
               </p>
             </div>
             <motion.button
               whileHover={{ backgroundColor: C.blueHov }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(`/ia?prueba=${prueba.id}&materia=${prueba.materia}&año=${prueba.año}`)}
+              onClick={() => navigate(`/ia?prueba=${prueba.id}`)}
               style={{ backgroundColor: C.blue, color: C.white, fontWeight: 700, fontSize: "13px", padding: "10px 20px", borderRadius: "9px", border: "none", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'DM Sans', sans-serif" }}
             >
-              Abrir IA →
+              Resolver con IA →
             </motion.button>
           </div>
         </motion.div>
