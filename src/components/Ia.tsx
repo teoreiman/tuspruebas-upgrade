@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { enviarMensajeIA } from "../services/Ia";
 import { fetchPrueba, type Prueba } from "../services/Pruebas";
 import Logo from "./logo";
-import { getToken } from "../services/Auth";
 
 const C = {
   bg:       "#0a0e1a",
@@ -88,7 +87,6 @@ const SUGERENCIAS: Record<string, string[]> = {
   ],
 };
 
-<<<<<<< Updated upstream
 // Cuando se entra desde una prueba concreta, las sugerencias apuntan a resolverla.
 const SUGERENCIAS_PRUEBA = [
   "Resolvé toda la prueba paso a paso",
@@ -96,39 +94,6 @@ const SUGERENCIAS_PRUEBA = [
   "¿Qué temas tengo que estudiar para esta prueba?",
   "Generame una prueba de práctica parecida",
 ];
-=======
-// ── Backend IA call ────────────────────────────────────────────────────────────
-const API_URL = "/api";
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-// Si hay una prueba puntual (abierta desde "Abrir IA →"), el backend responde
-// usando esa prueba como contexto. Si no, va como chat libre con lo que el
-// estudiante haya elegido en la barra lateral.
-async function askIA(
-  pregunta: string,
-  contexto: Contexto,
-  pruebaId: string | null
-): Promise<string> {
-  const url = pruebaId ? `${API_URL}/ia/${pruebaId}/preguntar` : `${API_URL}/ia/preguntar`;
-  const body = pruebaId ? { pregunta } : { pregunta, contexto };
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify(body),
-  });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.ok) {
-    throw new Error((data.message as string) || "Error al conectarse con la IA");
-  }
-  return data.respuesta as string;
-}
->>>>>>> Stashed changes
 
 // ── Subcomponents ─────────────────────────────────────────────────────────────
 function TypingIndicator() {
@@ -236,13 +201,9 @@ const MENSAJE_BIENVENIDA =
 export default function IA() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-<<<<<<< Updated upstream
   const pruebaIdParam = Number(searchParams.get("prueba"));
   const pruebaId = Number.isInteger(pruebaIdParam) && pruebaIdParam > 0 ? pruebaIdParam : null;
 
-=======
-  const pruebaId = searchParams.get("prueba");
->>>>>>> Stashed changes
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -343,7 +304,6 @@ export default function IA() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
-<<<<<<< Updated upstream
       // El mensaje de bienvenida es de la interfaz, no parte de la conversación.
       const historial = [...messages, userMsg]
         .filter((m) => !m.id.startsWith("welcome"))
@@ -355,30 +315,17 @@ export default function IA() {
         pruebaId: prueba?.id ?? pruebaId,
       });
 
-=======
-      const response = await askIA(content, contexto, pruebaId);
->>>>>>> Stashed changes
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: response,
         timestamp: new Date(),
       }]);
-<<<<<<< Updated upstream
     } catch (e) {
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: e instanceof Error ? e.message : "Hubo un error al conectarme. Verificá tu conexión e intentá de nuevo.",
-=======
-    } catch (err) {
-      setMessages((prev) => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: err instanceof Error
-          ? `Hubo un error al conectarme: ${err.message}`
-          : "Hubo un error al conectarme. Verificá tu conexión e intentá de nuevo.",
->>>>>>> Stashed changes
         timestamp: new Date(),
       }]);
     } finally {
