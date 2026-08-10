@@ -1,8 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { enviarMensajeIA } from "../services/Ia";
 import { fetchPrueba, type Prueba } from "../services/Pruebas";
+import {
+  listarConversaciones, obtenerConversacion, eliminarConversacion,
+  type ConversacionResumen,
+} from "../services/Conversaciones";
 import Logo from "./logo";
 
 const C = {
@@ -225,6 +229,15 @@ export default function IA() {
   const [cargandoPrueba, setCargandoPrueba] = useState(!!pruebaId);
   const [errorPrueba, setErrorPrueba] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // ── Historial de chats (como Claude/ChatGPT): se guarda solo en el backend,
+  // acá solo mantenemos la lista para mostrarla y saber cuál está abierto. ──
+  const [historialOpen, setHistorialOpen] = useState(true);
+  const [historial, setHistorial] = useState<ConversacionResumen[]>([]);
+  const [cargandoHistorial, setCargandoHistorial] = useState(true);
+  const [conversacionId, setConversacionId] = useState<number | null>(null);
+  const [cargandoConversacion, setCargandoConversacion] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -278,6 +291,85 @@ export default function IA() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const refrescarHistorial = useCallback(async () => {
+    try {
+      const lista = await listarConversaciones();
+      setHistorial(lista);
+    } catch {
+      // El historial es un extra, no algo que deba tirar abajo el chat si falla.
+    }
+  }, []);
+
+  useEffect(() => {
+    setCargandoHistorial(true);
+    refrescarHistorial().finally(() => setCargandoHistorial(false));
+  }, [refrescarHistorial]);
+
+  // Arranca un chat en blanco. Si hay una prueba cargada (vinimos desde
+  // "Abrir IA →"), la mantiene; si no, también borra ese contexto.
+  const iniciarChatNuevo = (mantenerPrueba: boolean) => {
+    setConversacionId(null);
+    if (mantenerPrueba && prueba) {
+      setMessages([{
+        id: "welcome-prueba",
+        role: "assistant",
+        content: `Segimos con la prueba de ${prueba.materia}${prueba.tema ? ` sobre ${prueba.tema}` : ""} cargada. ¿En qué te ayudo?`,
+        timestamp: new Date(),
+      }]);
+    } else {
+      setPrueba(null);
+      setContexto({ colegio: "", año: "", materia: "", profesor: "", tema: "" });
+      setMessages([{ id: "welcome-new", role: "assistant", content: MENSAJE_BIENVENIDA, timestamp: new Date() }]);
+    }
+  };
+
+  const abrirConversacion = async (id: number) => {
+    if (id === conversacionId || cargandoConversacion) return;
+    setCargandoConversacion(true);
+    try {
+      const conv = await obtenerConversacion(id);
+      setConversacionId(conv.id);
+      setContexto(conv.contexto);
+      setMessages(
+        conv.mensajes.length
+          ? conv.mensajes.map((m) => ({
+              id: `msg-${m.id}`,
+              role: m.role,
+              content: m.content,
+              timestamp: new Date(m.createdAt),
+            }))
+          : [{ id: "welcome", role: "assistant", content: MENSAJE_BIENVENIDA, timestamp: new Date() }]
+      );
+      if (conv.pruebaId) {
+        fetchPrueba(conv.pruebaId).then(setPrueba).catch(() => setPrueba(null));
+      } else {
+        setPrueba(null);
+      }
+    } catch (e) {
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: e instanceof Error ? e.message : "No se pudo abrir esa conversación.",
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setCargandoConversacion(false);
+    }
+  };
+
+  const borrarConversacion = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm("¿Borrar esta conversación? No se puede deshacer.")) return;
+    try {
+      await eliminarConversacion(id);
+      setHistorial((prev) => prev.filter((c) => c.id !== id));
+      if (id === conversacionId) iniciarChatNuevo(false);
+    } catch {
+      // Si falla el borrado, el chat se queda en la lista tal como estaba: no
+      // hace falta un manejo especial más allá de no romper la UI.
+    }
+  };
+
   const setCtx = (key: keyof Contexto, val: string) => {
     setContexto((prev) => {
       const updated = { ...prev, [key]: val };
@@ -288,7 +380,7 @@ export default function IA() {
 
   const sendMessage = async (text?: string) => {
     const content = (text ?? input).trim();
-    if (!content || loading) return;
+    if (!content || loading || cargandoConversacion) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -305,20 +397,24 @@ export default function IA() {
 
     try {
       // El mensaje de bienvenida es de la interfaz, no parte de la conversación.
-      const historial = [...messages, userMsg]
+      const historialMensajes = [...messages, userMsg]
         .filter((m) => !m.id.startsWith("welcome"))
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const response = await enviarMensajeIA({
-        mensajes: historial,
+      const { reply, conversacionId: idDevuelto } = await enviarMensajeIA({
+        mensajes: historialMensajes,
         contexto,
         pruebaId: prueba?.id ?? pruebaId,
+        conversacionId,
       });
+
+      if (idDevuelto && idDevuelto !== conversacionId) setConversacionId(idDevuelto);
+      refrescarHistorial();
 
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: response,
+        content: reply,
         timestamp: new Date(),
       }]);
     } catch (e) {
@@ -344,17 +440,6 @@ export default function IA() {
     setInput(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
-  };
-
-  const clearChat = () => {
-    setMessages([{
-      id: "welcome-new",
-      role: "assistant",
-      content: prueba
-        ? `Chat limpiado. Sigo con la prueba de ${prueba.materia}${prueba.tema ? ` sobre ${prueba.tema}` : ""} cargada. ¿En qué te ayudo?`
-        : "Chat limpiado. ¿En qué te puedo ayudar?",
-      timestamp: new Date(),
-    }]);
   };
 
   const contextoCompleto = !!(contexto.colegio && contexto.año && contexto.materia);
@@ -413,7 +498,19 @@ export default function IA() {
           <div style={{ display: "flex", gap: "8px" }}>
             <motion.button
               whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-              onClick={clearChat}
+              onClick={() => setHistorialOpen(!historialOpen)}
+              style={{
+                fontSize: "12px", color: C.gray, fontWeight: 500,
+                padding: "6px 12px", borderRadius: "8px",
+                border: `1px solid ${C.border}`, backgroundColor: "transparent",
+                cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {historialOpen ? "Ocultar historial" : "Ver historial"}
+            </motion.button>
+            <motion.button
+              whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+              onClick={() => iniciarChatNuevo(true)}
               style={{
                 fontSize: "12px", color: C.gray, fontWeight: 500,
                 padding: "6px 12px", borderRadius: "8px",
@@ -441,6 +538,99 @@ export default function IA() {
 
       {/* ── Body ── */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
+        {/* ── Historial de chats ── */}
+        <AnimatePresence>
+          {historialOpen && (
+            <motion.aside
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 260, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              style={{
+                flexShrink: 0,
+                backgroundColor: C.bgSection,
+                borderRight: `1px solid ${C.border}`,
+                overflowY: "auto",
+                overflowX: "hidden",
+              }}
+            >
+              <div style={{ padding: "16px 12px", minWidth: "236px" }}>
+                <motion.button
+                  whileHover={{ backgroundColor: "rgba(16,99,239,0.12)" }}
+                  onClick={() => iniciarChatNuevo(false)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: "8px",
+                    padding: "10px 12px", marginBottom: "14px",
+                    borderRadius: "10px", border: `1px solid ${C.border}`,
+                    backgroundColor: "transparent", color: C.white,
+                    fontSize: "13px", fontWeight: 600, cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  <span style={{ fontSize: "15px", color: C.blue }}>＋</span> Nuevo chat
+                </motion.button>
+
+                <p style={{ fontSize: "10px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "8px", paddingLeft: "4px" }}>
+                  Historial
+                </p>
+
+                {cargandoHistorial && (
+                  <p style={{ fontSize: "12px", color: C.gray, padding: "8px 4px" }}>Cargando...</p>
+                )}
+                {!cargandoHistorial && historial.length === 0 && (
+                  <p style={{ fontSize: "12px", color: C.gray, padding: "8px 4px" }}>
+                    Todavía no tenés chats guardados.
+                  </p>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                  {historial.map((c) => {
+                    const activo = c.id === conversacionId;
+                    return (
+                      <motion.div
+                        key={c.id}
+                        onClick={() => abrirConversacion(c.id)}
+                        whileHover={{ backgroundColor: activo ? undefined : "rgba(255,255,255,0.04)" }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "6px",
+                          padding: "9px 10px", borderRadius: "8px", cursor: "pointer",
+                          backgroundColor: activo ? "rgba(16,99,239,0.15)" : "transparent",
+                          border: activo ? "1px solid rgba(16,99,239,0.3)" : "1px solid transparent",
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{
+                            fontSize: "12.5px", fontWeight: activo ? 700 : 500,
+                            color: activo ? C.white : C.text,
+                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                          }}>
+                            {c.titulo}
+                          </p>
+                          {c.contexto.materia && (
+                            <p style={{ fontSize: "10.5px", color: C.gray, marginTop: "1px" }}>
+                              {c.contexto.materia}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => borrarConversacion(c.id, e)}
+                          title="Borrar conversación"
+                          style={{
+                            flexShrink: 0, background: "none", border: "none", cursor: "pointer",
+                            color: "rgba(255,255,255,0.2)", fontSize: "13px", padding: "2px 4px",
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
         {/* ── Sidebar contexto ── */}
         <AnimatePresence>

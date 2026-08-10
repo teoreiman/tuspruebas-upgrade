@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import pool from "./lib/db";
 import { getAuthUser } from "./lib/auth";
+import { LIMITE_DIARIO, usoUltimas24hs, registrarUso } from "./lib/iaUso";
+import { crearConversacion, agregarMensaje, conversacionPerteneceA } from "./lib/conversaciones";
 
 // La IA corre en el backend: la API key nunca sale del servidor y el modelo
 // puede ver la foto de la prueba (que está guardada como base64 en la base y
@@ -226,6 +228,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = getAuthUser(req);
   if (!user) return res.status(401).json({ message: "No autenticado" });
 
+  const usados = await usoUltimas24hs(user.id).catch(() => 0);
+  if (usados >= LIMITE_DIARIO) {
+    return res.status(429).json({
+      message: `Alcanzaste el límite de ${LIMITE_DIARIO} preguntas a la IA por día. Probá de nuevo más tarde.`,
+    });
+  }
+
   const key = apiKey();
   if (!key) {
     return res.status(503).json({
@@ -239,6 +248,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const contexto = (body.contexto ?? {}) as Contexto;
   const pruebaIdRaw = body.prueba_id;
   const pruebaId = Number(pruebaIdRaw);
+  const conversacionIdRaw = body.conversacion_id;
 
   const limpios = mensajes
     .filter((m) => typeof m?.content === "string" && m.content.trim())
@@ -254,6 +264,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { rows } = await pool.query("SELECT * FROM pruebas WHERE id = $1", [pruebaId]);
       prueba = rows[0] ?? null;
     }
+
+    // El historial se guarda solo (como en Claude/ChatGPT): el último mensaje
+    // del array es siempre el que el estudiante acaba de escribir, el resto ya
+    // está guardado de vueltas anteriores.
+    const nuevoMensaje = limpios[limpios.length - 1];
+    let conversacionId = Number(conversacionIdRaw);
+    const esConversacionNueva = !Number.isInteger(conversacionId) || conversacionId <= 0;
+
+    if (esConversacionNueva) {
+      conversacionId = await crearConversacion({
+        usuarioId: user.id,
+        pruebaId: (prueba?.id as number | undefined) ?? null,
+        contexto,
+        primerMensaje: nuevoMensaje.content!,
+      });
+    } else if (!(await conversacionPerteneceA(conversacionId, user.id))) {
+      return res.status(404).json({ message: "Conversación no encontrada" });
+    }
+
+    await agregarMensaje(conversacionId, "user", nuevoMensaje.content!);
 
     const contenido = prueba ? safeJson(prueba.contenido) : {};
     const parteArchivo = prueba
@@ -300,7 +330,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
 
         const r = await llamarGemini(modelo, key, payload);
-        if (r.ok) return res.status(200).json({ reply: r.texto, modelo });
+        if (r.ok) {
+          // Se cuenta recién si la IA respondió bien: un error nuestro o de la
+          // API no debería gastarle cupo al estudiante.
+          await registrarUso(user.id).catch(() => {});
+          await agregarMensaje(conversacionId, "assistant", r.texto).catch(() => {});
+          return res.status(200).json({
+            reply: r.texto,
+            modelo,
+            conversacion_id: conversacionId,
+            usados: usados + 1,
+            limite: LIMITE_DIARIO,
+          });
+        }
 
         ultimoError = { status: r.status, mensaje: r.mensaje };
 
