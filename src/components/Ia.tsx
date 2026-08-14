@@ -237,6 +237,7 @@ export default function IA() {
   const [cargandoHistorial, setCargandoHistorial] = useState(true);
   const [conversacionId, setConversacionId] = useState<number | null>(null);
   const [cargandoConversacion, setCargandoConversacion] = useState(false);
+  const [imagenAbierta, setImagenAbierta] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -309,6 +310,7 @@ export default function IA() {
   // "Abrir IA →"), la mantiene; si no, también borra ese contexto.
   const iniciarChatNuevo = (mantenerPrueba: boolean) => {
     setConversacionId(null);
+    setImagenAbierta(false);
     if (mantenerPrueba && prueba) {
       setMessages([{
         id: "welcome-prueba",
@@ -325,6 +327,7 @@ export default function IA() {
 
   const abrirConversacion = async (id: number) => {
     if (id === conversacionId || cargandoConversacion) return;
+    setImagenAbierta(false);
     setCargandoConversacion(true);
     try {
       const conv = await obtenerConversacion(id);
@@ -496,6 +499,20 @@ export default function IA() {
           </div>
 
           <div style={{ display: "flex", gap: "8px" }}>
+            {prueba?.archivo_tipo === "image" && prueba?.archivo_url && (
+              <motion.button
+                whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                onClick={() => setImagenAbierta(true)}
+                style={{
+                  fontSize: "12px", color: C.gray, fontWeight: 500,
+                  padding: "6px 12px", borderRadius: "8px",
+                  border: `1px solid ${C.border}`, backgroundColor: "transparent",
+                  cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                Ver prueba
+              </motion.button>
+            )}
             <motion.button
               whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
               onClick={() => setHistorialOpen(!historialOpen)}
@@ -1014,6 +1031,49 @@ export default function IA() {
           </div>
         </div>
       </div>
+
+      {/* ── Lightbox: la foto de la prueba, a pedido, no metida en el chat ── */}
+      <AnimatePresence>
+        {imagenAbierta && prueba?.archivo_url && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setImagenAbierta(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 100,
+              backgroundColor: "rgba(0,0,0,0.85)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "32px", cursor: "zoom-out",
+            }}
+          >
+            <motion.img
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              src={prueba.archivo_url}
+              alt={`Foto de la prueba de ${prueba.materia}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: "100%", maxHeight: "100%",
+                borderRadius: "10px", boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
+                cursor: "default",
+              }}
+            />
+            <button
+              onClick={() => setImagenAbierta(false)}
+              style={{
+                position: "absolute", top: "20px", right: "24px",
+                width: "36px", height: "36px", borderRadius: "50%",
+                border: `1px solid ${C.border}`, backgroundColor: "rgba(255,255,255,0.08)",
+                color: C.white, fontSize: "16px", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
