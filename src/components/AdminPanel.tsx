@@ -8,6 +8,7 @@ import {
   Prueba,
   PruebaEstado,
 } from "../services/Pruebas";
+import { notifyUserPruebaEstado } from "../services/Email";
 
 // ── Badge estado ──────────────────────────────────────────────────────────────
 function EstadoBadge({ estado }: { estado: string }) {
@@ -280,6 +281,19 @@ export default function AdminPanel() {
       const prueba = pruebas.find((p) => p.id === id);
       const link = prueba ? `/home?escuela=${encodeURIComponent(prueba.escuela)}&anio=${encodeURIComponent(prueba.año)}` : "/home";
       showToast("Prueba aprobada ✓", "ok", link);
+      // No bloquea el flujo del admin: si el email falla, no debe impedir que
+      // la aprobación ya quedó guardada (Email.ts ya maneja sus propios errores).
+      if (prueba) {
+        notifyUserPruebaEstado({
+          usuario_nombre: prueba.usuario_nombre,
+          usuario_email: prueba.usuario_email,
+          colegio: prueba.escuela,
+          año: prueba.año,
+          materia: prueba.materia,
+          tema: prueba.tema || "",
+          estado: "aprobada",
+        });
+      }
     } catch {
       showToast("Error al aprobar — verificá que tenés permisos", "err");
     } finally {
@@ -293,6 +307,18 @@ export default function AdminPanel() {
       await updatePruebaEstado(id, "rechazada");
       setPruebas((prev) => prev.map((p) => (p.id === id ? { ...p, estado: "rechazada" } : p)));
       showToast("Prueba rechazada", "err");
+      const prueba = pruebas.find((p) => p.id === id);
+      if (prueba) {
+        notifyUserPruebaEstado({
+          usuario_nombre: prueba.usuario_nombre,
+          usuario_email: prueba.usuario_email,
+          colegio: prueba.escuela,
+          año: prueba.año,
+          materia: prueba.materia,
+          tema: prueba.tema || "",
+          estado: "rechazada",
+        });
+      }
     } catch {
       showToast("Error al rechazar", "err");
     } finally {

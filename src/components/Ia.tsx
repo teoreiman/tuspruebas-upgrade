@@ -5,8 +5,8 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
-import { enviarMensajeIA } from "../services/Ia";
-import { fetchPrueba, type Prueba } from "../services/Pruebas";
+import { enviarMensajeIA, generarPruebaPractica } from "../services/Ia";
+import { fetchPrueba, fetchPruebas, type Prueba } from "../services/Pruebas";
 import {
   listarConversaciones, obtenerConversacion, eliminarConversacion,
   type ConversacionResumen,
@@ -226,7 +226,7 @@ function MessageBubble({ message }: { message: Message }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const MENSAJE_BIENVENIDA =
-  "¡Hola! Soy la IA de tusPruebas. Puedo ayudarte a resolver ejercicios, explicar conceptos, resumir temas y prepararte para tus pruebas. Configurá el contexto de la izquierda para que pueda ayudarte mejor.";
+  "¡Hola! Soy la IA de tusPruebas. Para poder ayudarte, primero elegí una prueba: buscala en el panel de la izquierda (colegio, año y materia) y tocá \"Usar esta prueba\", o abrí una desde \"Mis pruebas\" o \"Favoritas\" con el botón \"Abrir IA →\".";
 
 export default function IA() {
   const navigate = useNavigate();
@@ -264,6 +264,13 @@ export default function IA() {
   const [conversacionId, setConversacionId] = useState<number | null>(null);
   const [cargandoConversacion, setCargandoConversacion] = useState(false);
   const [imagenAbierta, setImagenAbierta] = useState(false);
+
+  // ── Buscador de pruebas dentro del contexto: el panel "Contexto de estudio"
+  // usa los mismos filtros que la home, así que tiene que encontrar algo de
+  // verdad en vez de ser solo texto suelto para el prompt. ──
+  const [resultadosBusqueda, setResultadosBusqueda] = useState<Prueba[]>([]);
+  const [buscandoPruebas, setBuscandoPruebas] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -313,6 +320,44 @@ export default function IA() {
       });
     return () => { cancelado = true; };
   }, [pruebaId]);
+
+  // Busca pruebas reales que matcheen el contexto elegido a mano, para que el
+  // panel "Contexto de estudio" haga lo que aparenta (usa los mismos filtros
+  // que la home). Solo tiene sentido cuando el chat no está ya atado a una
+  // prueba puntual (si vino de "Abrir IA →", ya sabemos cuál es).
+  useEffect(() => {
+    if (prueba || !contexto.año || !contexto.materia) {
+      setResultadosBusqueda([]);
+      setErrorBusqueda("");
+      return;
+    }
+    let cancelado = false;
+    const idTimeout = setTimeout(() => {
+      setBuscandoPruebas(true);
+      setErrorBusqueda("");
+      fetchPruebas({
+        escuela: contexto.colegio || undefined,
+        año: contexto.año,
+        materia: contexto.materia,
+      })
+        .then((rows) => {
+          if (!cancelado) setResultadosBusqueda(rows);
+        })
+        .catch((e) => {
+          if (!cancelado) setErrorBusqueda(e instanceof Error ? e.message : "No se pudo buscar pruebas");
+        })
+        .finally(() => {
+          if (!cancelado) setBuscandoPruebas(false);
+        });
+    }, 350); // pequeño debounce: evita disparar de más si se clickean varios filtros seguidos
+    return () => { cancelado = true; clearTimeout(idTimeout); };
+  }, [prueba, contexto.colegio, contexto.año, contexto.materia]);
+
+  // Carga una prueba encontrada por el buscador sin salir del chat — mismo
+  // camino que "Abrir IA →" desde el detalle de una prueba.
+  const usarPruebaEncontrada = (id: number) => {
+    navigate(`/ia?prueba=${id}`);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -409,7 +454,11 @@ export default function IA() {
 
   const sendMessage = async (text?: string) => {
     const content = (text ?? input).trim();
-    if (!content || loading || cargandoConversacion) return;
+    // El chat solo responde con una prueba puntual cargada, para que la IA
+    // siempre tenga contexto real y no se generen respuestas genéricas que
+    // confundan al estudiante. La UI ya lo bloquea (input/botón deshabilitados
+    // y el aviso abajo); esto es solo el resguardo por si igual llega acá.
+    if (!content || loading || cargandoConversacion || !prueba) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -451,6 +500,45 @@ export default function IA() {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: e instanceof Error ? e.message : "Hubo un error al conectarme. Verificá tu conexión e intentá de nuevo.",
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Modo autoevaluación: pide ejercicios nuevos parecidos a la prueba cargada
+  // (usa el endpoint dedicado /:id/generar, no el chat general), y los deja
+  // en la conversación para poder seguir pidiendo ayuda o corrección después.
+  const PEDIDO_PRACTICA = "Generame una prueba de práctica parecida a esta, para autoevaluarme.";
+  const generarPractica = async () => {
+    if (!prueba || loading || cargandoConversacion) return;
+
+    setMessages((prev) => [...prev, {
+      id: Date.now().toString(),
+      role: "user",
+      content: PEDIDO_PRACTICA,
+      timestamp: new Date(),
+    }]);
+    setLoading(true);
+
+    try {
+      const { reply, conversacionId: idDevuelto } = await generarPruebaPractica(prueba.id, conversacionId);
+
+      if (idDevuelto && idDevuelto !== conversacionId) setConversacionId(idDevuelto);
+      refrescarHistorial();
+
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: reply,
+        timestamp: new Date(),
+      }]);
+    } catch (e) {
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: e instanceof Error ? e.message : "No se pudo generar la prueba de práctica. Probá de nuevo.",
         timestamp: new Date(),
       }]);
     } finally {
@@ -537,6 +625,22 @@ export default function IA() {
                 }}
               >
                 Ver prueba
+              </motion.button>
+            )}
+            {prueba && (
+              <motion.button
+                whileHover={{ backgroundColor: loading ? undefined : "rgba(255,255,255,0.05)" }}
+                onClick={generarPractica}
+                disabled={loading || cargandoConversacion}
+                title="Genera ejercicios nuevos parecidos, para practicar"
+                style={{
+                  fontSize: "12px", color: loading ? "rgba(255,255,255,0.25)" : C.gray, fontWeight: 500,
+                  padding: "6px 12px", borderRadius: "8px",
+                  border: `1px solid ${C.border}`, backgroundColor: "transparent",
+                  cursor: loading ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                Generar práctica
               </motion.button>
             )}
             <motion.button
@@ -814,6 +918,73 @@ export default function IA() {
                   )}
                 </div>
 
+                {/* Pruebas encontradas con este contexto */}
+                {!prueba && contexto.año && contexto.materia && (
+                  <div style={{ marginBottom: "20px" }}>
+                    <p style={{ fontSize: "11px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                      Pruebas encontradas
+                    </p>
+
+                    {buscandoPruebas && (
+                      <p style={{ fontSize: "12px", color: C.gray }}>Buscando...</p>
+                    )}
+
+                    {!buscandoPruebas && errorBusqueda && (
+                      <p style={{ fontSize: "12px", color: "#f87171" }}>{errorBusqueda}</p>
+                    )}
+
+                    {!buscandoPruebas && !errorBusqueda && resultadosBusqueda.length === 0 && (
+                      <div style={{ padding: "10px 12px", borderRadius: "8px", border: `1px dashed ${C.border}`, fontSize: "11.5px", color: C.gray, lineHeight: 1.5 }}>
+                        No encontramos pruebas de {contexto.materia} en {contexto.año}
+                        {contexto.colegio ? ` en ${contexto.colegio}` : ""}. Podés seguir
+                        preguntando en modo libre, o{" "}
+                        <button
+                          onClick={() => navigate("/subir")}
+                          style={{ color: C.blue, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+                        >
+                          subir una prueba nueva →
+                        </button>
+                      </div>
+                    )}
+
+                    {!buscandoPruebas && resultadosBusqueda.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        {resultadosBusqueda.slice(0, 5).map((p) => (
+                          <div
+                            key={p.id}
+                            style={{
+                              padding: "9px 11px", borderRadius: "8px",
+                              border: `1px solid ${C.border}`, backgroundColor: C.bgSection,
+                            }}
+                          >
+                            <p style={{ fontSize: "12px", fontWeight: 600, color: C.white, marginBottom: "1px" }}>
+                              {p.tema || p.materia}
+                            </p>
+                            <p style={{ fontSize: "11px", color: C.gray, marginBottom: "7px" }}>
+                              {[p.profesor && `Prof. ${p.profesor}`, p.escuela].filter(Boolean).join(" · ")}
+                            </p>
+                            <button
+                              onClick={() => usarPruebaEncontrada(p.id)}
+                              style={{
+                                fontSize: "11px", fontWeight: 700, color: C.blue,
+                                background: "none", border: "none", padding: 0, cursor: "pointer",
+                                fontFamily: "'DM Sans', sans-serif",
+                              }}
+                            >
+                              Usar esta prueba →
+                            </button>
+                          </div>
+                        ))}
+                        {resultadosBusqueda.length > 5 && (
+                          <p style={{ fontSize: "11px", color: C.gray }}>
+                            Y {resultadosBusqueda.length - 5} más — afiná el contexto para acotar.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Profesor */}
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
@@ -895,7 +1066,7 @@ export default function IA() {
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px" }}>
 
             {/* Sugerencias iniciales */}
-            {messages.length === 1 && (
+            {messages.length === 1 && prueba && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -973,7 +1144,7 @@ export default function IA() {
             padding: "16px 32px 20px",
           }}>
             {/* Sugerencias rápidas */}
-            {messages.length > 1 && (
+            {messages.length > 1 && prueba && (
               <div style={{ display: "flex", gap: "6px", marginBottom: "12px", overflowX: "auto", paddingBottom: "4px" }}>
                 {sugerencias.slice(0, 3).map((s) => (
                   <motion.button
@@ -997,6 +1168,23 @@ export default function IA() {
               </div>
             )}
 
+            {/* Aviso: sin una prueba elegida, no se puede chatear — así no se
+                generan respuestas genéricas que confundan al estudiante. */}
+            {!prueba && !cargandoPrueba && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                padding: "10px 14px", marginBottom: "12px",
+                borderRadius: "10px", border: "1px solid rgba(245,158,11,0.3)",
+                backgroundColor: "rgba(245,158,11,0.08)",
+              }}>
+                <span style={{ fontSize: "14px" }}>⚠️</span>
+                <p style={{ fontSize: "12.5px", color: "#fbbf24", lineHeight: 1.4 }}>
+                  Elegí una prueba para poder chatear — buscala en "Contexto de estudio" a la izquierda
+                  (colegio, año y materia) o abrila desde "Mis pruebas" / "Favoritas" con "Abrir IA →".
+                </p>
+              </div>
+            )}
+
             <div style={{
               display: "flex", gap: "10px", alignItems: "flex-end",
               backgroundColor: C.bgSection,
@@ -1004,13 +1192,17 @@ export default function IA() {
               borderRadius: "14px",
               padding: "10px 14px",
               transition: "border-color 0.2s",
+              opacity: prueba ? 1 : 0.6,
             }}>
               <textarea
                 ref={textareaRef}
                 value={input}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder={contextoCompleto
+                disabled={!prueba}
+                placeholder={!prueba
+                  ? "Elegí una prueba primero para poder preguntar..."
+                  : contextoCompleto
                   ? `Preguntá sobre ${contexto.materia}...`
                   : "Pegá el texto de tu prueba o hacé una pregunta..."}
                 rows={1}
@@ -1025,26 +1217,27 @@ export default function IA() {
                   fontFamily: "'DM Sans', sans-serif",
                   lineHeight: 1.6,
                   maxHeight: "140px",
+                  cursor: prueba ? "text" : "not-allowed",
                 }}
               />
 
               <motion.button
-                whileHover={{ scale: input.trim() ? 1.05 : 1 }}
-                whileTap={{ scale: input.trim() ? 0.95 : 1 }}
+                whileHover={{ scale: input.trim() && prueba ? 1.05 : 1 }}
+                whileTap={{ scale: input.trim() && prueba ? 0.95 : 1 }}
                 onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
+                disabled={!input.trim() || loading || !prueba}
                 style={{
                   width: "36px", height: "36px",
                   borderRadius: "10px",
-                  backgroundColor: input.trim() && !loading ? C.blue : "rgba(255,255,255,0.08)",
+                  backgroundColor: input.trim() && !loading && prueba ? C.blue : "rgba(255,255,255,0.08)",
                   border: "none",
-                  cursor: input.trim() && !loading ? "pointer" : "not-allowed",
+                  cursor: input.trim() && !loading && prueba ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
                   transition: "background-color 0.15s",
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={input.trim() && !loading ? C.white : C.gray} strokeWidth="2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={input.trim() && !loading && prueba ? C.white : C.gray} strokeWidth="2.5">
                   <line x1="22" y1="2" x2="11" y2="13" />
                   <polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
@@ -1052,7 +1245,7 @@ export default function IA() {
             </div>
 
             <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", textAlign: "center", marginTop: "10px" }}>
-              Enter para enviar · Shift+Enter para nueva línea
+              {prueba ? "Enter para enviar · Shift+Enter para nueva línea" : "El chat se habilita al elegir una prueba"}
             </p>
           </div>
         </div>

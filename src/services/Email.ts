@@ -11,9 +11,18 @@
 //    VITE_EMAILJS_SERVICE_ID=service_xxxxxxx
 //    VITE_EMAILJS_TEMPLATE_ID=template_xxxxxxx
 //    VITE_EMAILJS_PUBLIC_KEY=tu_public_key
+//
+// Para avisarle al estudiante cuando se aprueba/rechaza su prueba, hace falta
+// un SEGUNDO template (uno propio, con otro texto — "tu prueba fue aprobada"
+// en vez de "llegó una prueba nueva"), con estas variables:
+//    {{to_name}}, {{to_email}}, {{materia}}, {{año}}, {{colegio}}, {{tema}},
+//    {{estado}} ("aprobada" o "rechazada"), {{fecha}}, {{ver_link}}
+// y agregar en .env.local:
+//    VITE_EMAILJS_TEMPLATE_ESTADO_ID=template_yyyyyyy
 
 const SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID  || "";
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "";
+const TEMPLATE_ESTADO_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ESTADO_ID || "";
 const PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY  || "";
 
 export interface NotifyParams {
@@ -69,5 +78,60 @@ export async function notifyAdminNewPrueba(params: NotifyParams): Promise<void> 
     if (!res.ok) console.error("[TusPruebas] EmailJS error:", await res.text());
   } catch (err) {
     console.error("[TusPruebas] Error de red al notificar:", err);
+  }
+}
+
+export interface NotifyEstadoParams {
+  usuario_nombre: string;
+  usuario_email: string;
+  colegio: string;
+  año: string;
+  materia: string;
+  tema: string;
+  estado: "aprobada" | "rechazada";
+}
+
+// Le avisa a quien subió la prueba que un admin la aprobó o rechazó. Usa un
+// template distinto al de "aviso al admin" de arriba — ver el comentario del
+// principio del archivo para configurarlo.
+export async function notifyUserPruebaEstado(params: NotifyEstadoParams): Promise<void> {
+  if (!SERVICE_ID || !TEMPLATE_ESTADO_ID || !PUBLIC_KEY) {
+    console.info(
+      "[TusPruebas] Notificación de estado omitida — configurá VITE_EMAILJS_TEMPLATE_ESTADO_ID en .env.local"
+    );
+    return;
+  }
+  // Sin el email de quien subió (pruebas viejas o anónimas) no hay a quién avisarle.
+  if (!params.usuario_email) return;
+
+  const fecha = new Date().toLocaleDateString("es-AR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
+  try {
+    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id:  SERVICE_ID,
+        template_id: TEMPLATE_ESTADO_ID,
+        user_id:     PUBLIC_KEY,
+        template_params: {
+          to_name:  params.usuario_nombre || "Estudiante",
+          to_email: params.usuario_email,
+          colegio:  params.colegio,
+          año:      params.año,
+          materia:  params.materia,
+          tema:     params.tema || "—",
+          estado:   params.estado,
+          fecha,
+          ver_link: `${window.location.origin}/mis-pruebas`,
+        },
+      }),
+    });
+    if (!res.ok) console.error("[TusPruebas] EmailJS error (estado):", await res.text());
+  } catch (err) {
+    console.error("[TusPruebas] Error de red al notificar estado:", err);
   }
 }

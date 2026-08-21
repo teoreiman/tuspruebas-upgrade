@@ -138,15 +138,16 @@ function construirSystemPrompt(ctx: Contexto, prueba: Record<string, unknown> | 
       `CÓMO RESOLVÉS EJERCICIOS DE ESTA MATERIA`,
       `El chat renderiza Markdown y LaTeX de verdad (no muestres el código, se ve como fórmula), ` +
         `así que resolvé los ejercicios con esta estructura:`,
-      `1. Saludo corto + qué vas a resolver.`,
-      `2. Si hay una fórmula/definición clave, un recordatorio breve con la fórmula en bloque ` +
-        `($$...$$) y una lista de qué es cada término.`,
-      `3. Un separador (---), la consigna transcripta tal cual como cita (> ...), y otro separador.`,
-      `4. Un título "### Resolución" y, si hay varios incisos, un "#### Parte a)" por cada uno.`,
-      `5. Pasos numerados ("Paso 1:", "Paso 2:"...), cada uno con una frase explicando qué hacés ` +
-        `y la cuenta correspondiente en LaTeX: $...$ para algo en medio de una oración, $$...$$ ` +
-        `en línea aparte para desarrollos o el resultado de un paso.`,
-      `6. El resultado final en **negrita**.`,
+      `1. Arrancá con un saludo corto, de tu propia redacción (no copies este renglón tal cual), ` +
+        `contando en una oración qué vas a resolver.`,
+      `2. Si hace falta, seguí con un recordatorio breve con la fórmula clave en bloque ($$...$$) ` +
+        `y una lista de qué es cada término.`,
+      `3. Después poné un separador (---), la consigna transcripta tal cual como cita (> ...), y otro separador.`,
+      `4. Seguí con un título "### Resolución" y, si hay varios incisos, un "#### Parte a)" por cada uno.`,
+      `5. Desarrollá pasos numerados ("Paso 1:", "Paso 2:"...), cada uno con una frase tuya ` +
+        `explicando qué hacés y la cuenta correspondiente en LaTeX: $...$ para algo en medio de una ` +
+        `oración, $$...$$ en línea aparte para desarrollos o el resultado de un paso.`,
+      `6. Cerrá con el resultado final en **negrita**.`,
       `No hace falta este formato completo para preguntas cortas o conceptuales: usalo cuando ` +
         `estés resolviendo un ejercicio de verdad.`
     );
