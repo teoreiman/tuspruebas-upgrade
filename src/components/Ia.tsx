@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
+import rehypeKatex from "rehype-katex";
 import { enviarMensajeIA } from "../services/Ia";
 import { fetchPrueba, type Prueba } from "../services/Pruebas";
 import {
@@ -115,30 +119,41 @@ function TypingIndicator() {
   );
 }
 
+// Cómo se ve cada elemento de Markdown adentro de una burbuja del chat: la
+// IA responde con títulos, citas, listas y fórmulas (LaTeX vía remark-math +
+// rehype-katex), y acá los pintamos con la paleta del chat en vez de con los
+// estilos por defecto del navegador.
+const componentesMarkdown: Components = {
+  p: ({ children }) => <p style={{ margin: "0 0 10px" }}>{children}</p>,
+  h1: ({ children }) => <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "14px 0 8px", color: C.white }}>{children}</h3>,
+  h2: ({ children }) => <h3 style={{ fontSize: "15px", fontWeight: 700, margin: "14px 0 8px", color: C.white }}>{children}</h3>,
+  h3: ({ children }) => <h4 style={{ fontSize: "14px", fontWeight: 700, margin: "12px 0 6px", color: C.blue }}>{children}</h4>,
+  h4: ({ children }) => <h5 style={{ fontSize: "13px", fontWeight: 700, margin: "10px 0 6px", color: C.blue }}>{children}</h5>,
+  hr: () => <hr style={{ border: "none", borderTop: `1px solid ${C.border}`, margin: "12px 0" }} />,
+  blockquote: ({ children }) => (
+    <blockquote style={{
+      margin: "8px 0", padding: "8px 12px",
+      borderLeft: `3px solid ${C.blue}`, backgroundColor: "rgba(16,99,239,0.08)",
+      borderRadius: "4px", color: C.text,
+    }}>
+      {children}
+    </blockquote>
+  ),
+  ul: ({ children }) => <ul style={{ margin: "6px 0", paddingLeft: "20px" }}>{children}</ul>,
+  ol: ({ children }) => <ol style={{ margin: "6px 0", paddingLeft: "20px" }}>{children}</ol>,
+  li: ({ children }) => <li style={{ marginBottom: "3px" }}>{children}</li>,
+  code: ({ children }) => (
+    <code style={{ backgroundColor: "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: "4px", fontSize: "12.5px" }}>
+      {children}
+    </code>
+  ),
+  a: ({ children, href }) => (
+    <a href={href} target="_blank" rel="noreferrer" style={{ color: C.blue }}>{children}</a>
+  ),
+};
+
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
-
-  const parseContent = (text: string) => {
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={i}>{part.slice(2, -2)}</strong>;
-      }
-      if (part.includes("\n")) {
-        return (
-          <span key={i}>
-            {part.split("\n").map((line, j) => (
-              <span key={j}>
-                {line}
-                {j < part.split("\n").length - 1 && <br />}
-              </span>
-            ))}
-          </span>
-        );
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
 
   return (
     <motion.div
@@ -161,7 +176,9 @@ function MessageBubble({ message }: { message: Message }) {
       )}
 
       <div style={{
-        maxWidth: "72%",
+        // Las respuestas con fórmulas/pasos necesitan más aire que un mensaje
+        // de texto corriente, así que el asistente tiene más ancho que el usuario.
+        maxWidth: isUser ? "72%" : "88%",
         padding: "12px 16px",
         borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
         backgroundColor: isUser ? C.blue : C.bgCard,
@@ -170,8 +187,17 @@ function MessageBubble({ message }: { message: Message }) {
         fontSize: "14px",
         lineHeight: 1.65,
         boxShadow: isUser ? "0 4px 16px rgba(16,99,239,0.25)" : "none",
+        overflowX: "auto",
       }}>
-        {parseContent(message.content)}
+        {isUser
+          // El texto del usuario se muestra tal cual (sin interpretar como
+          // Markdown): solo hace falta respetar los saltos de línea que tipeó.
+          ? <span style={{ whiteSpace: "pre-wrap" }}>{message.content}</span>
+          : (
+            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]} components={componentesMarkdown}>
+              {message.content}
+            </ReactMarkdown>
+          )}
         <div style={{
           fontSize: "10px",
           color: isUser ? "rgba(255,255,255,0.5)" : C.gray,

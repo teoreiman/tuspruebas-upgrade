@@ -13,6 +13,11 @@ const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const TIMEOUT_MS = 45_000;
 const MAX_ARCHIVO_BYTES = 15 * 1024 * 1024;
 
+// Materias donde las respuestas suelen tener fórmulas/cálculos: ahí conviene
+// el formato con LaTeX y pasos numerados. El chat renderiza Markdown + LaTeX
+// (remark-math/rehype-katex), así que tiene sentido pedírselo al modelo.
+const MATERIAS_CON_FORMULAS = new Set(["Matemática", "Física", "Química", "Físico-Química"]);
+
 interface MensajeCliente {
   role?: string;
   content?: string;
@@ -125,6 +130,27 @@ function construirSystemPrompt(ctx: Contexto, prueba: Record<string, unknown> | 
     `- Si algo del enunciado es ambiguo o no se llega a leer, lo decís en vez de inventarlo.`,
     `- Sos alentador y paciente, sin ser meloso.`,
   ];
+
+  const materiaEfectiva = (prueba?.materia as string) || ctx.materia || "";
+  if (MATERIAS_CON_FORMULAS.has(materiaEfectiva)) {
+    partes.push(
+      ``,
+      `CÓMO RESOLVÉS EJERCICIOS DE ESTA MATERIA`,
+      `El chat renderiza Markdown y LaTeX de verdad (no muestres el código, se ve como fórmula), ` +
+        `así que resolvé los ejercicios con esta estructura:`,
+      `1. Saludo corto + qué vas a resolver.`,
+      `2. Si hay una fórmula/definición clave, un recordatorio breve con la fórmula en bloque ` +
+        `($$...$$) y una lista de qué es cada término.`,
+      `3. Un separador (---), la consigna transcripta tal cual como cita (> ...), y otro separador.`,
+      `4. Un título "### Resolución" y, si hay varios incisos, un "#### Parte a)" por cada uno.`,
+      `5. Pasos numerados ("Paso 1:", "Paso 2:"...), cada uno con una frase explicando qué hacés ` +
+        `y la cuenta correspondiente en LaTeX: $...$ para algo en medio de una oración, $$...$$ ` +
+        `en línea aparte para desarrollos o el resultado de un paso.`,
+      `6. El resultado final en **negrita**.`,
+      `No hace falta este formato completo para preguntas cortas o conceptuales: usalo cuando ` +
+        `estés resolviendo un ejercicio de verdad.`
+    );
+  }
 
   if (prueba) {
     partes.push(
