@@ -264,6 +264,8 @@ export default function IA() {
   const [conversacionId, setConversacionId] = useState<number | null>(null);
   const [cargandoConversacion, setCargandoConversacion] = useState(false);
   const [imagenAbierta, setImagenAbierta] = useState(false);
+  const [paginaImagen, setPaginaImagen] = useState(0);
+  const fotosDePrueba = (prueba?.archivos ?? []).filter((a) => a.tipo === "image");
 
   // ── Buscador de pruebas dentro del contexto: el panel "Contexto de estudio"
   // usa los mismos filtros que la home, así que tiene que encontrar algo de
@@ -302,11 +304,12 @@ export default function IA() {
           profesor: p.profesor || "",
           tema: p.tema || "",
         });
+        const fotos = (p.archivos ?? []).filter((a) => a.tipo === "image").length;
         setMessages([
           {
             id: "welcome-prueba",
             role: "assistant",
-            content: `Ya tengo cargada la prueba de **${p.materia || "esta materia"}**${p.tema ? ` sobre **${p.tema}**` : ""}${p.profesor ? ` (Prof. ${p.profesor})` : ""}.\n\n${p.archivo_tipo === "image" ? "Puedo ver la foto de la prueba" : p.preguntas ? "Tengo las preguntas que subieron" : "Tengo los datos de la prueba"}, así que preguntame lo que quieras: te la resuelvo paso a paso, te explico un tema o te armo ejercicios de práctica.`,
+            content: `Ya tengo cargada la prueba de **${p.materia || "esta materia"}**${p.tema ? ` sobre **${p.tema}**` : ""}${p.profesor ? ` (Prof. ${p.profesor})` : ""}.\n\n${fotos > 1 ? `Puedo ver las ${fotos} páginas de la prueba` : fotos === 1 ? "Puedo ver la foto de la prueba" : p.preguntas ? "Tengo las preguntas que subieron" : "Tengo los datos de la prueba"}, así que preguntame lo que quieras: te la resuelvo paso a paso, te explico un tema o te armo ejercicios de práctica.`,
             timestamp: new Date(),
           },
         ]);
@@ -613,10 +616,10 @@ export default function IA() {
           </div>
 
           <div style={{ display: "flex", gap: "8px" }}>
-            {prueba?.archivo_tipo === "image" && prueba?.archivo_url && (
+            {fotosDePrueba.length > 0 && (
               <motion.button
                 whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-                onClick={() => setImagenAbierta(true)}
+                onClick={() => { setPaginaImagen(0); setImagenAbierta(true); }}
                 style={{
                   fontSize: "12px", color: C.gray, fontWeight: 500,
                   padding: "6px 12px", borderRadius: "8px",
@@ -820,7 +823,9 @@ export default function IA() {
                       {prueba.tema || prueba.materia}
                     </p>
                     <p style={{ fontSize: "11px", color: C.gray, marginBottom: "8px" }}>
-                      {prueba.archivo_tipo === "image"
+                      {fotosDePrueba.length > 1
+                        ? `La IA puede ver las ${fotosDePrueba.length} páginas de la prueba`
+                        : fotosDePrueba.length === 1
                         ? "La IA puede ver la foto de la prueba"
                         : prueba.archivo_tipo === "pdf"
                         ? "La IA puede leer el PDF de la prueba"
@@ -1251,9 +1256,9 @@ export default function IA() {
         </div>
       </div>
 
-      {/* ── Lightbox: la foto de la prueba, a pedido, no metida en el chat ── */}
+      {/* ── Lightbox: la(s) foto(s) de la prueba, a pedido, no metidas en el chat ── */}
       <AnimatePresence>
-        {imagenAbierta && prueba?.archivo_url && (
+        {imagenAbierta && fotosDePrueba.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1267,10 +1272,11 @@ export default function IA() {
             }}
           >
             <motion.img
+              key={paginaImagen}
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
-              src={prueba.archivo_url}
-              alt={`Foto de la prueba de ${prueba.materia}`}
+              src={fotosDePrueba[paginaImagen]?.url}
+              alt={`Foto de la prueba de ${prueba?.materia}${fotosDePrueba.length > 1 ? ` (página ${paginaImagen + 1})` : ""}`}
               onClick={(e) => e.stopPropagation()}
               style={{
                 maxWidth: "100%", maxHeight: "100%",
@@ -1278,6 +1284,50 @@ export default function IA() {
                 cursor: "default",
               }}
             />
+
+            {fotosDePrueba.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPaginaImagen((p) => Math.max(0, p - 1)); }}
+                  disabled={paginaImagen === 0}
+                  aria-label="Página anterior"
+                  style={{
+                    position: "absolute", left: "20px", top: "50%", transform: "translateY(-50%)",
+                    width: "40px", height: "40px", borderRadius: "50%",
+                    border: `1px solid ${C.border}`, backgroundColor: "rgba(255,255,255,0.08)",
+                    color: paginaImagen === 0 ? "rgba(255,255,255,0.25)" : C.white, fontSize: "18px",
+                    cursor: paginaImagen === 0 ? "default" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPaginaImagen((p) => Math.min(fotosDePrueba.length - 1, p + 1)); }}
+                  disabled={paginaImagen === fotosDePrueba.length - 1}
+                  aria-label="Página siguiente"
+                  style={{
+                    position: "absolute", right: "76px", top: "50%", transform: "translateY(-50%)",
+                    width: "40px", height: "40px", borderRadius: "50%",
+                    border: `1px solid ${C.border}`, backgroundColor: "rgba(255,255,255,0.08)",
+                    color: paginaImagen === fotosDePrueba.length - 1 ? "rgba(255,255,255,0.25)" : C.white, fontSize: "18px",
+                    cursor: paginaImagen === fotosDePrueba.length - 1 ? "default" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  ›
+                </button>
+                <span style={{
+                  position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)",
+                  fontSize: "12px", fontWeight: 700, color: C.white,
+                  backgroundColor: "rgba(255,255,255,0.08)", border: `1px solid ${C.border}`,
+                  borderRadius: "999px", padding: "5px 14px",
+                }}>
+                  Página {paginaImagen + 1} / {fotosDePrueba.length}
+                </span>
+              </>
+            )}
+
             <button
               onClick={() => setImagenAbierta(false)}
               style={{

@@ -69,19 +69,31 @@ async function archivoComoParte(
   }
 }
 
+/** Todas las fotos de la prueba (puede tener varias hojas) como partes de Gemini. */
+async function archivosComoPartes(contenido: Record<string, unknown>): Promise<ParteArchivo[]> {
+  const lista = Array.isArray(contenido.archivos)
+    ? (contenido.archivos as Record<string, unknown>[])
+    : [{ url: contenido.archivo_url, tipo: contenido.archivo_tipo }];
+
+  const partes = await Promise.all(
+    lista.map((a) => archivoComoParte(a.url as string | undefined, a.tipo as string | undefined))
+  );
+  return partes.filter((p): p is ParteArchivo => p !== null);
+}
+
 // Prompt de una sola vuelta: pide ejercicios NUEVOS parecidos a los de la
 // prueba, no las resoluciones. El formato de salida va explícito y al final:
 // si no, el modelo tiende a copiar la estructura del pedido en vez de generar
 // la prueba en sí.
-function construirPrompt(prueba: Record<string, unknown>, contenido: Record<string, unknown>, imagen: ParteArchivo | null): string {
+function construirPrompt(prueba: Record<string, unknown>, contenido: Record<string, unknown>, cantidadFotos: number): string {
   const partes = [
     `Generá una prueba escolar NUEVA de ${(prueba.materia as string) || "la materia"} para ` +
       `${(prueba.anio as string) || "el año correspondiente"} sobre el tema ` +
       `"${(prueba.tema as string) || "el mismo tema"}".`,
     ``,
-    imagen
-      ? `Los ejercicios de referencia están en la foto adjunta. Leelos y tomalos como referencia ` +
-        `de dificultad y estilo, pero NO los repitas:`
+    cantidadFotos > 0
+      ? `Los ejercicios de referencia están en ${cantidadFotos > 1 ? `las ${cantidadFotos} fotos adjuntas` : "la foto adjunta"}. ` +
+        `Leelos y tomalos como referencia de dificultad y estilo, pero NO los repitas:`
       : `Tomá estos ejercicios como referencia de dificultad y estilo, pero NO los repitas:\n` +
         JSON.stringify({ preguntas: contenido.preguntas, notas: contenido.notas }),
     ``,
@@ -197,13 +209,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await agregarMensaje(conversacionId, "user", pedido);
 
-    const imagen = await archivoComoParte(
-      contenido.archivo_url as string | undefined,
-      contenido.archivo_tipo as string | undefined
-    );
-    const prompt = construirPrompt(prueba, contenido, imagen);
-    const parts: ({ text: string } | ParteArchivo)[] = [{ text: prompt }];
-    if (imagen) parts.push(imagen);
+    const imagenes = await archivosComoPartes(contenido);
+    const prompt = construirPrompt(prueba, contenido, imagenes.length);
+    const parts: ({ text: string } | ParteArchivo)[] = [{ text: prompt }, ...imagenes];
 
     let ultimoError = { status: 502, mensaje: "No se pudo contactar a la IA" };
 

@@ -107,6 +107,18 @@ async function archivoComoParte(
   }
 }
 
+/** Todas las fotos de la prueba (puede tener varias hojas) como partes de Gemini. */
+async function archivosComoPartes(contenido: Record<string, unknown>): Promise<ParteArchivo[]> {
+  const lista = Array.isArray(contenido.archivos)
+    ? (contenido.archivos as Record<string, unknown>[])
+    : [{ url: contenido.archivo_url, tipo: contenido.archivo_tipo }];
+
+  const partes = await Promise.all(
+    lista.map((a) => archivoComoParte(a.url as string | undefined, a.tipo as string | undefined))
+  );
+  return partes.filter((p): p is ParteArchivo => p !== null);
+}
+
 function construirSystemPrompt(ctx: Contexto, prueba: Record<string, unknown> | null): string {
   const c = prueba ? safeJson(prueba.contenido) : {};
   const preguntas = typeof c.preguntas === "string" ? c.preguntas.trim() : "";
@@ -313,23 +325,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await agregarMensaje(conversacionId, "user", nuevoMensaje.content!);
 
     const contenido = prueba ? safeJson(prueba.contenido) : {};
-    const parteArchivo = prueba
-      ? await archivoComoParte(
-          contenido.archivo_url as string | undefined,
-          contenido.archivo_tipo as string | undefined
-        )
-      : null;
+    const partesArchivo = prueba ? await archivosComoPartes(contenido) : [];
 
     const contents = limpios.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content!.trim() }] as ({ text: string } | ParteArchivo)[],
     }));
 
-    // La foto se adjunta al primer turno del usuario: queda en el contexto de
-    // toda la conversación sin repetirse en cada mensaje.
-    if (parteArchivo) {
+    // Las fotos se adjuntan al primer turno del usuario (todas, en orden):
+    // quedan en el contexto de toda la conversación sin repetirse en cada mensaje.
+    if (partesArchivo.length > 0) {
       const primerUsuario = contents.find((c) => c.role === "user");
-      if (primerUsuario) primerUsuario.parts.unshift(parteArchivo);
+      if (primerUsuario) primerUsuario.parts.unshift(...partesArchivo);
     }
 
     const systemPrompt = construirSystemPrompt(contexto, prueba);

@@ -192,20 +192,34 @@ function PruebaCard({
                       <iframe src={prueba.archivo_url} title={prueba.archivo_nombre} style={{ width: "100%", height: "600px", border: "none", backgroundColor: "#f9fafb" }} />
                     </div>
                   )}
-                  {prueba.archivo_tipo === "image" && (
-                    <a href={prueba.archivo_url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
-                      <img
-                        src={prueba.archivo_url}
-                        alt={prueba.archivo_nombre}
-                        title="Click para ver a tamaño completo"
-                        style={{
-                          width: "100%", maxHeight: "560px", borderRadius: "8px",
-                          border: "1px solid #e5e7eb", objectFit: "contain",
-                          backgroundColor: "#f9fafb", cursor: "zoom-in",
-                        }}
-                      />
-                    </a>
-                  )}
+                  {prueba.archivo_tipo === "image" && (() => {
+                    const fotos = (prueba.archivos ?? []).filter((a) => a.tipo === "image");
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {fotos.map((foto, i) => (
+                          <div key={i}>
+                            {fotos.length > 1 && (
+                              <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", marginBottom: "4px" }}>
+                                Página {i + 1} de {fotos.length}
+                              </p>
+                            )}
+                            <a href={foto.url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
+                              <img
+                                src={foto.url}
+                                alt={foto.nombre || `${prueba.archivo_nombre} - página ${i + 1}`}
+                                title="Click para ver a tamaño completo"
+                                style={{
+                                  width: "100%", maxHeight: "560px", borderRadius: "8px",
+                                  border: "1px solid #e5e7eb", objectFit: "contain",
+                                  backgroundColor: "#f9fafb", cursor: "zoom-in",
+                                }}
+                              />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
