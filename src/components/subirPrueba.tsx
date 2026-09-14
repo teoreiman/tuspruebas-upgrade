@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser } from "../services/Auth";
-import { uploadPrueba, esImagen, MAX_FOTO_BYTES, MAX_ARCHIVO_BYTES } from "../services/Pruebas";
+import { uploadPrueba, esImagen, MAX_FOTO_BYTES, MAX_ARCHIVO_BYTES, MAX_PAGINAS } from "../services/Pruebas";
 import { notifyAdminNewPrueba } from "../services/Email";
 import Logo from "./logo";
 
@@ -80,6 +80,93 @@ function StepIndicator({ current, total, labels }: { current: number; total: num
   );
 }
 
+// Miniaturas de las páginas elegidas (fotos) o el nombre del archivo (PDF/Word),
+// con botón para quitar cada una y, si son todas fotos, para agregar más.
+function PaginasSeleccionadas({
+  archivos, onQuitar, onAgregar,
+}: {
+  archivos: File[];
+  onQuitar: (i: number) => void;
+  onAgregar?: () => void;
+}) {
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = archivos.map((f) => (esImagen(f) ? URL.createObjectURL(f) : ""));
+    setPreviews(urls);
+    return () => { urls.forEach((u) => u && URL.revokeObjectURL(u)); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [archivos]);
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+      {archivos.map((f, i) => (
+        <div key={`${f.name}-${f.lastModified}-${i}`} style={{ position: "relative", width: "92px" }}>
+          <div style={{
+            width: "92px", height: "92px", borderRadius: "10px", overflow: "hidden",
+            border: `1.5px solid ${C.border}`, backgroundColor: "rgba(255,255,255,0.03)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {previews[i] ? (
+              <img src={previews[i]} alt={f.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            )}
+          </div>
+          {archivos.length > 1 && esImagen(f) && (
+            <span style={{
+              position: "absolute", bottom: "4px", left: "4px",
+              fontSize: "10px", fontWeight: 700, color: C.white,
+              backgroundColor: "rgba(0,0,0,0.65)", borderRadius: "5px", padding: "1px 6px",
+            }}>
+              {i + 1}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => onQuitar(i)}
+            title="Quitar"
+            style={{
+              position: "absolute", top: "-7px", right: "-7px",
+              width: "22px", height: "22px", borderRadius: "50%",
+              border: `1.5px solid ${C.bg}`, backgroundColor: "#ef4444",
+              color: "#fff", fontSize: "12px", lineHeight: 1, cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+          <p style={{
+            fontSize: "10px", color: C.gray, margin: "4px 0 0", textAlign: "center",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            {(f.size / 1024 / 1024).toFixed(1)} MB
+          </p>
+        </div>
+      ))}
+
+      {onAgregar && (
+        <motion.button
+          type="button"
+          whileHover={{ borderColor: C.blue }}
+          onClick={onAgregar}
+          style={{
+            width: "92px", height: "92px", borderRadius: "10px",
+            border: `1.5px dashed ${C.border}`, backgroundColor: "transparent",
+            color: C.gray, cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px",
+          }}
+        >
+          <span style={{ fontSize: "20px", lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: "10px" }}>Otra página</span>
+        </motion.button>
+      )}
+    </div>
+  );
+}
+
 export default function SubirPrueba() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -94,17 +181,17 @@ export default function SubirPrueba() {
   const [form, setForm] = useState({
     colegio: "", año: "", materia: "",
     profesor: "", tema: "",
-    archivo: null as File | null,
+    archivos: [] as File[],
     notas: "",
     preguntas: "",
   });
 
-  const set = (key: string, val: string | File | null) =>
+  const set = (key: string, val: string) =>
     setForm((prev) => ({ ...prev, [key]: val }));
 
   const materias = form.colegio && form.año ? MATERIAS[form.colegio]?.[form.año] ?? [] : [];
   const sinMaterias = materias.length === 0 && form.colegio !== "" && form.año !== "";
-  const tieneContenido = !!form.archivo || form.preguntas.trim() !== "";
+  const tieneContenido = form.archivos.length > 0 || form.preguntas.trim() !== "";
   const stepValid = [
     form.colegio !== "" && form.año !== "",
     form.materia !== "" || sinMaterias,
@@ -114,7 +201,7 @@ export default function SubirPrueba() {
   const handleSubmit = async () => {
     if (!user) { navigate("/login"); return; }
     setLoading(true); setError("");
-    setLoadingMsg(form.archivo ? "Subiendo archivo..." : "Enviando...");
+    setLoadingMsg(form.archivos.length > 0 ? "Subiendo archivo..." : "Enviando...");
     try {
       const fd = new FormData();
       fd.append("colegio", form.colegio);
@@ -128,9 +215,9 @@ export default function SubirPrueba() {
       fd.append("usuario_nombre", user.nombre);
       fd.append("usuario_email", user.email);
       fd.append("usuario_id", String(user.id));
-      if (form.archivo) fd.append("archivo", form.archivo);
+      for (const archivo of form.archivos) fd.append("archivos", archivo);
 
-      setLoadingMsg("Guardando prueba...");
+      setLoadingMsg(form.archivos.length > 1 ? "Subiendo páginas..." : "Guardando prueba...");
       const nueva = await uploadPrueba(fd);
       setPruebaId(nueva.id);
       setSubmitted(true);
@@ -145,7 +232,7 @@ export default function SubirPrueba() {
         profesor:       form.profesor,
         tema:           form.tema,
         notas:          form.notas,
-        archivo_nombre: form.archivo?.name ?? "",
+        archivo_nombre: form.archivos[0]?.name ?? "",
       });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error al subir");
@@ -154,7 +241,7 @@ export default function SubirPrueba() {
 
   const reset = () => {
     setSubmitted(false); setPruebaId(null); setStep(0); setError("");
-    setForm({ colegio: "", año: "", materia: "", profesor: "", tema: "", archivo: null, notas: "", preguntas: "" });
+    setForm({ colegio: "", año: "", materia: "", profesor: "", tema: "", archivos: [], notas: "", preguntas: "" });
   };
 
   if (submitted) {
@@ -289,47 +376,64 @@ export default function SubirPrueba() {
 
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                <Field label="Foto de la prueba" required={!form.preguntas.trim()}>
+                <Field label={`Fotos de la prueba${form.archivos.length > 1 ? ` (${form.archivos.length} páginas)` : ""}`} required={!form.preguntas.trim()}>
                   {/* Windows a veces no reporta el MIME type de .jpg/.jpeg, así que
                       además de image/* listamos las extensiones una por una. */}
-                  <input ref={fileRef} type="file"
+                  <input ref={fileRef} type="file" multiple
                     accept="image/*,.jpg,.jpeg,.jpe,.png,.webp,.heic,.heif,.avif,.bmp,.gif,.tif,.tiff,.pdf,.doc,.docx"
                     onChange={(e) => {
-                      const f = e.target.files?.[0] ?? null;
-                      if (f) {
+                      const nuevos = Array.from(e.target.files ?? []);
+                      e.target.value = ""; // permite volver a elegir el mismo archivo después
+                      if (nuevos.length === 0) return;
+
+                      for (const f of nuevos) {
                         const foto = esImagen(f);
                         const limite = foto ? MAX_FOTO_BYTES : MAX_ARCHIVO_BYTES;
                         if (f.size > limite) {
                           const mb = Math.round(limite / 1024 / 1024);
-                          setError(
-                            foto
-                              ? `La foto no puede superar ${mb} MB.`
-                              : `El archivo no puede superar ${mb} MB. Si es una foto, subila como JPG o PNG.`
-                          );
-                          e.target.value = "";
+                          setError(foto ? `"${f.name}" supera ${mb} MB.` : `"${f.name}" supera ${mb} MB.`);
                           return;
                         }
                       }
+
+                      const nuevosSonFotos = nuevos.every(esImagen);
+                      if (!nuevosSonFotos && (nuevos.length > 1 || form.archivos.length > 0)) {
+                        setError("Un PDF o Word va solo: para varias páginas, subí todas fotos.");
+                        return;
+                      }
+
                       setError("");
-                      set("archivo", f);
+                      setForm((prev) => {
+                        // Un archivo no-foto (PDF/Word) siempre reemplaza todo: no se
+                        // puede combinar con otras páginas.
+                        const base = nuevosSonFotos ? prev.archivos.filter(esImagen) : [];
+                        const combinados = [...base, ...nuevos].slice(0, MAX_PAGINAS);
+                        return { ...prev, archivos: combinados };
+                      });
                     }}
                     style={{ display: "none" }} />
-                  <motion.button whileHover={{ borderColor: C.blue }} whileTap={{ scale: 0.99 }} onClick={() => fileRef.current?.click()}
-                    style={{ width: "100%", padding: "44px 24px", border: `2px dashed ${form.archivo ? C.blue : C.border}`, borderRadius: "14px", backgroundColor: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", transition: "border-color 0.2s" }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={form.archivo ? C.blue : C.gray} strokeWidth="1.5">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <p style={{ fontSize: "14px", fontWeight: 600, color: form.archivo ? C.white : C.gray, margin: 0 }}>
-                      {form.archivo ? form.archivo.name : "Hacé clic para subir"}
-                    </p>
-                    <p style={{ fontSize: "12px", color: C.gray, margin: 0 }}>
-                      {form.archivo
-                        ? `${(form.archivo.size / 1024 / 1024).toFixed(2)} MB`
-                        : `Fotos JPG, JPEG, PNG, WEBP, HEIC, AVIF... hasta ${Math.round(MAX_FOTO_BYTES / 1024 / 1024)} MB (se optimizan solas) · PDF hasta ${Math.round(MAX_ARCHIVO_BYTES / 1024 / 1024)} MB`}
-                    </p>
-                  </motion.button>
+
+                  {form.archivos.length === 0 ? (
+                    <motion.button whileHover={{ borderColor: C.blue }} whileTap={{ scale: 0.99 }} onClick={() => fileRef.current?.click()}
+                      style={{ width: "100%", padding: "44px 24px", border: `2px dashed ${C.border}`, borderRadius: "14px", backgroundColor: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", transition: "border-color 0.2s" }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      <p style={{ fontSize: "14px", fontWeight: 600, color: C.gray, margin: 0 }}>Hacé clic para subir</p>
+                      <p style={{ fontSize: "12px", color: C.gray, margin: 0 }}>
+                        Fotos JPG, PNG, WEBP, HEIC... podés elegir varias si la prueba tiene más de una
+                        hoja (hasta {MAX_PAGINAS}) · o un PDF/Word hasta {Math.round(MAX_ARCHIVO_BYTES / 1024 / 1024)} MB
+                      </p>
+                    </motion.button>
+                  ) : (
+                    <PaginasSeleccionadas
+                      archivos={form.archivos}
+                      onQuitar={(i) => setForm((prev) => ({ ...prev, archivos: prev.archivos.filter((_, j) => j !== i) }))}
+                      onAgregar={form.archivos.every(esImagen) && form.archivos.length < MAX_PAGINAS ? () => fileRef.current?.click() : undefined}
+                    />
+                  )}
                 </Field>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -338,7 +442,7 @@ export default function SubirPrueba() {
                   <div style={{ flex: 1, height: "1px", backgroundColor: C.border }} />
                 </div>
 
-                <Field label="Escribí las preguntas a mano" required={!form.archivo}>
+                <Field label="Escribí las preguntas a mano" required={form.archivos.length === 0}>
                   <textarea value={form.preguntas} onChange={(e) => set("preguntas", e.target.value)} placeholder="Copiá o escribí el texto completo de las preguntas de la prueba" rows={5}
                     style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = C.blue)}

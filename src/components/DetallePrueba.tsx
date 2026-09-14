@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { fetchPrueba, deletePrueba, type Prueba } from "../services/Pruebas";
+import { fetchPrueba, deletePrueba, type Prueba, type ArchivoPrueba } from "../services/Pruebas";
 import { useFavorito } from "../services/Favoritos";
 import { descargarArchivo } from "../services/Descargas";
 import { getUser, isAdmin, isSuperAdmin } from "../services/Auth";
@@ -46,10 +46,20 @@ const IconoLupa = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
-// Visor a pantalla completa para mirar la foto en grande.
-function Lightbox({ url, nombre, onClose }: { url: string; nombre: string; onClose: () => void }) {
+// Visor a pantalla completa para mirar la foto en grande. Si hay varias
+// páginas, se puede seguir pasando de una a otra sin cerrar el zoom.
+function Lightbox({
+  url, nombre, onClose, pagina, total, onPrev, onNext,
+}: {
+  url: string; nombre: string; onClose: () => void;
+  pagina?: number; total?: number; onPrev?: () => void; onNext?: () => void;
+}) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") onPrev?.();
+      if (e.key === "ArrowRight") onNext?.();
+    };
     window.addEventListener("keydown", onKey);
     const overflowPrevio = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -57,7 +67,9 @@ function Lightbox({ url, nombre, onClose }: { url: string; nombre: string; onClo
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflowPrevio;
     };
-  }, [onClose]);
+  }, [onClose, onPrev, onNext]);
+
+  const hayVarias = !!total && total > 1;
 
   return (
     <motion.div
@@ -81,6 +93,48 @@ function Lightbox({ url, nombre, onClose }: { url: string; nombre: string; onClo
           boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
         }}
       />
+
+      {hayVarias && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
+            disabled={pagina === 0}
+            aria-label="Página anterior"
+            style={{
+              position: "fixed", left: "20px", top: "50%", transform: "translateY(-50%)",
+              width: "44px", height: "44px", borderRadius: "50%",
+              border: `1px solid ${C.border}`, backgroundColor: "rgba(13,21,38,0.9)",
+              color: pagina === 0 ? "rgba(255,255,255,0.25)" : C.white, fontSize: "20px",
+              cursor: pagina === 0 ? "default" : "pointer", lineHeight: 1,
+            }}
+          >
+            ‹
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onNext?.(); }}
+            disabled={pagina === (total as number) - 1}
+            aria-label="Página siguiente"
+            style={{
+              position: "fixed", right: "76px", top: "50%", transform: "translateY(-50%)",
+              width: "44px", height: "44px", borderRadius: "50%",
+              border: `1px solid ${C.border}`, backgroundColor: "rgba(13,21,38,0.9)",
+              color: pagina === (total as number) - 1 ? "rgba(255,255,255,0.25)" : C.white, fontSize: "20px",
+              cursor: pagina === (total as number) - 1 ? "default" : "pointer", lineHeight: 1,
+            }}
+          >
+            ›
+          </button>
+          <span style={{
+            position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
+            fontSize: "12px", fontWeight: 700, color: C.white,
+            backgroundColor: "rgba(13,21,38,0.9)", border: `1px solid ${C.border}`,
+            borderRadius: "999px", padding: "5px 14px",
+          }}>
+            Página {(pagina as number) + 1} / {total}
+          </span>
+        </>
+      )}
+
       <button
         onClick={onClose}
         aria-label="Cerrar"
@@ -98,18 +152,62 @@ function Lightbox({ url, nombre, onClose }: { url: string; nombre: string; onClo
 }
 
 function FileViewer({
-  url, nombre, tipo, onDescargar, descargando,
+  archivos, pagina, onCambiarPagina, onDescargar, descargando,
 }: {
-  url: string;
-  nombre: string;
-  tipo?: string;
+  archivos: ArchivoPrueba[];
+  pagina: number;
+  onCambiarPagina: (i: number) => void;
   onDescargar: () => void;
   descargando: boolean;
 }) {
+  const { url, nombre, tipo } = archivos[pagina];
+  const hayVarias = archivos.length > 1;
+
   const [imgError, setImgError] = useState(false);
   const [zoom, setZoom] = useState(false);
+  // Cambiar de página no debería arrastrar el error de la foto anterior.
+  useEffect(() => setImgError(false), [url]);
+
   const isPdf = tipo === "pdf" || nombre?.toLowerCase().endsWith(".pdf");
   const isImage = tipo === "image" || ["jpg","jpeg","png","gif","webp","heic","avif","bmp","tiff"].some((ext) => nombre?.toLowerCase().endsWith(ext));
+
+  const irAnterior = () => onCambiarPagina(Math.max(0, pagina - 1));
+  const irSiguiente = () => onCambiarPagina(Math.min(archivos.length - 1, pagina + 1));
+
+  const controlesPagina = hayVarias && (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "12px" }}>
+      <motion.button
+        whileHover={{ borderColor: pagina === 0 ? undefined : C.blue }}
+        onClick={irAnterior}
+        disabled={pagina === 0}
+        style={{
+          padding: "7px 14px", borderRadius: "8px", border: `1.5px solid ${C.border}`,
+          backgroundColor: "transparent", color: pagina === 0 ? "rgba(255,255,255,0.2)" : C.text,
+          fontSize: "13px", fontWeight: 600, cursor: pagina === 0 ? "default" : "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+      >
+        ‹ Anterior
+      </motion.button>
+      <span style={{ fontSize: "12px", fontWeight: 700, color: C.gray, minWidth: "90px", textAlign: "center" }}>
+        Página {pagina + 1} de {archivos.length}
+      </span>
+      <motion.button
+        whileHover={{ borderColor: pagina === archivos.length - 1 ? undefined : C.blue }}
+        onClick={irSiguiente}
+        disabled={pagina === archivos.length - 1}
+        style={{
+          padding: "7px 14px", borderRadius: "8px", border: `1.5px solid ${C.border}`,
+          backgroundColor: "transparent",
+          color: pagina === archivos.length - 1 ? "rgba(255,255,255,0.2)" : C.text,
+          fontSize: "13px", fontWeight: 600, cursor: pagina === archivos.length - 1 ? "default" : "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+      >
+        Siguiente ›
+      </motion.button>
+    </div>
+  );
 
   const botonDescarga = (
     <motion.button
@@ -150,6 +248,7 @@ function FileViewer({
   if (isImage && !imgError) {
     return (
       <>
+        {controlesPagina}
         <div style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, display: "flex", justifyContent: "center", padding: "16px" }}>
           <img
             src={url}
@@ -182,7 +281,13 @@ function FileViewer({
         </div>
 
         <AnimatePresence>
-          {zoom && <Lightbox url={url} nombre={nombre} onClose={() => setZoom(false)} />}
+          {zoom && (
+            <Lightbox
+              url={url} nombre={nombre} onClose={() => setZoom(false)}
+              pagina={pagina} total={archivos.length}
+              onPrev={irAnterior} onNext={irSiguiente}
+            />
+          )}
         </AnimatePresence>
       </>
     );
@@ -190,19 +295,22 @@ function FileViewer({
 
   if (isImage && imgError) {
     return (
-      <div style={{ width: "100%", borderRadius: "12px", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, padding: "48px 24px", textAlign: "center" }}>
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5" style={{ margin: "0 auto 16px", display: "block" }}>
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
-        </svg>
-        <p style={{ fontSize: "14px", color: C.gray, marginBottom: "4px" }}>
-          No se pudo cargar la foto de esta prueba.
-        </p>
-        <p style={{ fontSize: "13px", color: C.gray, marginBottom: "20px" }}>
-          Puede haberse subido antes de que se habilitara la carga de fotos sin configuración externa. Probá volver a subir la prueba con la foto.
-        </p>
-        {botonDescarga}
+      <div>
+        {controlesPagina}
+        <div style={{ width: "100%", borderRadius: "12px", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, padding: "48px 24px", textAlign: "center" }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5" style={{ margin: "0 auto 16px", display: "block" }}>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <p style={{ fontSize: "14px", color: C.gray, marginBottom: "4px" }}>
+            No se pudo cargar la foto de esta prueba.
+          </p>
+          <p style={{ fontSize: "13px", color: C.gray, marginBottom: "20px" }}>
+            Puede haberse subido antes de que se habilitara la carga de fotos sin configuración externa. Probá volver a subir la prueba con la foto.
+          </p>
+          {botonDescarga}
+        </div>
       </div>
     );
   }
@@ -232,6 +340,7 @@ export default function DetallePrueba() {
   const [deleting, setDeleting] = useState(false);
   const [descargando, setDescargando] = useState(false);
   const [errorDescarga, setErrorDescarga] = useState("");
+  const [pagina, setPagina] = useState(0);
   const user = getUser();
 
   const pruebaId = Number(id);
@@ -242,27 +351,32 @@ export default function DetallePrueba() {
     setLoading(true);
     setError("");
     setPrueba(null);
+    setPagina(0);
     fetchPrueba(Number(id))
       .then(setPrueba)
       .catch((e) => setError(e instanceof Error ? e.message : "No se encontró esta prueba"))
       .finally(() => setLoading(false));
   }, [id]);
 
+  const archivos = prueba?.archivos ?? [];
+  const archivoActual = archivos[pagina];
+
   const handleDescargar = useCallback(async () => {
-    if (!prueba?.archivo_url || descargando) return;
+    if (!archivoActual?.url || descargando) return;
     setDescargando(true);
     setErrorDescarga("");
     try {
-      const nombre =
-        prueba.archivo_nombre ||
-        `${prueba.materia || "prueba"}${prueba.tema ? ` - ${prueba.tema}` : ""}`;
-      await descargarArchivo(prueba.archivo_url, nombre);
+      const nombreBase = prueba ? `${prueba.materia || "prueba"}${prueba.tema ? ` - ${prueba.tema}` : ""}` : "prueba";
+      const nombre = archivos.length > 1
+        ? `${nombreBase} (pág ${pagina + 1})`
+        : archivoActual.nombre || nombreBase;
+      await descargarArchivo(archivoActual.url, nombre);
     } catch (e) {
       setErrorDescarga(e instanceof Error ? e.message : "No se pudo descargar el archivo");
     } finally {
       setDescargando(false);
     }
-  }, [prueba, descargando]);
+  }, [prueba, archivoActual, archivos.length, pagina, descargando]);
 
   const handleEliminar = async () => {
     if (!prueba || deleting) return;
@@ -389,7 +503,7 @@ export default function DetallePrueba() {
               </motion.button>
 
               {/* Descargar */}
-              {prueba.archivo_url && (
+              {archivos.length > 0 && (
                 <motion.button
                   onClick={handleDescargar}
                   disabled={descargando}
@@ -484,19 +598,19 @@ export default function DetallePrueba() {
             </div>
           )}
 
-          {prueba.archivo_url ? (
+          {archivos.length > 0 ? (
             <div>
               <p style={{ fontSize: "13px", fontWeight: 600, color: C.text, marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14 2 14 8 20 8"/>
                 </svg>
-                {prueba.archivo_nombre}
+                {archivos.length > 1 ? `${archivos.length} páginas` : archivoActual?.nombre}
               </p>
               <FileViewer
-                url={prueba.archivo_url}
-                nombre={prueba.archivo_nombre || ""}
-                tipo={prueba.archivo_tipo}
+                archivos={archivos}
+                pagina={pagina}
+                onCambiarPagina={setPagina}
                 onDescargar={handleDescargar}
                 descargando={descargando}
               />

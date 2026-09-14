@@ -1,6 +1,12 @@
 import { API_URL, apiFetch, authHeaders, jsonHeaders, jsonOrThrow, mensajeDeError } from "./Api";
 import { sincronizarFavoritos } from "./Favoritos";
 
+export interface ArchivoPrueba {
+  url: string;
+  nombre: string;
+  tipo: string;
+}
+
 export interface Prueba {
   id: number;
   materia: string;
@@ -10,6 +16,11 @@ export interface Prueba {
   tema: string;
   notas?: string;
   preguntas?: string;
+  // Una prueba puede tener varias fotos (una prueba de varias hojas). Los
+  // campos archivo_* de abajo son la primera página, para todo el código
+  // viejo que todavía espera un solo archivo — pero `archivos` es la lista
+  // completa y es lo que hay que usar para mostrarlas todas.
+  archivos?: ArchivoPrueba[];
   archivo_url?: string;
   archivo_nombre?: string;
   archivo_tipo?: string;
@@ -30,10 +41,29 @@ function safeJson(raw: unknown): Record<string, unknown> {
   try { return JSON.parse(raw as string); } catch { return {}; }
 }
 
+// Las pruebas de varias hojas guardan `contenido.archivos` (la lista). Las
+// viejas de una sola foto solo tienen `contenido.archivo_url/nombre/tipo` —
+// acá las envolvemos en un array de un elemento para que el resto del código
+// (visor, IA) siempre trabaje con una lista, sin importar cómo se guardó.
+function archivosDesdeContenido(c: Record<string, unknown>): ArchivoPrueba[] {
+  if (Array.isArray(c.archivos)) {
+    return (c.archivos as Record<string, unknown>[])
+      .filter((a) => typeof a?.url === "string" && a.url)
+      .map((a) => ({
+        url:    a.url as string,
+        nombre: (a.nombre as string) || "",
+        tipo:   (a.tipo as string) || "",
+      }));
+  }
+  const url = c.archivo_url as string | undefined;
+  if (!url) return [];
+  return [{ url, nombre: (c.archivo_nombre as string) || "", tipo: (c.archivo_tipo as string) || "" }];
+}
+
 function mapApiPrueba(raw: Record<string, unknown>): Prueba {
   const c = safeJson(raw.contenido);
-  const archivoUrl = (c.archivo_url as string) || undefined;
-  const archivoTipo = (c.archivo_tipo as string) || undefined;
+  const archivos = archivosDesdeContenido(c);
+  const primera = archivos[0];
   return {
     id:             raw.id as number,
     materia:        (raw.materia as string)  || "",
@@ -43,10 +73,11 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
     tema:           (raw.tema as string)     || "",
     notas:          (c.notas as string)      || "",
     preguntas:      (c.preguntas as string)   || "",
-    archivo_url:    archivoUrl,
-    archivo_nombre: (c.archivo_nombre as string) || undefined,
-    archivo_tipo:   archivoTipo,
-    tiene_archivo:  !!archivoUrl || !!archivoTipo,
+    archivos,
+    archivo_url:    primera?.url || undefined,
+    archivo_nombre: primera?.nombre || undefined,
+    archivo_tipo:   primera?.tipo || undefined,
+    tiene_archivo:  archivos.length > 0,
     estado:         (raw.estado as Prueba["estado"]) || "pendiente",
     usuario_nombre: (raw.usuario_nombre as string) || (c.usuario_nombre as string) || "Anónimo",
     usuario_email:  (raw.usuario_email  as string) || (c.usuario_email  as string) || "",
@@ -67,11 +98,15 @@ function mapYSincronizar(rows: Record<string, unknown>[]): Prueba[] {
 }
 
 // Vercel Serverless Functions rechazan requests/responses de más de 4.5 MB.
-// La imagen viaja como base64 (dataURL) dentro de un JSON, así que la
-// mantenemos por debajo de ese límite para que la prueba después se
-// pueda leer sin problemas desde /api/pruebas/:id. 3.2 MB deja margen para el
-// resto del JSON y es más del doble de lo que entraba antes.
+// La(s) imagen(es) viajan como base64 (dataURL) dentro de un JSON, así que
+// nos quedamos por debajo de ese límite para que la prueba después se pueda
+// leer sin problemas desde /api/pruebas/:id.
 const MAX_DATA_URL_BYTES = 3.2 * 1024 * 1024;
+// Con varias fotos en la misma prueba, el presupuesto se reparte entre todas
+// (dejando margen para el resto del JSON) — por eso cada una sale más chica
+// cuantas más páginas tenga la prueba.
+const MAX_TOTAL_FOTOS_BYTES = 3.6 * 1024 * 1024;
+export const MAX_PAGINAS = 8;
 
 // Lado más largo de la foto ya comprimida. Con 2600 px una hoja A4 fotografiada
 // se lee sin problemas (antes eran 1600 px y el texto chico quedaba borroso).
@@ -83,9 +118,9 @@ const MAX_LADO_PX = 2600;
 export const MAX_FOTO_BYTES = 30 * 1024 * 1024;
 export const MAX_ARCHIVO_BYTES = 10 * 1024 * 1024;
 
-// Comprime una imagen usando canvas y devuelve un data URL JPEG.
-// No requiere ningún servicio externo.
-async function compressImageToBase64(file: File): Promise<string> {
+// Comprime una imagen usando canvas y devuelve un data URL JPEG que entre
+// dentro de maxBytes. No requiere ningún servicio externo.
+async function compressImageToBase64(file: File, maxBytes: number = MAX_DATA_URL_BYTES): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
@@ -119,15 +154,15 @@ async function compressImageToBase64(file: File): Promise<string> {
         // de las fotos se guardan en calidad casi original.
         let quality = 0.92;
         let dataUrl = canvas.toDataURL("image/jpeg", quality);
-        while (dataUrl.length > MAX_DATA_URL_BYTES && quality > 0.45) {
+        while (dataUrl.length > maxBytes && quality > 0.45) {
           quality -= 0.08;
           dataUrl = canvas.toDataURL("image/jpeg", quality);
         }
         // Última red de contención: si ni con calidad baja entra (fotos
         // enormes), recortamos resolución hasta que entre.
         let intentos = 0;
-        while (dataUrl.length > MAX_DATA_URL_BYTES && intentos < 4) {
-          const scale = Math.sqrt((MAX_DATA_URL_BYTES / dataUrl.length) * 0.95);
+        while (dataUrl.length > maxBytes && intentos < 4) {
+          const scale = Math.sqrt((maxBytes / dataUrl.length) * 0.95);
           canvas.width  = Math.max(1, Math.round(canvas.width  * scale));
           canvas.height = Math.max(1, Math.round(canvas.height * scale));
           ctx.fillStyle = "#ffffff";
@@ -153,11 +188,11 @@ export function esImagen(file: File): boolean {
   return file.type.startsWith("image/") || IMAGE_EXTENSIONS.includes(ext);
 }
 
-async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: string; tipo: string }> {
+async function uploadFileToCloud(file: File, maxBytes: number = MAX_DATA_URL_BYTES): Promise<{ url: string; nombre: string; tipo: string }> {
   // Para imágenes: comprimir con canvas y guardar como base64.
   // Esto funciona sin ningún servicio externo.
   if (esImagen(file)) {
-    const dataUrl = await compressImageToBase64(file);
+    const dataUrl = await compressImageToBase64(file, maxBytes);
     // Se guarda re-codificada a JPEG, así que el nombre tiene que decir .jpg
     // (si no, la descarga sale con una extensión que no corresponde).
     const base = file.name.replace(/\.[^.]+$/, "") || "prueba";
@@ -190,6 +225,24 @@ async function uploadFileToCloud(file: File): Promise<{ url: string; nombre: str
 
   const data = await res.json() as Record<string, unknown>;
   return { url: data.secure_url as string, nombre: file.name, tipo: "pdf" };
+}
+
+// Sube uno o varios archivos. Con más de uno, todos tienen que ser fotos (no
+// se puede repartir el presupuesto de tamaño con un PDF alojado afuera de por
+// medio) — el presupuesto de cada foto se achica cuantas más páginas haya.
+export async function uploadFilesToCloud(files: File[]): Promise<ArchivoPrueba[]> {
+  if (files.length === 0) return [];
+  if (files.length === 1) return [await uploadFileToCloud(files[0])];
+
+  if (files.some((f) => !esImagen(f))) {
+    throw new Error("Para subir varias páginas, todas tienen que ser fotos (no se puede combinar con un PDF).");
+  }
+  const maxBytes = Math.max(300_000, Math.floor(MAX_TOTAL_FOTOS_BYTES / files.length));
+  const resultados: ArchivoPrueba[] = [];
+  for (const file of files) {
+    resultados.push(await uploadFileToCloud(file, maxBytes));
+  }
+  return resultados;
 }
 
 // ── Pruebas aprobadas (home) ──────────────────────────────────────────────────
@@ -310,23 +363,17 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
   const usuario_email  = (formData.get("usuario_email")  as string) || "";
   const usuario_id_raw = formData.get("usuario_id");
   const usuario_id     = usuario_id_raw ? Number(usuario_id_raw) : null;
-  const archivo        = formData.get("archivo") as File | null;
+  // Una o varias fotos (prueba de varias hojas), todas bajo la misma clave.
+  const archivosSubidos = formData.getAll("archivos").filter((f): f is File => f instanceof File && f.size > 0);
 
-  if (!(archivo && archivo.size > 0) && !preguntas.trim()) {
+  if (archivosSubidos.length === 0 && !preguntas.trim()) {
     throw new Error("Subí una foto de la prueba o escribí las preguntas a mano.");
   }
 
-  // Upload file to cloud storage first
-  let archivo_url: string | undefined;
-  let archivo_nombre: string | undefined;
-  let archivo_tipo: string | undefined;
-
-  if (archivo && archivo.size > 0) {
-    const uploaded = await uploadFileToCloud(archivo);
-    archivo_url    = uploaded.url;
-    archivo_nombre = uploaded.nombre;
-    archivo_tipo   = uploaded.tipo;
-  }
+  const archivos = await uploadFilesToCloud(archivosSubidos);
+  // Primera página como campos sueltos, para todo el código que todavía
+  // espera un solo archivo (miniaturas de tarjetas, IA local vieja, etc.).
+  const primera = archivos[0];
 
   const titulo = `${materia}${tema ? ` - ${tema}` : ""} (${colegio} ${año})`;
 
@@ -343,9 +390,10 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
       usuario_id,
       usuario_nombre,
       usuario_email,
-      archivo_url,
-      archivo_nombre,
-      archivo_tipo,
+      archivos,
+      archivo_url:    primera?.url,
+      archivo_nombre: primera?.nombre,
+      archivo_tipo:   primera?.tipo,
     },
   };
 
@@ -369,10 +417,11 @@ export async function uploadPrueba(formData: FormData): Promise<Prueba> {
     tema,
     notas,
     preguntas,
-    archivo_url,
-    archivo_nombre,
-    archivo_tipo,
-    tiene_archivo:  !!archivo_url,
+    archivos,
+    archivo_url:    primera?.url,
+    archivo_nombre: primera?.nombre,
+    archivo_tipo:   primera?.tipo,
+    tiene_archivo:  archivos.length > 0,
     estado:         "pendiente",
     usuario_nombre,
     usuario_email,
