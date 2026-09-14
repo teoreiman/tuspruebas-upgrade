@@ -1,5 +1,7 @@
 .env
 .env.local
+.vercel
+*.tsbuildinfo
 
 # Logs
 logs

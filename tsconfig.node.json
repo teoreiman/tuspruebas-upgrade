@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "composite": true,
+    // Este proyecto sólo usa tsc para type-check. Un proyecto referenciado no
+    // puede usar noEmit, así que mandamos la salida a un temporal: si queda en
+    // la raíz, Vite prefiere el vite.config.js compilado por sobre el .ts.
+    "outDir": "./node_modules/.tmp/tsconfig-node",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig-node/.tsbuildinfo",
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
