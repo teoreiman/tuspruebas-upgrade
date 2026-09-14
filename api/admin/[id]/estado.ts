@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import pool from "../../lib/db";
-import { getAuthUser, isAdminUser } from "../../lib/auth";
+import pool from "../../lib/db.js";
+import { getAuthUser, isAdminUser } from "../../lib/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "PATCH") return res.status(405).json({ message: "Method not allowed" });

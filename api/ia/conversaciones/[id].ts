@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getAuthUser } from "../../lib/auth";
-import { obtenerConversacionConMensajes, eliminarConversacion } from "../../lib/conversaciones";
+import { getAuthUser } from "../../lib/auth.js";
+import { obtenerConversacionConMensajes, eliminarConversacion } from "../../lib/conversaciones.js";
 
 // GET /api/ia/conversaciones/:id — un chat completo con todos sus mensajes.
 // DELETE /api/ia/conversaciones/:id

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import pool, { ensureFavoritosTable } from "../../lib/db";
-import { getAuthUser } from "../../lib/auth";
+import pool, { ensureFavoritosTable } from "../../lib/db.js";
+import { getAuthUser } from "../../lib/auth.js";
 
 // El body puede llegar como objeto (Vercel parsea application/json) o como
 // string si el cliente no mandó el Content-Type.

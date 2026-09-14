@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import pool from "./lib/db";
-import { getAuthUser } from "./lib/auth";
-import { LIMITE_DIARIO, usoUltimas24hs, registrarUso } from "./lib/iaUso";
-import { crearConversacion, agregarMensaje, conversacionPerteneceA } from "./lib/conversaciones";
+import pool from "./lib/db.js";
+import { getAuthUser } from "./lib/auth.js";
+import { LIMITE_DIARIO, usoUltimas24hs, registrarUso } from "./lib/iaUso.js";
+import { crearConversacion, agregarMensaje, conversacionPerteneceA } from "./lib/conversaciones.js";
 
 // La IA corre en el backend: la API key nunca sale del servidor y el modelo
 // puede ver la foto de la prueba (que está guardada como base64 en la base y
@@ -186,11 +186,16 @@ interface RespuestaGemini {
   error?: { message?: string; status?: string };
 }
 
+// Los campos van todos siempre, en vez de una unión discriminada por `ok`: el
+// type-check que corre Vercel sobre /api no usa `strict`, y sin strictNullChecks
+// no estrecha la unión en la rama de error (r.status / r.mensaje dan TS2339).
+type ResultadoGemini = { ok: boolean; texto: string; status: number; mensaje: string };
+
 async function llamarGemini(
   modelo: string,
   key: string,
   payload: unknown
-): Promise<{ ok: true; texto: string } | { ok: false; status: number; mensaje: string }> {
+): Promise<ResultadoGemini> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -207,6 +212,7 @@ async function llamarGemini(
     if (!res.ok) {
       return {
         ok: false,
+        texto: "",
         status: res.status,
         mensaje: data?.error?.message || `Gemini respondió ${res.status}`,
       };
@@ -214,7 +220,7 @@ async function llamarGemini(
 
     const bloqueo = data?.promptFeedback?.blockReason;
     if (bloqueo) {
-      return { ok: false, status: 200, mensaje: `La IA no pudo responder (${bloqueo}).` };
+      return { ok: false, texto: "", status: 200, mensaje: `La IA no pudo responder (${bloqueo}).` };
     }
 
     const texto =
@@ -227,6 +233,7 @@ async function llamarGemini(
       const razon = data?.candidates?.[0]?.finishReason;
       return {
         ok: false,
+        texto: "",
         status: 200,
         mensaje: razon
           ? `La IA cortó la respuesta (${razon}). Probá reformular la pregunta.`
@@ -234,11 +241,12 @@ async function llamarGemini(
       };
     }
 
-    return { ok: true, texto };
+    return { ok: true, texto, status: 200, mensaje: "" };
   } catch (e) {
     const abortada = (e as { name?: string })?.name === "AbortError";
     return {
       ok: false,
+      texto: "",
       status: abortada ? 504 : 502,
       mensaje: abortada
         ? "La IA tardó demasiado en responder. Probá de nuevo con una pregunta más corta."

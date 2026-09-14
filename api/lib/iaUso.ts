@@ -1,4 +1,4 @@
-import pool from "./db";
+import pool from "./db.js";
 
 // Sin límite, un solo usuario (o un bot) puede vaciar la cuota/plata de la API
 // de IA en un rato. Un tope diario simple por usuario alcanza para evitar eso

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import pool, { ensureFavoritosTable } from "../lib/db";
-import { getAuthUser, isAdminUser } from "../lib/auth";
+import pool, { ensureFavoritosTable } from "../lib/db.js";
+import { getAuthUser, isAdminUser } from "../lib/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = Number(req.query.id);
