@@ -12,6 +12,7 @@ import {
   type ConversacionResumen,
 } from "../services/Conversaciones";
 import Logo from "./logo";
+import NotificacionesBell from "./NotificacionesBell";
 
 const C = {
   bg:       "#0a0e1a",
@@ -615,7 +616,8 @@ export default function IA() {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <NotificacionesBell />
             {fotosDePrueba.length > 0 && (
               <motion.button
                 whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}

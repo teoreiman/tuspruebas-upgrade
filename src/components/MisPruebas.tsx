@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fetchMisPruebas, deletePrueba, type Prueba, type PruebaEstado } from "../services/Pruebas";
 import { useFavorito } from "../services/Favoritos";
 import Logo from "./logo";
+import NotificacionesBell from "./NotificacionesBell";
 
 const C = {
   bg:      "#0a0e1a",
@@ -321,6 +322,7 @@ export default function MisPruebas() {
         <div style={{ maxWidth: "1400px", margin: "0 auto", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" onClick={() => navigate("/home")} />
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <NotificacionesBell />
             <motion.button
               whileHover={{ backgroundColor: C.blueHov }}
               whileTap={{ scale: 0.98 }}

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import pool, { ensureFavoritosTable } from "../lib/db.js";
 import { getAuthUser } from "../lib/auth.js";
 import { stripInlineImages } from "../lib/pruebas.js";
+import { ensureCalificacionesTable, CALIFICACION_JOIN, CALIFICACION_SELECT } from "../lib/calificaciones.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
@@ -11,14 +12,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await ensureFavoritosTable();
+    await ensureCalificacionesTable();
     const { rows } = await pool.query(
       `SELECT p.*,
         COALESCE(u.nombre, p.contenido->>'usuario_nombre') AS usuario_nombre,
         COALESCE(u.email,  p.contenido->>'usuario_email')  AS usuario_email,
-        true AS favorito
+        true AS favorito,
+        (SELECT puntaje FROM calificaciones c WHERE c.prueba_id = p.id AND c.usuario_id = $1) AS mi_calificacion,
+        ${CALIFICACION_SELECT}
        FROM pruebas p
        INNER JOIN favoritos fav ON fav.prueba_id = p.id AND fav.usuario_id = $1
        LEFT JOIN usuarios u ON p.usuario_id = u.id
+       ${CALIFICACION_JOIN}
        ORDER BY p.id DESC`,
       [user.id]
     );

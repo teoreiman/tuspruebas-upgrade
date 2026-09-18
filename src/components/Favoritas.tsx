@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fetchFavoritos, type Prueba } from "../services/Pruebas";
 import { setFavorito } from "../services/Favoritos";
 import Logo from "./logo";
+import NotificacionesBell from "./NotificacionesBell";
 
 const C = {
   bg:      "#0a0e1a",
@@ -269,13 +270,16 @@ export default function Favoritas() {
       }}>
         <div style={{ maxWidth: "1400px", margin: "0 auto", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" onClick={() => navigate("/home")} />
-          <motion.button
-            onClick={() => navigate("/perfil")}
-            whileHover={{ color: C.white }}
-            style={{ fontSize: "13px", color: C.gray, background: "none", border: "none", cursor: "pointer" }}
-          >
-            ← Volver
-          </motion.button>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <NotificacionesBell />
+            <motion.button
+              onClick={() => navigate("/perfil")}
+              whileHover={{ color: C.white }}
+              style={{ fontSize: "13px", color: C.gray, background: "none", border: "none", cursor: "pointer" }}
+            >
+              ← Volver
+            </motion.button>
+          </div>
         </div>
       </nav>
 

@@ -2,9 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser } from "../services/Auth";
-import { uploadPrueba, esImagen, MAX_FOTO_BYTES, MAX_ARCHIVO_BYTES, MAX_PAGINAS } from "../services/Pruebas";
+import { uploadPrueba, fetchPruebas, esImagen, MAX_FOTO_BYTES, MAX_ARCHIVO_BYTES, MAX_PAGINAS, type Prueba } from "../services/Pruebas";
 import { notifyAdminNewPrueba } from "../services/Email";
 import Logo from "./logo";
+import NotificacionesBell from "./NotificacionesBell";
 
 const C = {
   bg: "#070b14", bgCard: "#0d1526",
@@ -198,6 +199,34 @@ export default function SubirPrueba() {
     tieneContenido,
   ];
 
+  // Aviso (no bloqueante) de que ya existe una prueba con datos parecidos:
+  // evita subidas repetidas por error, sin impedir subir una versión distinta
+  // de un profesor distinto.
+  const [duplicados, setDuplicados] = useState<Prueba[]>([]);
+  useEffect(() => {
+    const tema = form.tema.trim();
+    if (step !== 2 || !form.colegio || !form.año || !form.materia || !tema) {
+      setDuplicados([]);
+      return;
+    }
+    // Rango Unicode de marcas diacríticas combinantes (0x0300-0x036f), armado
+    // con fromCharCode para no depender de escribir esos caracteres literales.
+    const DIACRITICOS = new RegExp(`[${String.fromCharCode(0x0300)}-${String.fromCharCode(0x036f)}]`, "g");
+    const normalizar = (s: string) => s.toLowerCase().normalize("NFD").replace(DIACRITICOS, "").trim();
+    const temaNorm = normalizar(tema);
+    let cancelado = false;
+    fetchPruebas({ escuela: form.colegio, año: form.año, materia: form.materia })
+      .then((pruebas) => {
+        if (cancelado) return;
+        setDuplicados(pruebas.filter((p) => {
+          const t = normalizar(p.tema);
+          return t.length > 0 && (t.includes(temaNorm) || temaNorm.includes(t));
+        }));
+      })
+      .catch(() => !cancelado && setDuplicados([]));
+    return () => { cancelado = true; };
+  }, [step, form.colegio, form.año, form.materia, form.tema]);
+
   const handleSubmit = async () => {
     if (!user) { navigate("/login"); return; }
     setLoading(true); setError("");
@@ -286,6 +315,7 @@ export default function SubirPrueba() {
           <Logo size="sm" onClick={() => navigate("/")} />
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             {user && <span style={{ fontSize: "13px", color: C.gray }}>Subiendo como <strong style={{ color: C.white }}>{user.nombre}</strong></span>}
+            <NotificacionesBell />
             <motion.button onClick={() => navigate("/home")} whileHover={{ color: C.white }}
               style={{ fontSize: "13px", color: C.gray, background: "none", border: "none", cursor: "pointer" }}>
               ← Volver
@@ -376,6 +406,24 @@ export default function SubirPrueba() {
 
             {step === 2 && (
               <motion.div key="s2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {duplicados.length > 0 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    style={{ padding: "14px 16px", backgroundColor: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: "10px", fontSize: "13px", color: "#fbbf24", lineHeight: 1.6 }}>
+                    <p style={{ marginBottom: "6px" }}>
+                      Ya hay {duplicados.length === 1 ? "una prueba parecida" : `${duplicados.length} pruebas parecidas`} con esos mismos
+                      datos (colegio, año y materia) y un tema similar. Fijate si no es la misma antes de subir de nuevo:
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                      {duplicados.slice(0, 3).map((d) => (
+                        <li key={d.id}>
+                          <a href={`/prueba/${d.id}`} target="_blank" rel="noreferrer" style={{ color: "#fbbf24", textDecoration: "underline" }}>
+                            {d.tema} — Prof. {d.profesor || "sin profesor indicado"}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )}
                 <Field label={`Fotos de la prueba${form.archivos.length > 1 ? ` (${form.archivos.length} páginas)` : ""}`} required={!form.preguntas.trim()}>
                   {/* Windows a veces no reporta el MIME type de .jpg/.jpeg, así que
                       además de image/* listamos las extensiones una por una. */}

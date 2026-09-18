@@ -31,6 +31,11 @@ export interface Prueba {
   usuario_id: number;
   created_at: string;
   favorito?: boolean;
+  // Promedio (1-5, un decimal) y cantidad de calificaciones de otros usuarios,
+  // más la mía si ya califiqué. calificacion_promedio es null si nadie calificó.
+  calificacion_promedio?: number | null;
+  calificacion_cantidad?: number;
+  mi_calificacion?: number | null;
 }
 
 export type PruebaEstado = "pendiente" | "aprobada" | "rechazada";
@@ -86,6 +91,10 @@ function mapApiPrueba(raw: Record<string, unknown>): Prueba {
     // Los endpoints de admin no calculan favoritos: ahí queda undefined (que no
     // es lo mismo que "no es favorita") para no pisar el estado real del store.
     favorito:       typeof raw.favorito === "boolean" ? raw.favorito : undefined,
+    calificacion_promedio: raw.calificacion_promedio !== null && raw.calificacion_promedio !== undefined
+      ? Number(raw.calificacion_promedio) : null,
+    calificacion_cantidad: Number(raw.calificacion_cantidad) || 0,
+    mi_calificacion: typeof raw.mi_calificacion === "number" ? raw.mi_calificacion : null,
   };
 }
 
@@ -446,6 +455,26 @@ export async function updatePruebaEstado(
 
 // El manejo de favoritos vive en ./Favoritos (store compartido entre pantallas).
 export { toggleFavorito, setFavorito, useFavorito } from "./Favoritos";
+
+// ── Calificar prueba (1 a 5 estrellas) ────────────────────────────────────────
+// puntaje null saca la calificación que ya tenía puesta.
+export async function calificarPrueba(
+  id: number,
+  puntaje: number | null
+): Promise<{ mi_calificacion: number | null; calificacion_promedio: number | null; calificacion_cantidad: number }> {
+  const res = await apiFetch(`${API_URL}/pruebas/${id}/calificar`, {
+    method: "POST",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ puntaje }),
+  });
+  if (!res.ok) throw new Error(await mensajeDeError(res, "No se pudo guardar la calificación"));
+  const data = await res.json();
+  return {
+    mi_calificacion: data.mi_calificacion ?? null,
+    calificacion_promedio: data.calificacion_promedio ?? null,
+    calificacion_cantidad: Number(data.calificacion_cantidad) || 0,
+  };
+}
 
 // ── Eliminar prueba ───────────────────────────────────────────────────────────
 export async function deletePrueba(id: number): Promise<void> {

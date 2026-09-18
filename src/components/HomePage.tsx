@@ -5,6 +5,8 @@ import { getUser, isSuperAdmin, clearSession } from "../services/Auth";
 import { fetchAllPruebas, fetchPruebas, type Prueba } from "../services/Pruebas";
 import { useFavorito } from "../services/Favoritos";
 import Logo from "./logo";
+import NotificacionesBell from "./NotificacionesBell";
+import EstrellasCalificacion from "./EstrellasCalificacion";
 
 const C = {
   bg:       "#0a0e1a",
@@ -169,7 +171,12 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
 
       <div style={{ paddingLeft: "8px" }}>
         <h3 style={{ fontSize: "14px", fontWeight: 700, color: C.white, marginBottom: "4px", lineHeight: 1.35 }}>{prueba.tema}</h3>
-        <p style={{ fontSize: "12px", color: C.gray }}>Prof. {prueba.profesor}</p>
+        <p style={{ fontSize: "12px", color: C.gray, marginBottom: "6px" }}>Prof. {prueba.profesor}</p>
+        <EstrellasCalificacion
+          promedio={prueba.calificacion_promedio ?? null}
+          cantidad={prueba.calificacion_cantidad ?? 0}
+          tamaño="sm"
+        />
       </div>
 
       <div style={{ paddingTop: "10px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: "8px" }}>
@@ -237,6 +244,7 @@ export default function HomePage() {
           <Logo size="sm" onClick={() => navigate("/")} />
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <NotificacionesBell />
             {esSuperAdmin && (
               <motion.button
                 whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
@@ -244,7 +252,7 @@ export default function HomePage() {
                 onClick={() => navigate("/admin")}
                 title="Pruebas pendientes de aprobación"
                 style={{ position: "relative", width: "36px", height: "36px", borderRadius: "10px", border: `1px solid ${C.border}`, backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
-                🔔
+                📋
                 {pendientesCount > 0 && (
                   <span style={{ position: "absolute", top: "-4px", right: "-4px", minWidth: "16px", height: "16px", padding: "0 4px", borderRadius: "999px", backgroundColor: "#dc2626", color: "#fff", fontSize: "10px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
                     {pendientesCount}

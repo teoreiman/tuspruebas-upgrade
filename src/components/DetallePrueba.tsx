@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { fetchPrueba, deletePrueba, type Prueba, type ArchivoPrueba } from "../services/Pruebas";
+import { fetchPrueba, deletePrueba, calificarPrueba, type Prueba, type ArchivoPrueba } from "../services/Pruebas";
 import { useFavorito } from "../services/Favoritos";
 import { descargarArchivo } from "../services/Descargas";
 import { getUser, isAdmin, isSuperAdmin } from "../services/Auth";
 import Logo from "./logo";
+import NotificacionesBell from "./NotificacionesBell";
+import EstrellasCalificacion from "./EstrellasCalificacion";
 
 const C = {
   bg: "#070b14", bgCard: "#0d1526", bgSection: "#080d18",
@@ -392,6 +394,21 @@ export default function DetallePrueba() {
 
   const puedeEliminar = !!prueba && !!user && (user.id === prueba.usuario_id || isAdmin() || isSuperAdmin());
 
+  const handleCalificar = async (puntaje: number | null) => {
+    if (!prueba) return;
+    try {
+      const r = await calificarPrueba(prueba.id, puntaje);
+      setPrueba((prev) => prev && {
+        ...prev,
+        mi_calificacion: r.mi_calificacion,
+        calificacion_promedio: r.calificacion_promedio,
+        calificacion_cantidad: r.calificacion_cantidad,
+      });
+    } catch {
+      // Silencioso: la estrella vuelve sola al valor real en el próximo render.
+    }
+  };
+
   const s = prueba ? (MATERIA_COLORS[prueba.materia] || { bg: "rgba(255,255,255,0.05)", text: C.text, border: C.border }) : null;
   const fecha = prueba ? new Date(prueba.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" }) : "";
 
@@ -402,13 +419,16 @@ export default function DetallePrueba() {
       <nav style={{ position: "sticky", top: 0, zIndex: 40, backgroundColor: "rgba(7,11,20,0.92)", backdropFilter: "blur(16px)", borderBottom: `1px solid ${C.border}`, padding: "0 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" onClick={() => navigate("/home")} />
-          <motion.button onClick={() => navigate(-1)} whileHover={{ color: C.white }}
-            style={{ fontSize: "13px", color: C.gray, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M5 12l7 7M5 12l7-7"/>
-            </svg>
-            Volver
-          </motion.button>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <NotificacionesBell />
+            <motion.button onClick={() => navigate(-1)} whileHover={{ color: C.white }}
+              style={{ fontSize: "13px", color: C.gray, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5M5 12l7 7M5 12l7-7"/>
+              </svg>
+              Volver
+            </motion.button>
+          </div>
         </div>
       </nav>
 
@@ -474,6 +494,15 @@ export default function DetallePrueba() {
                     <span>{m.text}</span>
                   </div>
                 ))}
+              </div>
+
+              <div style={{ marginTop: "14px" }}>
+                <EstrellasCalificacion
+                  promedio={prueba.calificacion_promedio ?? null}
+                  cantidad={prueba.calificacion_cantidad ?? 0}
+                  miCalificacion={prueba.mi_calificacion ?? null}
+                  onCalificar={handleCalificar}
+                />
               </div>
             </div>
 

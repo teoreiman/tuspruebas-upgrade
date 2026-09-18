@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { getUser, clearSession } from "../services/Auth";
 import Logo from "./logo";
+import NotificacionesBell from "./NotificacionesBell";
 
 const C = {
   bg: "#0a0e1a", bgCard: "#111827", border: "rgba(255,255,255,0.07)",
@@ -21,10 +22,13 @@ export default function Perfil() {
       <nav style={{ position: "sticky", top: 0, zIndex: 40, backgroundColor: "rgba(10,14,26,0.95)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.border}`, padding: "0 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" onClick={() => navigate("/home")} />
-          <motion.button onClick={() => navigate("/home")} whileHover={{ color: C.white }}
-            style={{ fontSize: "13px", color: C.gray, background: "none", border: "none", cursor: "pointer" }}>
-            ← Volver
-          </motion.button>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <NotificacionesBell />
+            <motion.button onClick={() => navigate("/home")} whileHover={{ color: C.white }}
+              style={{ fontSize: "13px", color: C.gray, background: "none", border: "none", cursor: "pointer" }}>
+              ← Volver
+            </motion.button>
+          </div>
         </div>
       </nav>
 
