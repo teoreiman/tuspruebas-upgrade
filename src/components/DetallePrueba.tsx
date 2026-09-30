@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { fetchPrueba, deletePrueba, calificarPrueba, type Prueba, type ArchivoPrueba } from "../services/Pruebas";
 import { useFavorito } from "../services/Favoritos";
 import { descargarArchivo } from "../services/Descargas";
+import { exportarPruebaComoPdf } from "../services/ExportarPdf";
 import { getUser, isAdmin, isSuperAdmin } from "../services/Auth";
 import Logo from "./logo";
 import NotificacionesBell from "./NotificacionesBell";
@@ -342,6 +343,8 @@ export default function DetallePrueba() {
   const [deleting, setDeleting] = useState(false);
   const [descargando, setDescargando] = useState(false);
   const [errorDescarga, setErrorDescarga] = useState("");
+  const [exportandoPdf, setExportandoPdf] = useState(false);
+  const [errorExportar, setErrorExportar] = useState("");
   const [pagina, setPagina] = useState(0);
   const user = getUser();
 
@@ -393,6 +396,20 @@ export default function DetallePrueba() {
   };
 
   const puedeEliminar = !!prueba && !!user && (user.id === prueba.usuario_id || isAdmin() || isSuperAdmin());
+  const fotosImagen = archivos.filter((a) => a.tipo === "image");
+
+  const handleExportarPdf = async () => {
+    if (!prueba || exportandoPdf) return;
+    setExportandoPdf(true);
+    setErrorExportar("");
+    try {
+      await exportarPruebaComoPdf(prueba);
+    } catch (e) {
+      setErrorExportar(e instanceof Error ? e.message : "No se pudo exportar el PDF");
+    } finally {
+      setExportandoPdf(false);
+    }
+  };
 
   const handleCalificar = async (puntaje: number | null) => {
     if (!prueba) return;
@@ -554,6 +571,32 @@ export default function DetallePrueba() {
                 </motion.button>
               )}
 
+              {/* Exportar a PDF: solo tiene sentido con varias fotos — una
+                  sola página ya se descarga tal cual con el botón de arriba. */}
+              {fotosImagen.length > 1 && (
+                <motion.button
+                  onClick={handleExportarPdf}
+                  disabled={exportandoPdf}
+                  whileHover={{ borderColor: exportandoPdf ? undefined : C.blue, color: C.white }}
+                  whileTap={{ scale: 0.97 }}
+                  title="Junta todas las páginas en un solo PDF"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "7px",
+                    padding: "10px 14px", borderRadius: "10px",
+                    border: `1.5px solid ${C.border}`,
+                    backgroundColor: "transparent",
+                    color: C.text,
+                    fontWeight: 600, fontSize: "13px",
+                    cursor: exportandoPdf ? "default" : "pointer", transition: "all 0.2s",
+                    fontFamily: "'DM Sans', sans-serif",
+                    opacity: exportandoPdf ? 0.6 : 1,
+                  }}
+                >
+                  <IconoDescarga />
+                  {exportandoPdf ? "Generando PDF..." : "Exportar a PDF"}
+                </motion.button>
+              )}
+
               {/* Eliminar */}
               {puedeEliminar && (
                 <motion.button
@@ -586,9 +629,9 @@ export default function DetallePrueba() {
             </div>
           </div>
 
-          {(errorDescarga || errorFav) && (
+          {(errorDescarga || errorFav || errorExportar) && (
             <div style={{ marginBottom: "20px", padding: "11px 14px", backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "9px", fontSize: "13px", color: "#f87171" }}>
-              {errorDescarga || errorFav}
+              {errorDescarga || errorFav || errorExportar}
             </div>
           )}
 

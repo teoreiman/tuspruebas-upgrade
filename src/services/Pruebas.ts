@@ -129,7 +129,7 @@ export const MAX_ARCHIVO_BYTES = 10 * 1024 * 1024;
 
 // Comprime una imagen usando canvas y devuelve un data URL JPEG que entre
 // dentro de maxBytes. No requiere ningún servicio externo.
-async function compressImageToBase64(file: File, maxBytes: number = MAX_DATA_URL_BYTES): Promise<string> {
+export async function compressImageToBase64(file: File, maxBytes: number = MAX_DATA_URL_BYTES): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
@@ -252,6 +252,34 @@ export async function uploadFilesToCloud(files: File[]): Promise<ArchivoPrueba[]
     resultados.push(await uploadFileToCloud(file, maxBytes));
   }
   return resultados;
+}
+
+// ── Detección de duplicados (subida + moderación) ─────────────────────────────
+// Rango Unicode de marcas diacríticas combinantes (0x0300-0x036f), armado con
+// fromCharCode para no depender de escribir esos caracteres literales.
+const DIACRITICOS = new RegExp(`[${String.fromCharCode(0x0300)}-${String.fromCharCode(0x036f)}]`, "g");
+
+export function normalizarTexto(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(DIACRITICOS, "").trim();
+}
+
+// Busca, dentro de `candidatas`, las que tengan mismo colegio/año/materia y un
+// tema parecido (substring en cualquier dirección, sin importar tildes/mayúsculas).
+// Se usa tanto al subir (contra las aprobadas) como en el panel de admin (para
+// avisarle al moderador antes de aprobar un posible repetido).
+export function encontrarDuplicados(
+  candidatas: Prueba[],
+  datos: { escuela: string; año: string; materia: string; tema: string },
+  excluirId?: number
+): Prueba[] {
+  const tema = normalizarTexto(datos.tema);
+  if (!tema) return [];
+  return candidatas.filter((p) => {
+    if (excluirId && p.id === excluirId) return false;
+    if (p.escuela !== datos.escuela || p.año !== datos.año || p.materia !== datos.materia) return false;
+    const t = normalizarTexto(p.tema);
+    return t.length > 0 && (t.includes(tema) || tema.includes(t));
+  });
 }
 
 // ── Pruebas aprobadas (home) ──────────────────────────────────────────────────

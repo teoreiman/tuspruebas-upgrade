@@ -119,7 +119,7 @@ async function archivosComoPartes(contenido: Record<string, unknown>): Promise<P
   return partes.filter((p): p is ParteArchivo => p !== null);
 }
 
-function construirSystemPrompt(ctx: Contexto, prueba: Record<string, unknown> | null): string {
+function construirSystemPrompt(ctx: Contexto, prueba: Record<string, unknown> | null, modoCorreccion: boolean): string {
   const c = prueba ? safeJson(prueba.contenido) : {};
   const preguntas = typeof c.preguntas === "string" ? c.preguntas.trim() : "";
   const notas = typeof c.notas === "string" ? c.notas.trim() : "";
@@ -184,6 +184,18 @@ function construirSystemPrompt(ctx: Contexto, prueba: Record<string, unknown> | 
       ``,
       `Si además te adjuntan la foto de la prueba, leela con atención: transcribí cada consigna antes de resolverla para no confundir números ni signos.`
     );
+
+    if (modoCorreccion) {
+      partes.push(
+        ``,
+        `MODO CORRECCIÓN`,
+        `El estudiante adjuntó, además de la prueba, una foto de SU PROPIA respuesta ya resuelta a mano (es la última imagen que te llega). Tu tarea es corregirla:`,
+        `- Identificá cada ejercicio resuelto y decí si está bien, mal, o parcialmente bien.`,
+        `- Para lo que esté mal, explicá cuál fue el error y cómo se resuelve correctamente.`,
+        `- Citá el ejercicio (a, b, 1, 2...) antes de cada comentario, para que sepa a cuál te referís.`,
+        `- Cerrá con un resumen corto: cuántos están bien, cuántos mal, sobre el total.`
+      );
+    }
   }
 
   return partes.join("\n");
@@ -297,6 +309,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pruebaId = Number(pruebaIdRaw);
   const conversacionIdRaw = body.conversacion_id;
 
+  // "Corregir mi respuesta": foto de lo que el estudiante ya resolvió a mano.
+  const imagenRespuestaRaw = body.imagen_respuesta;
+  const imagenRespuesta = typeof imagenRespuestaRaw === "string" && imagenRespuestaRaw.startsWith("data:image")
+    ? imagenRespuestaRaw
+    : null;
+
   const limpios = mensajes
     .filter((m) => typeof m?.content === "string" && m.content.trim())
     .slice(-20); // sólo las últimas vueltas: alcanza y no infla el pedido
@@ -310,6 +328,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (Number.isInteger(pruebaId) && pruebaId > 0) {
       const { rows } = await pool.query("SELECT * FROM pruebas WHERE id = $1", [pruebaId]);
       prueba = rows[0] ?? null;
+    }
+
+    // Corregir solo tiene sentido con una prueba cargada: si no, no hay nada
+    // contra qué comparar la respuesta del estudiante.
+    if (imagenRespuesta && !prueba) {
+      return res.status(400).json({ message: "Para corregir una respuesta necesitás tener una prueba cargada." });
     }
 
     // El historial se guarda solo (como en Claude/ChatGPT): el último mensaje
@@ -334,6 +358,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const contenido = prueba ? safeJson(prueba.contenido) : {};
     const partesArchivo = prueba ? await archivosComoPartes(contenido) : [];
+    // La foto de la respuesta del estudiante va última: así el modelo lee
+    // primero la prueba (consignas) y recién después lo que el alumno escribió.
+    if (imagenRespuesta) {
+      const parteRespuesta = await archivoComoParte(imagenRespuesta, "image");
+      if (parteRespuesta) partesArchivo.push(parteRespuesta);
+    }
 
     const contents = limpios.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
@@ -347,7 +377,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (primerUsuario) primerUsuario.parts.unshift(...partesArchivo);
     }
 
-    const systemPrompt = construirSystemPrompt(contexto, prueba);
+    const systemPrompt = construirSystemPrompt(contexto, prueba, !!imagenRespuesta);
 
     let ultimoError = { status: 502, mensaje: "No se pudo contactar a la IA" };
 

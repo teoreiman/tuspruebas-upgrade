@@ -6,7 +6,7 @@ import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import { enviarMensajeIA, generarPruebaPractica } from "../services/Ia";
-import { fetchPrueba, fetchPruebas, type Prueba } from "../services/Pruebas";
+import { fetchPrueba, fetchPruebas, compressImageToBase64, esImagen, type Prueba } from "../services/Pruebas";
 import {
   listarConversaciones, obtenerConversacion, eliminarConversacion,
   type ConversacionResumen,
@@ -277,6 +277,7 @@ export default function IA() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileCorreccionRef = useRef<HTMLInputElement>(null);
 
   const materias = contexto.año ? MATERIAS_POR_AÑO[contexto.año] ?? [] : [];
   const sugerencias = prueba
@@ -550,6 +551,70 @@ export default function IA() {
     }
   };
 
+  // "Corregir mi respuesta": el estudiante sube una foto de lo que ya
+  // resolvió a mano, y la IA le dice qué está bien y qué no, contra la
+  // prueba cargada. Usa el mismo endpoint de chat que sendMessage, solo que
+  // con una imagen extra adjunta.
+  const MENSAJE_CORRECCION = "Corregime esta respuesta que ya resolví 📷";
+  const handleArchivoCorreccion = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite volver a elegir el mismo archivo después
+    if (!file || !prueba || loading || cargandoConversacion) return;
+
+    if (!esImagen(file)) {
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Para corregir necesito una foto de tu respuesta (no un PDF). Sacale una foto y probá de nuevo.",
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: MENSAJE_CORRECCION,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setLoading(true);
+
+    try {
+      const imagenRespuesta = await compressImageToBase64(file);
+      const historialMensajes = [...messages, userMsg]
+        .filter((m) => !m.id.startsWith("welcome"))
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const { reply, conversacionId: idDevuelto } = await enviarMensajeIA({
+        mensajes: historialMensajes,
+        contexto,
+        pruebaId: prueba.id,
+        conversacionId,
+        imagenRespuesta,
+      });
+
+      if (idDevuelto && idDevuelto !== conversacionId) setConversacionId(idDevuelto);
+      refrescarHistorial();
+
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: reply,
+        timestamp: new Date(),
+      }]);
+    } catch (e) {
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: e instanceof Error ? e.message : "No se pudo corregir la respuesta. Probá de nuevo.",
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -647,6 +712,31 @@ export default function IA() {
               >
                 Generar práctica
               </motion.button>
+            )}
+            {prueba && (
+              <>
+                <input
+                  ref={fileCorreccionRef}
+                  type="file"
+                  accept="image/*,.jpg,.jpeg,.jpe,.png,.webp,.heic,.heif,.avif,.bmp"
+                  onChange={handleArchivoCorreccion}
+                  style={{ display: "none" }}
+                />
+                <motion.button
+                  whileHover={{ backgroundColor: loading ? undefined : "rgba(255,255,255,0.05)" }}
+                  onClick={() => fileCorreccionRef.current?.click()}
+                  disabled={loading || cargandoConversacion}
+                  title="Subí una foto de tu respuesta ya resuelta para que la IA te diga qué está bien y qué no"
+                  style={{
+                    fontSize: "12px", color: loading ? "rgba(255,255,255,0.25)" : C.gray, fontWeight: 500,
+                    padding: "6px 12px", borderRadius: "8px",
+                    border: `1px solid ${C.border}`, backgroundColor: "transparent",
+                    cursor: loading ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  Corregir mi respuesta
+                </motion.button>
+              </>
             )}
             <motion.button
               whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}

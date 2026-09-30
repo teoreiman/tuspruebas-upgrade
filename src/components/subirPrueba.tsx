@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUser } from "../services/Auth";
-import { uploadPrueba, fetchPruebas, esImagen, MAX_FOTO_BYTES, MAX_ARCHIVO_BYTES, MAX_PAGINAS, type Prueba } from "../services/Pruebas";
+import { uploadPrueba, fetchPruebas, encontrarDuplicados, esImagen, MAX_FOTO_BYTES, MAX_ARCHIVO_BYTES, MAX_PAGINAS, type Prueba } from "../services/Pruebas";
 import { notifyAdminNewPrueba } from "../services/Email";
 import Logo from "./logo";
 import NotificacionesBell from "./NotificacionesBell";
@@ -209,19 +209,10 @@ export default function SubirPrueba() {
       setDuplicados([]);
       return;
     }
-    // Rango Unicode de marcas diacríticas combinantes (0x0300-0x036f), armado
-    // con fromCharCode para no depender de escribir esos caracteres literales.
-    const DIACRITICOS = new RegExp(`[${String.fromCharCode(0x0300)}-${String.fromCharCode(0x036f)}]`, "g");
-    const normalizar = (s: string) => s.toLowerCase().normalize("NFD").replace(DIACRITICOS, "").trim();
-    const temaNorm = normalizar(tema);
     let cancelado = false;
     fetchPruebas({ escuela: form.colegio, año: form.año, materia: form.materia })
       .then((pruebas) => {
-        if (cancelado) return;
-        setDuplicados(pruebas.filter((p) => {
-          const t = normalizar(p.tema);
-          return t.length > 0 && (t.includes(temaNorm) || temaNorm.includes(t));
-        }));
+        if (!cancelado) setDuplicados(encontrarDuplicados(pruebas, { escuela: form.colegio, año: form.año, materia: form.materia, tema }));
       })
       .catch(() => !cancelado && setDuplicados([]));
     return () => { cancelado = true; };

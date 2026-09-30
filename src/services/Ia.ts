@@ -32,6 +32,10 @@ export async function enviarMensajeIA(params: {
   contexto: ContextoIA;
   pruebaId?: number | null;
   conversacionId?: number | null;
+  // "Corregir mi respuesta": foto de lo que el estudiante ya resolvió a mano,
+  // como data URL. El backend la adjunta después de la prueba y le pide a la
+  // IA que corrija en vez de resolver desde cero.
+  imagenRespuesta?: string | null;
 }): Promise<RespuestaIA> {
   const res = await apiFetch(`${API_URL}/ia`, {
     method: "POST",
@@ -41,6 +45,7 @@ export async function enviarMensajeIA(params: {
       contexto: params.contexto,
       prueba_id: params.pruebaId ?? null,
       conversacion_id: params.conversacionId ?? null,
+      imagen_respuesta: params.imagenRespuesta ?? null,
     }),
   });
 

@@ -5,6 +5,7 @@ import { getUser } from "../services/Auth";
 import {
   fetchAllPruebas,
   updatePruebaEstado,
+  encontrarDuplicados,
   Prueba,
   PruebaEstado,
 } from "../services/Pruebas";
@@ -28,10 +29,12 @@ function EstadoBadge({ estado }: { estado: string }) {
 // ── Prueba Card ───────────────────────────────────────────────────────────────
 function PruebaCard({
   prueba,
+  duplicados,
   onAprobar,
   onRechazar,
 }: {
   prueba: Prueba;
+  duplicados: Prueba[];
   onAprobar: (id: number) => void;
   onRechazar: (id: number) => void;
 }) {
@@ -68,6 +71,14 @@ function PruebaCard({
                 {prueba.materia} · {prueba.año}
               </span>
               <EstadoBadge estado={prueba.estado} />
+              {duplicados.length > 0 && (
+                <span
+                  title={`Se parece a: ${duplicados.map((d) => d.tema).join(", ")}`}
+                  style={{ fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", backgroundColor: "#fff7ed", color: "#c2410c" }}
+                >
+                  ⚠ Posible duplicado
+                </span>
+              )}
             </div>
             <p style={{ fontSize: "12px", color: "#9ca3af", marginTop: "2px" }}>
               {prueba.escuela} · Subido por <strong style={{ color: "#6b7280" }}>{prueba.usuario_nombre}</strong> · {fecha}
@@ -159,6 +170,23 @@ function PruebaCard({
                 ))}
               </div>
             </div>
+
+            {duplicados.length > 0 && (
+              <div style={{ margin: "0 20px 20px", padding: "12px 16px", backgroundColor: "#fff7ed", border: "1px solid #fed7aa", borderRadius: "10px" }}>
+                <p style={{ fontSize: "12px", fontWeight: 700, color: "#c2410c", marginBottom: "6px" }}>
+                  ⚠ Se parece a {duplicados.length === 1 ? "una prueba ya aprobada" : `${duplicados.length} pruebas ya aprobadas`} — revisá antes de aprobar:
+                </p>
+                <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                  {duplicados.slice(0, 3).map((d) => (
+                    <li key={d.id} style={{ fontSize: "12px" }}>
+                      <a href={`/prueba/${d.id}`} target="_blank" rel="noreferrer" style={{ color: "#c2410c" }}>
+                        {d.tema} — Prof. {d.profesor || "sin profesor indicado"}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Contenido completo de la prueba */}
             <div style={{ padding: "0 20px 20px" }}>
@@ -341,6 +369,9 @@ export default function AdminPanel() {
   };
 
   const shown = filtro === "todas" ? pruebas : pruebas.filter((p) => p.estado === filtro);
+  // Solo tiene sentido avisar sobre pruebas pendientes (contra lo que ya está
+  // aprobado) — una aprobada o rechazada no necesita este chequeo.
+  const aprobadas = pruebas.filter((p) => p.estado === "aprobada");
   const counts = {
     pendiente: pruebas.filter((p) => p.estado === "pendiente").length,
     aprobada:  pruebas.filter((p) => p.estado === "aprobada" ).length,
@@ -470,6 +501,7 @@ export default function AdminPanel() {
                   <PruebaCard
                     key={p.id}
                     prueba={p}
+                    duplicados={p.estado === "pendiente" ? encontrarDuplicados(aprobadas, p, p.id) : []}
                     onAprobar={loadingId === p.id ? () => {} : handleAprobar}
                     onRechazar={loadingId === p.id ? () => {} : handleRechazar}
                   />
