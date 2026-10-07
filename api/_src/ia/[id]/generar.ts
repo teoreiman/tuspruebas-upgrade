@@ -19,9 +19,13 @@ function apiKey(): string | null {
   return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || null;
 }
 
+// gemini-2.5-flash y gemini-2.0-flash quedaron dados de baja (Google empezó a
+// responder 404 "no longer available", confirmado en prod el 07/10/2026).
+// Verificado contra la API antes de hardcodear — no de memoria, los modelos de
+// Gemini rotan seguido.
 function modelosACandidatos(): string[] {
   const preferido = process.env.GEMINI_MODEL?.trim();
-  const lista = [preferido, "gemini-2.5-flash", "gemini-2.0-flash"].filter(Boolean) as string[];
+  const lista = [preferido, "gemini-3.8-flash", "gemini-3.6-flash"].filter(Boolean) as string[];
   return [...new Set(lista)];
 }
 
