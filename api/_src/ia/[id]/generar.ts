@@ -8,7 +8,9 @@ import { crearConversacion, agregarMensaje, conversacionPerteneceA } from "../..
 export const config = { maxDuration: 60 };
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const TIMEOUT_MS = 45_000;
+// Con foto (modo visión) medimos respuestas reales de 20-48s. Dejamos margen
+// bajo el maxDuration de 60s de la función.
+const TIMEOUT_MS = 55_000;
 const MAX_ARCHIVO_BYTES = 15 * 1024 * 1024;
 
 interface ParteArchivo {

@@ -10,7 +10,10 @@ import { crearConversacion, agregarMensaje, conversacionPerteneceA } from "./lib
 export const config = { maxDuration: 60 };
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const TIMEOUT_MS = 45_000;
+// Con foto (modo visión) medimos respuestas reales de 20-48s. Dejamos margen
+// bajo el maxDuration de 60s de la función (unos segundos para parsear el
+// body, escribir en la base y serializar la respuesta).
+const TIMEOUT_MS = 55_000;
 const MAX_ARCHIVO_BYTES = 15 * 1024 * 1024;
 
 // Materias donde las respuestas suelen tener fórmulas/cálculos: ahí conviene
@@ -386,11 +389,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let ultimoError = { status: 502, mensaje: "No se pudo contactar a la IA" };
 
     for (const modelo of modelosACandidatos()) {
-      // Los modelos 2.5 "piensan" antes de responder: con el presupuesto de
-      // pensamiento en 0 responden más rápido y no se comen el límite de tokens
-      // antes de escribir la respuesta. Si el modelo no soporta la opción,
-      // reintentamos sin ella.
-      let sinPensamiento = /2\.5-flash/.test(modelo);
+      // Los modelos "flash" piensan antes de responder (no solo el viejo 2.5):
+      // con el presupuesto de pensamiento en 0 responden más rápido y no se
+      // comen el límite de tokens antes de escribir la respuesta. No hace daño
+      // intentarlo siempre — si el modelo no soporta la opción, el catch de
+      // abajo reintenta sin ella.
+      let sinPensamiento = /flash/.test(modelo);
       let seguirConOtroModelo = true;
 
       for (let intento = 0; intento < 2; intento++) {
