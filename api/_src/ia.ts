@@ -47,6 +47,25 @@ function apiKey(): string | null {
   );
 }
 
+// Respaldo: antes de pelearse con los modelos de Gemini, probamos NVIDIA una
+// vez (mismo proveedor que ya usa el backend Express local). Si NVIDIA_API_KEY
+// no está configurada en Vercel, este bloque no hace nada y el chat sigue
+// funcionando solo con Gemini como hasta ahora.
+function nvidiaApiKey(): string | null {
+  return process.env.NVIDIA_API_KEY || null;
+}
+
+// "meta/llama-3.1-8b-instruct" y "nvidia/nemotron-nano-12b-v2-vl" (los que usa
+// el Express local) están dados de baja/inexistentes en esta cuenta gratuita.
+// Probé contra la API real el 19/10/2026: de 8 modelos candidatos (chat y
+// visión), 7 dieron 404 "Not found for account" (la cuenta free no tiene
+// acceso) y uno solo respondió bien — y sirve para los dos casos, texto y
+// foto, en menos de 1 segundo. Por eso un solo modelo para ambos en vez de
+// uno por caso.
+function modeloNvidia(_hayImagenes: boolean): string {
+  return process.env.NVIDIA_MODEL_VISION || process.env.NVIDIA_MODEL_CHAT || "meta/llama-3.2-11b-vision-instruct";
+}
+
 // gemini-2.0-flash quedó dado de baja (Google responde 404 "no longer
 // available", confirmado en prod el 07/10/2026). Lista de candidatos más
 // larga a propósito: cuando Gemini satura uno (503 "high demand", confirmado
@@ -119,6 +138,21 @@ async function archivoComoParte(
   } catch {
     return null;
   }
+}
+
+/**
+ * URLs de las fotos de la prueba, tal cual están guardadas (data: URL o, para
+ * las viejas, una URL http subida a Cloudinary). A diferencia de
+ * archivosComoPartes (que arma el formato inlineData de Gemini), estas sirven
+ * directo para la API de NVIDIA (formato OpenAI: image_url.url acepta las dos).
+ */
+function urlsDeImagenes(contenido: Record<string, unknown>): string[] {
+  const lista = Array.isArray(contenido.archivos)
+    ? (contenido.archivos as Record<string, unknown>[])
+    : [{ url: contenido.archivo_url, tipo: contenido.archivo_tipo }];
+  return lista
+    .filter((a) => a.tipo === "image" && typeof a.url === "string" && a.url)
+    .map((a) => a.url as string);
 }
 
 /** Todas las fotos de la prueba (puede tener varias hojas) como partes de Gemini. */
@@ -296,11 +330,79 @@ async function llamarGemini(
   }
 }
 
+async function llamarNvidia(
+  modelo: string,
+  key: string,
+  mensajes: unknown,
+  maxTokens: number,
+  timeoutMs: number
+): Promise<ResultadoGemini> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: modelo, messages: mensajes, temperature: 0.7, max_tokens: maxTokens }),
+      signal: controller.signal,
+    });
+
+    const data = (await res.json().catch(() => null)) as
+      | { choices?: { message?: { content?: string } }[]; error?: { message?: string } }
+      | null;
+
+    if (!res.ok) {
+      return { ok: false, texto: "", status: res.status, mensaje: data?.error?.message || `NVIDIA respondió ${res.status}` };
+    }
+
+    const texto = data?.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!texto) return { ok: false, texto: "", status: 200, mensaje: "NVIDIA devolvió una respuesta vacía" };
+
+    return { ok: true, texto, status: 200, mensaje: "" };
+  } catch (e) {
+    const abortada = (e as { name?: string })?.name === "AbortError";
+    return {
+      ok: false,
+      texto: "",
+      status: abortada ? 504 : 502,
+      mensaje: abortada ? "NVIDIA tardó demasiado en responder." : `No se pudo contactar a NVIDIA: ${(e as Error).message}`,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Mismos mensajes que van a Gemini, pero en formato OpenAI (role/content),
+ * que es lo que espera la API de NVIDIA. Las fotos van en el primer turno del
+ * usuario, igual que con Gemini. */
+function mensajesParaNvidia(limpios: MensajeCliente[], systemPrompt: string, imagenesUrls: string[]): unknown[] {
+  const mensajes: Record<string, unknown>[] = [{ role: "system", content: systemPrompt }];
+  let fotoYaAdjuntada = false;
+  for (const m of limpios) {
+    const role = m.role === "assistant" ? "assistant" : "user";
+    if (imagenesUrls.length > 0 && role === "user" && !fotoYaAdjuntada) {
+      fotoYaAdjuntada = true;
+      mensajes.push({
+        role,
+        content: [
+          { type: "text", text: m.content!.trim() },
+          ...imagenesUrls.map((url) => ({ type: "image_url", image_url: { url } })),
+        ],
+      });
+    } else {
+      mensajes.push({ role, content: m.content!.trim() });
+    }
+  }
+  return mensajes;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Reloj propio para repartir el tiempo entre varios modelos sin pasarnos del
-  // maxDuration de la función (60s): si no, Vercel corta en seco a mitad de
-  // un intento en vez de devolver un error prolijo.
+  // Reloj propio para repartir el tiempo entre NVIDIA y varios modelos de
+  // Gemini sin pasarnos del maxDuration de la función (60s): si no, Vercel
+  // corta en seco a mitad de un intento en vez de devolver un error prolijo.
   const inicio = Date.now();
+  const PRESUPUESTO_MS = 52_000;
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 
   const user = getAuthUser(req);
@@ -384,6 +486,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (parteRespuesta) partesArchivo.push(parteRespuesta);
     }
 
+    // Mismas fotos, pero como URLs directas (para NVIDIA, que no necesita el
+    // formato inlineData de Gemini).
+    const imagenesUrls = prueba ? urlsDeImagenes(contenido) : [];
+    if (imagenRespuesta) imagenesUrls.push(imagenRespuesta);
+
     const contents = limpios.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content!.trim() }] as ({ text: string } | ParteArchivo)[],
@@ -398,13 +505,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const systemPrompt = construirSystemPrompt(contexto, prueba, !!imagenRespuesta);
 
-    let ultimoError = { status: 502, mensaje: "No se pudo contactar a la IA" };
+    // NVIDIA como primer intento, si está configurada: mismo proveedor que ya
+    // usa el backend Express local. Sin estado de cooldown entre pedidos (cada
+    // invocación de Vercel puede ser una instancia nueva, así que no serviría
+    // de nada) — un timeout corto alcanza para no comerse medio presupuesto si
+    // NVIDIA está caída, y si falla simplemente seguimos de largo al cascade
+    // de Gemini de abajo, sin cortar la respuesta.
+    const nvidiaKey = nvidiaApiKey();
+    if (nvidiaKey) {
+      const restanteNvidia = PRESUPUESTO_MS - (Date.now() - inicio);
+      if (restanteNvidia > 8_000) {
+        const modelo = modeloNvidia(imagenesUrls.length > 0);
+        const mensajesNvidia = mensajesParaNvidia(limpios, systemPrompt, imagenesUrls);
+        const r = await llamarNvidia(modelo, nvidiaKey, mensajesNvidia, 4096, Math.min(20_000, restanteNvidia));
+        if (r.ok) {
+          await registrarUso(user.id).catch(() => {});
+          await agregarMensaje(conversacionId, "assistant", r.texto).catch(() => {});
+          return res.status(200).json({
+            reply: r.texto,
+            modelo: `nvidia/${modelo}`,
+            conversacion_id: conversacionId,
+            usados: usados + 1,
+            limite: LIMITE_DIARIO,
+          });
+        }
+      }
+    }
 
-    // Margen bajo el maxDuration de 60s de la función: si ya gastamos más de
-    // esto entre la cola de Postgres y los modelos ya probados, ni vale la
-    // pena arrancar otro intento — Vercel cortaría en seco a mitad de camino,
-    // que es peor que nuestro propio mensaje de error prolijo.
-    const PRESUPUESTO_MS = 52_000;
+    let ultimoError = { status: 502, mensaje: "No se pudo contactar a la IA" };
 
     for (const modelo of modelosACandidatos()) {
       const restante = PRESUPUESTO_MS - (Date.now() - inicio);
