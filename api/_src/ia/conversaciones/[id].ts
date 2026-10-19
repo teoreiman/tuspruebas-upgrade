@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAuthUser } from "../../lib/auth.js";
-import { obtenerConversacionConMensajes, eliminarConversacion } from "../../lib/conversaciones.js";
+import { obtenerConversacionConMensajes, renombrarConversacion, eliminarConversacion } from "../../lib/conversaciones.js";
 
 // GET /api/ia/conversaciones/:id — un chat completo con todos sus mensajes.
 // DELETE /api/ia/conversaciones/:id
@@ -21,6 +21,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (e) {
       console.error("ia/conversaciones/[id] GET:", e);
       return res.status(500).json({ message: "Error al obtener la conversación" });
+    }
+  }
+
+  if (req.method === "PATCH") {
+    try {
+      const raw = req.body;
+      const body = (typeof raw === "object" && raw ? raw : JSON.parse((raw as string) || "{}")) as { titulo?: unknown };
+      const titulo = typeof body.titulo === "string" ? body.titulo.trim() : "";
+      if (!titulo) return res.status(400).json({ message: "El nombre no puede estar vacío" });
+
+      // Mismo límite que la columna (VARCHAR(120)): cortamos acá para no
+      // depender de que Postgres tire el error.
+      const renombrada = await renombrarConversacion(id, user.id, titulo.slice(0, 120));
+      if (!renombrada) return res.status(404).json({ message: "Conversación no encontrada" });
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      console.error("ia/conversaciones/[id] PATCH:", e);
+      return res.status(500).json({ message: "Error al renombrar la conversación" });
     }
   }
 

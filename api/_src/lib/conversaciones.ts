@@ -136,6 +136,15 @@ export async function obtenerConversacionConMensajes(
   return { ...convRows[0], mensajes };
 }
 
+export async function renombrarConversacion(conversacionId: number, usuarioId: number, titulo: string): Promise<boolean> {
+  await ensureConversacionesTables();
+  const { rowCount } = await pool.query(
+    "UPDATE conversaciones SET titulo = $1 WHERE id = $2 AND usuario_id = $3",
+    [titulo, conversacionId, usuarioId]
+  );
+  return (rowCount ?? 0) > 0;
+}
+
 export async function eliminarConversacion(conversacionId: number, usuarioId: number): Promise<boolean> {
   await ensureConversacionesTables();
   const { rowCount } = await pool.query(

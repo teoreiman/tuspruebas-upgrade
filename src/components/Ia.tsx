@@ -8,7 +8,7 @@ import rehypeKatex from "rehype-katex";
 import { enviarMensajeIA, generarPruebaPractica } from "../services/Ia";
 import { fetchPrueba, fetchPruebas, compressImageToBase64, esImagen, type Prueba } from "../services/Pruebas";
 import {
-  listarConversaciones, obtenerConversacion, eliminarConversacion,
+  listarConversaciones, obtenerConversacion, renombrarConversacion, eliminarConversacion,
   type ConversacionResumen,
 } from "../services/Conversaciones";
 import Logo from "./logo";
@@ -266,6 +266,10 @@ export default function IA() {
   const [cargandoConversacion, setCargandoConversacion] = useState(false);
   const [imagenAbierta, setImagenAbierta] = useState(false);
   const [paginaImagen, setPaginaImagen] = useState(0);
+  // Menú "⋮" de cada chat del historial (Renombrar / Borrar): guarda el id
+  // del chat cuyo menú está abierto, o null si ninguno.
+  const [menuChatAbierto, setMenuChatAbierto] = useState<number | null>(null);
+  const menuChatRef = useRef<HTMLDivElement>(null);
   const fotosDePrueba = (prueba?.archivos ?? []).filter((a) => a.tipo === "image");
 
   // ── Buscador de pruebas dentro del contexto: el panel "Contexto de estudio"
@@ -438,6 +442,7 @@ export default function IA() {
 
   const borrarConversacion = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    setMenuChatAbierto(null);
     if (!window.confirm("¿Borrar esta conversación? No se puede deshacer.")) return;
     try {
       await eliminarConversacion(id);
@@ -448,6 +453,31 @@ export default function IA() {
       // hace falta un manejo especial más allá de no romper la UI.
     }
   };
+
+  const renombrarChat = async (c: ConversacionResumen, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuChatAbierto(null);
+    const nuevoTitulo = window.prompt("Nuevo nombre para el chat:", c.titulo)?.trim();
+    if (!nuevoTitulo || nuevoTitulo === c.titulo) return;
+    // Optimista: el nombre nuevo se ve al toque, y si falla el pedido se
+    // revierte solo (el catch deja el título viejo en el estado).
+    setHistorial((prev) => prev.map((h) => (h.id === c.id ? { ...h, titulo: nuevoTitulo } : h)));
+    try {
+      await renombrarConversacion(c.id, nuevoTitulo);
+    } catch {
+      setHistorial((prev) => prev.map((h) => (h.id === c.id ? { ...h, titulo: c.titulo } : h)));
+    }
+  };
+
+  // Cerrar el menú "⋮" al hacer clic afuera.
+  useEffect(() => {
+    if (menuChatAbierto === null) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuChatRef.current && !menuChatRef.current.contains(e.target as Node)) setMenuChatAbierto(null);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [menuChatAbierto]);
 
   const setCtx = (key: keyof Contexto, val: string) => {
     setContexto((prev) => {
@@ -855,16 +885,60 @@ export default function IA() {
                             </p>
                           )}
                         </div>
-                        <button
-                          onClick={(e) => borrarConversacion(c.id, e)}
-                          title="Borrar conversación"
-                          style={{
-                            flexShrink: 0, background: "none", border: "none", cursor: "pointer",
-                            color: "rgba(255,255,255,0.2)", fontSize: "13px", padding: "2px 4px",
-                          }}
-                        >
-                          ✕
-                        </button>
+                        <div style={{ position: "relative", flexShrink: 0 }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setMenuChatAbierto(menuChatAbierto === c.id ? null : c.id); }}
+                            title="Más opciones"
+                            style={{
+                              background: "none", border: "none", cursor: "pointer",
+                              color: "rgba(255,255,255,0.3)", fontSize: "15px", padding: "2px 5px",
+                              borderRadius: "5px", lineHeight: 1,
+                            }}
+                          >
+                            ⋮
+                          </button>
+                          <AnimatePresence>
+                            {menuChatAbierto === c.id && (
+                              <motion.div
+                                ref={menuChatRef}
+                                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.12 }}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  position: "absolute", top: "26px", right: 0, zIndex: 50,
+                                  backgroundColor: C.bgCard, border: `1px solid ${C.border}`,
+                                  borderRadius: "9px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                                  minWidth: "150px", overflow: "hidden", padding: "4px",
+                                }}
+                              >
+                                <motion.button
+                                  whileHover={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                                  onClick={(e) => renombrarChat(c, e)}
+                                  style={{
+                                    width: "100%", padding: "8px 10px", border: "none", borderRadius: "6px",
+                                    backgroundColor: "transparent", color: C.text, fontSize: "12.5px",
+                                    fontWeight: 500, textAlign: "left", cursor: "pointer",
+                                    fontFamily: "'DM Sans', sans-serif", display: "block",
+                                  }}
+                                >
+                                  Renombrar chat
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ backgroundColor: "rgba(239,68,68,0.1)" }}
+                                  onClick={(e) => borrarConversacion(c.id, e)}
+                                  style={{
+                                    width: "100%", padding: "8px 10px", border: "none", borderRadius: "6px",
+                                    backgroundColor: "transparent", color: "#f87171", fontSize: "12.5px",
+                                    fontWeight: 500, textAlign: "left", cursor: "pointer",
+                                    fontFamily: "'DM Sans', sans-serif", display: "block",
+                                  }}
+                                >
+                                  Borrar chat
+                                </motion.button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       </motion.div>
                     );
                   })}

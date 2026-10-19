@@ -58,6 +58,15 @@ export async function obtenerConversacion(id: number): Promise<ConversacionCompl
   return { ...mapResumen(raw), mensajes };
 }
 
+export async function renombrarConversacion(id: number, titulo: string): Promise<void> {
+  const res = await apiFetch(`${API_URL}/ia/conversaciones/${id}`, {
+    method: "PATCH",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ titulo }),
+  });
+  if (!res.ok) throw new Error(await mensajeDeError(res, "No se pudo renombrar la conversación"));
+}
+
 export async function eliminarConversacion(id: number): Promise<void> {
   const res = await apiFetch(`${API_URL}/ia/conversaciones/${id}`, {
     method: "DELETE",
