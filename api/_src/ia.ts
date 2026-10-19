@@ -47,13 +47,20 @@ function apiKey(): string | null {
   );
 }
 
-// gemini-2.5-flash y gemini-2.0-flash quedaron dados de baja (Google empezó a
-// responder 404 "no longer available", confirmado en prod el 07/10/2026).
-// Verificado contra la API antes de hardcodear — no de memoria, los modelos de
-// Gemini rotan seguido.
+// gemini-2.0-flash quedó dado de baja (Google responde 404 "no longer
+// available", confirmado en prod el 07/10/2026). Lista de candidatos más
+// larga a propósito: cuando Gemini satura uno (503 "high demand", confirmado
+// el 19/10/2026 en varios modelos a la vez) el handler ahora sigue probando
+// el siguiente en vez de rendirse. "gemini-flash-latest" va al final como red
+// de contención — Google lo apunta siempre al flash recomendado del momento.
+// Verificado contra la API antes de hardcodear — no de memoria, los modelos
+// de Gemini rotan seguido.
 function modelosACandidatos(): string[] {
   const preferido = process.env.GEMINI_MODEL?.trim();
-  const lista = [preferido, "gemini-3.8-flash", "gemini-3.6-flash"].filter(Boolean) as string[];
+  const lista = [
+    preferido, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash",
+    "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest",
+  ].filter(Boolean) as string[];
   return [...new Set(lista)];
 }
 
@@ -225,10 +232,11 @@ type ResultadoGemini = { ok: boolean; texto: string; status: number; mensaje: st
 async function llamarGemini(
   modelo: string,
   key: string,
-  payload: unknown
+  payload: unknown,
+  timeoutMs: number = TIMEOUT_MS
 ): Promise<ResultadoGemini> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(`${GEMINI_URL}/${encodeURIComponent(modelo)}:generateContent?key=${key}`, {
@@ -289,6 +297,10 @@ async function llamarGemini(
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Reloj propio para repartir el tiempo entre varios modelos sin pasarnos del
+  // maxDuration de la función (60s): si no, Vercel corta en seco a mitad de
+  // un intento en vez de devolver un error prolijo.
+  const inicio = Date.now();
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 
   const user = getAuthUser(req);
@@ -388,7 +400,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let ultimoError = { status: 502, mensaje: "No se pudo contactar a la IA" };
 
+    // Margen bajo el maxDuration de 60s de la función: si ya gastamos más de
+    // esto entre la cola de Postgres y los modelos ya probados, ni vale la
+    // pena arrancar otro intento — Vercel cortaría en seco a mitad de camino,
+    // que es peor que nuestro propio mensaje de error prolijo.
+    const PRESUPUESTO_MS = 52_000;
+
     for (const modelo of modelosACandidatos()) {
+      const restante = PRESUPUESTO_MS - (Date.now() - inicio);
+      if (restante < 5_000) break;
+
       // Los modelos "flash" piensan antes de responder (no solo el viejo 2.5):
       // con el presupuesto de pensamiento en 0 responden más rápido y no se
       // comen el límite de tokens antes de escribir la respuesta. No hace daño
@@ -409,7 +430,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
         };
 
-        const r = await llamarGemini(modelo, key, payload);
+        const timeoutEsteIntento = Math.min(TIMEOUT_MS, PRESUPUESTO_MS - (Date.now() - inicio));
+        const r = await llamarGemini(modelo, key, payload, timeoutEsteIntento);
         if (r.ok) {
           // Se cuenta recién si la IA respondió bien: un error nuestro o de la
           // API no debería gastarle cupo al estudiante.
@@ -431,9 +453,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           continue;
         }
 
-        // 404 / modelo inexistente: probamos el siguiente de la lista.
-        seguirConOtroModelo =
-          r.status === 404 || /not found|not supported|is not available/i.test(r.mensaje);
+        // Modelo inexistente/dado de baja, o saturado (503/429 "high demand",
+        // "overloaded"): en los dos casos probamos el siguiente de la lista —
+        // antes solo cascadeaba en el primer caso, así que un modelo saturado
+        // cortaba la respuesta en seco en vez de probar otro.
+        const modeloInvalido = r.status === 404 || /not found|not supported|is not available/i.test(r.mensaje);
+        const saturado = r.status === 503 || r.status === 429 || /high demand|overloaded|unavailable/i.test(r.mensaje);
+        seguirConOtroModelo = modeloInvalido || saturado;
         break;
       }
 

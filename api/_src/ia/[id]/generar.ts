@@ -21,13 +21,18 @@ function apiKey(): string | null {
   return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || null;
 }
 
-// gemini-2.5-flash y gemini-2.0-flash quedaron dados de baja (Google empezó a
-// responder 404 "no longer available", confirmado en prod el 07/10/2026).
-// Verificado contra la API antes de hardcodear — no de memoria, los modelos de
-// Gemini rotan seguido.
+// gemini-2.0-flash quedó dado de baja (Google responde 404 "no longer
+// available", confirmado en prod el 07/10/2026). Lista más larga a propósito:
+// cuando Gemini satura uno (503 "high demand", confirmado el 19/10/2026 en
+// varios modelos a la vez) el handler sigue probando el siguiente.
+// Verificado contra la API antes de hardcodear — no de memoria, los modelos
+// de Gemini rotan seguido.
 function modelosACandidatos(): string[] {
   const preferido = process.env.GEMINI_MODEL?.trim();
-  const lista = [preferido, "gemini-3.8-flash", "gemini-3.6-flash"].filter(Boolean) as string[];
+  const lista = [
+    preferido, "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash",
+    "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest",
+  ].filter(Boolean) as string[];
   return [...new Set(lista)];
 }
 
@@ -123,10 +128,11 @@ type ResultadoGemini = { ok: boolean; texto: string; status: number; mensaje: st
 async function llamarGemini(
   modelo: string,
   key: string,
-  payload: unknown
+  payload: unknown,
+  timeoutMs: number = TIMEOUT_MS
 ): Promise<ResultadoGemini> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(`${GEMINI_URL}/${encodeURIComponent(modelo)}:generateContent?key=${key}`, {
@@ -171,6 +177,9 @@ async function llamarGemini(
 // parecidos a los de la prueba, y lo deja guardado en la conversación para
 // poder seguir pidiendo ayuda o corrección ahí mismo después.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Reloj propio para repartir el tiempo entre varios modelos sin pasarnos del
+  // maxDuration de la función (60s).
+  const inicio = Date.now();
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 
   const user = getAuthUser(req);
@@ -226,18 +235,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const parts: ({ text: string } | ParteArchivo)[] = [{ text: prompt }, ...imagenes];
 
     let ultimoError = { status: 502, mensaje: "No se pudo contactar a la IA" };
+    const PRESUPUESTO_MS = 52_000;
 
     for (const modelo of modelosACandidatos()) {
+      const restante = PRESUPUESTO_MS - (Date.now() - inicio);
+      if (restante < 5_000) break;
+
       const payload = {
         contents: [{ role: "user", parts }],
         generationConfig: { temperature: 0.8, topP: 0.95, maxOutputTokens: 2048 },
       };
 
-      const r = await llamarGemini(modelo, key, payload);
+      const r = await llamarGemini(modelo, key, payload, Math.min(TIMEOUT_MS, restante));
       if (!r.ok) {
         ultimoError = { status: r.status, mensaje: r.mensaje };
-        const seguirConOtroModelo = r.status === 404 || /not found|not supported|is not available/i.test(r.mensaje);
-        if (seguirConOtroModelo) continue;
+        // Modelo dado de baja, o saturado (503/429 "high demand"/"overloaded"):
+        // en los dos casos probamos el siguiente — antes solo cascadeaba en
+        // el primer caso.
+        const modeloInvalido = r.status === 404 || /not found|not supported|is not available/i.test(r.mensaje);
+        const saturado = r.status === 503 || r.status === 429 || /high demand|overloaded|unavailable/i.test(r.mensaje);
+        if (modeloInvalido || saturado) continue;
         break;
       }
 
