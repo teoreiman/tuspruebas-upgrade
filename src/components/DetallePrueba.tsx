@@ -49,6 +49,16 @@ const IconoLupa = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
+const IconoCompartir = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>
+);
+
 // Visor a pantalla completa para mirar la foto en grande. Si hay varias
 // páginas, se puede seguir pasando de una a otra sin cerrar el zoom.
 function Lightbox({
@@ -398,6 +408,16 @@ export default function DetallePrueba() {
   const puedeEliminar = !!prueba && !!user && (user.id === prueba.usuario_id || isAdmin() || isSuperAdmin());
   const fotosImagen = archivos.filter((a) => a.tipo === "image");
 
+  // Arma el link con el dominio actual (funciona igual en producción que en
+  // local) y abre WhatsApp Web/app con el texto ya cargado.
+  const handleCompartir = () => {
+    if (!prueba) return;
+    const url = `${window.location.origin}/prueba/${prueba.id}`;
+    const detalle = [prueba.materia, prueba.tema].filter(Boolean).join(" - ");
+    const texto = `Mirá esta prueba${detalle ? ` de ${detalle}` : ""} (${prueba.escuela} ${prueba.año}) en tusPruebas: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+  };
+
   const handleExportarPdf = async () => {
     if (!prueba || exportandoPdf) return;
     setExportandoPdf(true);
@@ -546,6 +566,27 @@ export default function DetallePrueba() {
               >
                 <span style={{ fontSize: "16px" }}>{saved ? "★" : "☆"}</span>
                 {saved ? "Guardada" : "Guardar"}
+              </motion.button>
+
+              {/* Compartir por WhatsApp */}
+              <motion.button
+                whileHover={{ scale: 1.05, borderColor: "rgba(37,211,102,0.4)", color: "#25D366" }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleCompartir}
+                title="Compartir por WhatsApp"
+                style={{
+                  display: "flex", alignItems: "center", gap: "7px",
+                  padding: "10px 18px", borderRadius: "10px",
+                  border: `1.5px solid ${C.border}`,
+                  backgroundColor: "transparent",
+                  color: C.gray,
+                  fontWeight: 600, fontSize: "13px",
+                  cursor: "pointer", transition: "all 0.2s",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                <IconoCompartir />
+                Compartir
               </motion.button>
 
               {/* Descargar */}
