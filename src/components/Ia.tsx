@@ -443,7 +443,6 @@ export default function IA() {
   const borrarConversacion = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuChatAbierto(null);
-    if (!window.confirm("¿Borrar esta conversación? No se puede deshacer.")) return;
     try {
       await eliminarConversacion(id);
       setHistorial((prev) => prev.filter((c) => c.id !== id));
