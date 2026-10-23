@@ -511,13 +511,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // de nada) — un timeout corto alcanza para no comerse medio presupuesto si
     // NVIDIA está caída, y si falla simplemente seguimos de largo al cascade
     // de Gemini de abajo, sin cortar la respuesta.
+    // Diagnóstico temporal: por qué NVIDIA no contestó, para poder ver desde
+    // afuera (sin acceso a los logs de Vercel) si ni se intentó, si colgó, o
+    // si contestó con un error puntual. Viaja solo en la respuesta de error,
+    // nunca en una exitosa.
+    const diagNvidia: { configurada: boolean; intentada: boolean; ms: number | null; error: string | null } = {
+      configurada: false, intentada: false, ms: null, error: null,
+    };
+
     const nvidiaKey = nvidiaApiKey();
+    diagNvidia.configurada = !!nvidiaKey;
     if (nvidiaKey) {
       const restanteNvidia = PRESUPUESTO_MS - (Date.now() - inicio);
       if (restanteNvidia > 8_000) {
         const modelo = modeloNvidia(imagenesUrls.length > 0);
         const mensajesNvidia = mensajesParaNvidia(limpios, systemPrompt, imagenesUrls);
+        const t0Nvidia = Date.now();
+        diagNvidia.intentada = true;
         const r = await llamarNvidia(modelo, nvidiaKey, mensajesNvidia, 4096, Math.min(20_000, restanteNvidia));
+        diagNvidia.ms = Date.now() - t0Nvidia;
         if (r.ok) {
           await registrarUso(user.id).catch(() => {});
           await agregarMensaje(conversacionId, "assistant", r.texto).catch(() => {});
@@ -529,6 +541,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             limite: LIMITE_DIARIO,
           });
         }
+        diagNvidia.error = `${r.status} ${r.mensaje}`;
       }
     }
 
@@ -595,7 +608,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const status = ultimoError.status === 504 ? 504 : 502;
-    return res.status(status).json({ message: ultimoError.mensaje });
+    return res.status(status).json({ message: ultimoError.mensaje, debug_nvidia: diagNvidia });
   } catch (e) {
     console.error("ia:", e);
     return res.status(500).json({ message: "Error interno del servidor al consultar la IA" });
