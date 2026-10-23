@@ -355,6 +355,7 @@ export default function DetallePrueba() {
   const [errorDescarga, setErrorDescarga] = useState("");
   const [exportandoPdf, setExportandoPdf] = useState(false);
   const [errorExportar, setErrorExportar] = useState("");
+  const [copiadoCompartir, setCopiadoCompartir] = useState(false);
   const [pagina, setPagina] = useState(0);
   const user = getUser();
 
@@ -409,13 +410,35 @@ export default function DetallePrueba() {
   const fotosImagen = archivos.filter((a) => a.tipo === "image");
 
   // Arma el link con el dominio actual (funciona igual en producción que en
-  // local) y abre WhatsApp Web/app con el texto ya cargado.
-  const handleCompartir = () => {
+  // local). Antes abría wa.me directo, pero algunas redes (como la de un
+  // colegio) bloquean ese dominio y el botón quedaba roto ahí — ahora usa el
+  // share nativo del sistema (en el celu deja elegir WhatsApp o cualquier
+  // otra app, sin pasar por wa.me) y, si no está disponible, copia el texto
+  // al portapapeles en vez de depender de un dominio que puede estar bloqueado.
+  const handleCompartir = async () => {
     if (!prueba) return;
     const url = `${window.location.origin}/prueba/${prueba.id}`;
     const detalle = [prueba.materia, prueba.tema].filter(Boolean).join(" - ");
     const texto = `Mirá esta prueba${detalle ? ` de ${detalle}` : ""} (${prueba.escuela} ${prueba.año}) en tusPruebas: ${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: texto });
+        return;
+      } catch {
+        // Cancelado por el usuario, o no soportado en la práctica: seguimos
+        // con el fallback de copiar en vez de dejarlo sin nada.
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiadoCompartir(true);
+      setTimeout(() => setCopiadoCompartir(false), 2500);
+    } catch {
+      // Último recurso, por si tampoco hay clipboard disponible.
+      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+    }
   };
 
   const handleExportarPdf = async () => {
@@ -568,25 +591,25 @@ export default function DetallePrueba() {
                 {saved ? "Guardada" : "Guardar"}
               </motion.button>
 
-              {/* Compartir por WhatsApp */}
+              {/* Compartir */}
               <motion.button
-                whileHover={{ scale: 1.05, borderColor: "rgba(37,211,102,0.4)", color: "#25D366" }}
+                whileHover={{ scale: 1.05, borderColor: copiadoCompartir ? undefined : "rgba(37,211,102,0.4)", color: copiadoCompartir ? undefined : "#25D366" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleCompartir}
-                title="Compartir por WhatsApp"
+                title="Compartir (por WhatsApp, o copia el link si no se puede)"
                 style={{
                   display: "flex", alignItems: "center", gap: "7px",
                   padding: "10px 18px", borderRadius: "10px",
-                  border: `1.5px solid ${C.border}`,
-                  backgroundColor: "transparent",
-                  color: C.gray,
+                  border: `1.5px solid ${copiadoCompartir ? "rgba(52,211,153,0.4)" : C.border}`,
+                  backgroundColor: copiadoCompartir ? "rgba(16,185,129,0.1)" : "transparent",
+                  color: copiadoCompartir ? "#34d399" : C.gray,
                   fontWeight: 600, fontSize: "13px",
                   cursor: "pointer", transition: "all 0.2s",
                   fontFamily: "'DM Sans', sans-serif",
                 }}
               >
-                <IconoCompartir />
-                Compartir
+                {copiadoCompartir ? "✓" : <IconoCompartir />}
+                {copiadoCompartir ? "¡Copiado!" : "Compartir"}
               </motion.button>
 
               {/* Descargar */}
