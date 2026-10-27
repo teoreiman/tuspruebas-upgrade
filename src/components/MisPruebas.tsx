@@ -96,14 +96,12 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
         opacity: prueba.estado === "rechazada" ? 0.7 : 1,
       }}
     >
-      {/* Barra de color lateral */}
       <div style={{
         position: "absolute", left: 0, top: "16px", bottom: "16px",
         width: "3px", borderRadius: "0 3px 3px 0",
         backgroundColor: s.text, opacity: 0.55,
       }} />
 
-      {/* Cabecera: materia + estado + favorito */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", paddingLeft: "8px" }}>
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
           <span style={{
@@ -161,7 +159,6 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
         </div>
       </div>
 
-      {/* Preview imagen */}
       {prueba.archivo_url && prueba.archivo_tipo === "image" && (
         <div style={{ paddingLeft: "8px" }}>
           <img
@@ -174,7 +171,6 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
           />
         </div>
       )}
-      {/* Imagen guardada como base64: URL no está en el listado, mostrar indicador */}
       {!prueba.archivo_url && prueba.archivo_tipo === "image" && (
         <div style={{
           marginLeft: "8px",
@@ -226,7 +222,6 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
         <p style={{ fontSize: "12px", color: C.gray }}>Prof. {prueba.profesor || "—"}</p>
       </div>
 
-      {/* Footer */}
       <div style={{
         paddingTop: "10px", borderTop: `1px solid ${C.border}`,
         display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: "8px",
@@ -245,7 +240,6 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
         <span style={{ fontSize: "11px", color: C.gray }}>{fecha}</span>
       </div>
 
-      {/* Mensaje si rechazada */}
       {prueba.estado === "rechazada" && (
         <div style={{
           padding: "8px 12px", borderRadius: "8px",
@@ -256,7 +250,6 @@ function PruebaCard({ prueba, onDelete }: { prueba: Prueba; onDelete: (id: numbe
         </div>
       )}
 
-      {/* Mensaje si pendiente */}
       {prueba.estado === "pendiente" && (
         <div style={{
           padding: "8px 12px", borderRadius: "8px",
@@ -313,7 +306,6 @@ export default function MisPruebas() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: C.bg, fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Navbar */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 40,
         backgroundColor: "rgba(10,14,26,0.95)", backdropFilter: "blur(12px)",
@@ -348,7 +340,6 @@ export default function MisPruebas() {
 
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "40px 48px" }}>
 
-        {/* Header */}
         <div style={{ marginBottom: "28px" }}>
           <h1 style={{
             fontSize: "28px", fontWeight: 900, color: C.white,
@@ -361,7 +352,6 @@ export default function MisPruebas() {
           </p>
         </div>
 
-        {/* Tabs de estado */}
         {!loading && pruebas.length > 0 && (
           <div style={{
             display: "flex", gap: "4px", marginBottom: "28px",
@@ -397,7 +387,6 @@ export default function MisPruebas() {
           </div>
         )}
 
-        {/* Contenido */}
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}>
             <motion.div

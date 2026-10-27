@@ -24,7 +24,6 @@ interface LogoProps {
           ...style,
         }}
       >
-        {/* Icono TP */}
         <svg
           width={s.iconSize}
           height={s.iconSize}
@@ -48,7 +47,6 @@ interface LogoProps {
           </text>
         </svg>
   
-        {/* Texto tusPruebas */}
         <div style={{ display: "flex", alignItems: "baseline", gap: "0px" }}>
           <span style={{ fontSize: `${s.fontSize}px`, fontWeight: 400, color: "#ffffff", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.3px" }}>
             tus

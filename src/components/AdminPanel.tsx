@@ -11,7 +11,6 @@ import {
 } from "../services/Pruebas";
 import { notifyUserPruebaEstado } from "../services/Email";
 
-// ── Badge estado ──────────────────────────────────────────────────────────────
 function EstadoBadge({ estado }: { estado: string }) {
   const styles: Record<string, { bg: string; color: string; label: string }> = {
     pendiente: { bg: "#fffbeb", color: "#92400e", label: "Pendiente" },
@@ -26,7 +25,6 @@ function EstadoBadge({ estado }: { estado: string }) {
   );
 }
 
-// ── Prueba Card ───────────────────────────────────────────────────────────────
 function PruebaCard({
   prueba,
   duplicados,
@@ -51,11 +49,9 @@ function PruebaCard({
       exit={{ opacity: 0, y: -10 }}
       style={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "14px", overflow: "hidden" }}
     >
-      {/* Header */}
       <div onClick={() => setExpanded(!expanded)}
         style={{ padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1, minWidth: 0 }}>
-          {/* Avatar */}
           <div style={{
             width: "38px", height: "38px", borderRadius: "50%",
             backgroundColor: "#111", display: "flex", alignItems: "center",
@@ -123,7 +119,6 @@ function PruebaCard({
         </div>
       </div>
 
-      {/* Expanded detail */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -134,7 +129,6 @@ function PruebaCard({
             style={{ overflow: "hidden", borderTop: "1px solid #f3f4f6" }}
           >
             <div style={{ padding: "20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-              {/* Info */}
               <div>
                 <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
                   Detalle
@@ -153,7 +147,6 @@ function PruebaCard({
                 ))}
               </div>
 
-              {/* Usuario y archivo */}
               <div>
                 <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
                   Usuario
@@ -188,7 +181,6 @@ function PruebaCard({
               </div>
             )}
 
-            {/* Contenido completo de la prueba */}
             <div style={{ padding: "0 20px 20px" }}>
               <p style={{ fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
                 Contenido de la prueba
@@ -282,7 +274,6 @@ function PruebaCard({
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 type Filtro = PruebaEstado | "todas";
 
 export default function AdminPanel() {
@@ -323,8 +314,6 @@ export default function AdminPanel() {
       const prueba = pruebas.find((p) => p.id === id);
       const link = prueba ? `/home?escuela=${encodeURIComponent(prueba.escuela)}&anio=${encodeURIComponent(prueba.año)}` : "/home";
       showToast("Prueba aprobada ✓", "ok", link);
-      // No bloquea el flujo del admin: si el email falla, no debe impedir que
-      // la aprobación ya quedó guardada (Email.ts ya maneja sus propios errores).
       if (prueba) {
         notifyUserPruebaEstado({
           usuario_nombre: prueba.usuario_nombre,
@@ -369,8 +358,6 @@ export default function AdminPanel() {
   };
 
   const shown = filtro === "todas" ? pruebas : pruebas.filter((p) => p.estado === filtro);
-  // Solo tiene sentido avisar sobre pruebas pendientes (contra lo que ya está
-  // aprobado) — una aprobada o rechazada no necesita este chequeo.
   const aprobadas = pruebas.filter((p) => p.estado === "aprobada");
   const counts = {
     pendiente: pruebas.filter((p) => p.estado === "pendiente").length,
@@ -389,7 +376,6 @@ export default function AdminPanel() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f9fafb", fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Navbar */}
       <nav style={{ position: "sticky", top: 0, zIndex: 40, backgroundColor: "#fff", borderBottom: "1px solid #e5e7eb", padding: "0 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -413,7 +399,6 @@ export default function AdminPanel() {
 
       <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 24px" }}>
 
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "32px" }}>
           <div>
             <h1 style={{ fontSize: "26px", fontWeight: 900, color: "#111", fontFamily: "'Syne', sans-serif", marginBottom: "4px" }}>
@@ -433,7 +418,6 @@ export default function AdminPanel() {
           </motion.button>
         </div>
 
-        {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "28px" }}>
           {[
             { label: "Pendientes", count: counts.pendiente, color: "#92400e", bg: "#fffbeb", border: "#fde68a" },
@@ -447,7 +431,6 @@ export default function AdminPanel() {
           ))}
         </div>
 
-        {/* Tabs */}
         <div style={{ display: "flex", gap: "4px", marginBottom: "20px", backgroundColor: "#f3f4f6", padding: "4px", borderRadius: "10px", width: "fit-content" }}>
           {tabs.map((tab) => (
             <motion.button
@@ -472,7 +455,6 @@ export default function AdminPanel() {
           ))}
         </div>
 
-        {/* Lista */}
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -521,7 +503,6 @@ export default function AdminPanel() {
         )}
       </div>
 
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div

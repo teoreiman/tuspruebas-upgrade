@@ -43,7 +43,6 @@ export default function Login() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Panel izquierdo */}
       <div style={{
         width: "45%",
         background: "linear-gradient(145deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%)",
@@ -75,10 +74,8 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Panel derecho */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px", backgroundColor: "#fff", position: "relative" }}>
 
-        {/* Flecha volver */}
         <motion.button
           onClick={() => navigate("/")}
           whileHover={{ x: -3 }}
@@ -103,7 +100,6 @@ export default function Login() {
             <p style={{ fontSize: "14px", color: "#9ca3af" }}>Iniciá sesión para continuar</p>
           </div>
 
-          {/* Google */}
           <motion.button whileHover={{ backgroundColor: "#f9fafb" }} whileTap={{ scale: 0.99 }} onClick={loginWithGoogle}
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", padding: "12px 20px", border: "1.5px solid #e5e7eb", borderRadius: "10px", backgroundColor: "#fff", cursor: "pointer", fontSize: "14px", fontWeight: 600, color: "#374151", marginBottom: "24px", fontFamily: "'DM Sans', sans-serif" }}>
             <svg width="18" height="18" viewBox="0 0 48 48">

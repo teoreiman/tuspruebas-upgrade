@@ -40,7 +40,6 @@ export default function Aurora({
 
       ctx.clearRect(0, 0, w, h);
 
-      // Draw 3 aurora waves
       for (let layer = 0; layer < 3; layer++) {
         const grad = ctx.createLinearGradient(0, 0, w, 0);
         const c = colorStops[layer % colorStops.length];

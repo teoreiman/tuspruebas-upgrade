@@ -1,10 +1,5 @@
 import pool from "./db.js";
 
-// Sin límite, un solo usuario (o un bot) puede vaciar la cuota/plata de la API
-// de IA en un rato. Un tope diario simple por usuario alcanza para evitar eso
-// sin ser invasivo para el uso normal de un estudiante. Misma tabla que usa el
-// backend Express (comparten la base), así que el límite es real sin importar
-// desde dónde se conecte el estudiante.
 export const LIMITE_DIARIO = Number(process.env.IA_LIMITE_DIARIO) || 5;
 
 let tablaLista: Promise<void> | null = null;
@@ -42,8 +37,6 @@ export function ensureIaUsoTable(): Promise<void> {
   return tablaLista;
 }
 
-// Ventana móvil de 24hs, no "desde la medianoche": así no se resetea el
-// contador esperando el cambio de día.
 export async function usoUltimas24hs(usuarioId: number): Promise<number> {
   await ensureIaUsoTable();
   const { rows } = await pool.query(

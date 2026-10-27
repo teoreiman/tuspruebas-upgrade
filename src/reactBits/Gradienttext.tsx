@@ -6,7 +6,7 @@ interface GradientTextProps {
   className?: string;
   style?: React.CSSProperties;
   colors?: string[];
-  animationSpeed?: number; // seconds
+  animationSpeed?: number;
 }
 
 export default function GradientText({
@@ -40,7 +40,6 @@ export default function GradientText({
   );
 }
 
-// Inject keyframes once
 if (typeof document !== "undefined") {
   const id = "gradient-text-keyframes";
   if (!document.getElementById(id)) {

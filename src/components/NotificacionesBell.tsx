@@ -16,9 +16,6 @@ const C = {
   gray: "#8A8A8A",
 };
 
-// Cada cuánto revisamos si hay notificaciones nuevas mientras la pestaña está
-// abierta. No hace falta algo instantáneo (websockets, etc.): que se aprobó
-// o rechazó una prueba no es tan urgente como para justificar esa complejidad.
 const INTERVALO_MS = 60_000;
 
 function tiempoRelativo(iso: string): string {
@@ -56,7 +53,6 @@ export default function NotificacionesBell() {
     return () => clearInterval(id);
   }, [user, cargar]);
 
-  // Cerrar el dropdown al hacer clic afuera.
   useEffect(() => {
     if (!abierto) return;
     const onClick = (e: MouseEvent) => {
@@ -91,7 +87,7 @@ export default function NotificacionesBell() {
     try {
       await marcarTodasLasNotificacionesLeidas();
     } catch {
-      cargar(); // si falló, volvemos a pedir el estado real
+      cargar();
     } finally {
       setCargando(false);
     }

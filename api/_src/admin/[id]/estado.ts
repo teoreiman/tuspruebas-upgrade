@@ -17,8 +17,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // La necesitamos antes de cambiar el estado para saber a quién avisarle
-    // y con qué texto (materia/tema de la prueba).
     const { rows } = await pool.query(
       "SELECT usuario_id, materia, tema FROM pruebas WHERE id = $1",
       [id]
@@ -32,7 +30,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const mensaje = estado === "aprobada"
         ? `Tu prueba${detalle ? ` de ${detalle}` : ""} fue aprobada y ya está publicada.`
         : `Tu prueba${detalle ? ` de ${detalle}` : ""} fue rechazada.`;
-      // No bloquea la respuesta al admin si por algún motivo falla el aviso.
       crearNotificacion({
         usuarioId: prueba.usuario_id,
         tipo: `prueba_${estado}`,

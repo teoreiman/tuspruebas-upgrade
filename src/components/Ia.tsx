@@ -28,7 +28,6 @@ const C = {
   grayDim:  "rgba(255,255,255,0.2)",
 };
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -44,7 +43,6 @@ interface Contexto {
   tema: string;
 }
 
-// ── Data ──────────────────────────────────────────────────────────────────────
 const COLEGIOS = ["ORT Almagro", "ORT Belgrano", "Martín Buber", "Wolfson", "Tarbut"];
 const AÑOS = ["7mo", "1ro", "2do", "3ro", "4to", "5to"];
 
@@ -96,7 +94,6 @@ const SUGERENCIAS: Record<string, string[]> = {
   ],
 };
 
-// Cuando se entra desde una prueba concreta, las sugerencias apuntan a resolverla.
 const SUGERENCIAS_PRUEBA = [
   "Resolvé toda la prueba paso a paso",
   "Explicame la primera consigna",
@@ -104,7 +101,6 @@ const SUGERENCIAS_PRUEBA = [
   "Generame una prueba de práctica parecida",
 ];
 
-// ── Subcomponents ─────────────────────────────────────────────────────────────
 function TypingIndicator() {
   return (
     <div style={{ display: "flex", gap: "5px", alignItems: "center", padding: "14px 16px" }}>
@@ -120,10 +116,6 @@ function TypingIndicator() {
   );
 }
 
-// Cómo se ve cada elemento de Markdown adentro de una burbuja del chat: la
-// IA responde con títulos, citas, listas y fórmulas (LaTeX vía remark-math +
-// rehype-katex), y acá los pintamos con la paleta del chat en vez de con los
-// estilos por defecto del navegador.
 const componentesMarkdown: Components = {
   p: ({ children }) => <p style={{ margin: "0 0 10px" }}>{children}</p>,
   h1: ({ children }) => <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "14px 0 8px", color: C.white }}>{children}</h3>,
@@ -177,8 +169,6 @@ function MessageBubble({ message }: { message: Message }) {
       )}
 
       <div style={{
-        // Las respuestas con fórmulas/pasos necesitan más aire que un mensaje
-        // de texto corriente, así que el asistente tiene más ancho que el usuario.
         maxWidth: isUser ? "72%" : "88%",
         padding: "12px 16px",
         borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
@@ -191,8 +181,6 @@ function MessageBubble({ message }: { message: Message }) {
         overflowX: "auto",
       }}>
         {isUser
-          // El texto del usuario se muestra tal cual (sin interpretar como
-          // Markdown): solo hace falta respetar los saltos de línea que tipeó.
           ? <span style={{ whiteSpace: "pre-wrap" }}>{message.content}</span>
           : (
             <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]} components={componentesMarkdown}>
@@ -225,7 +213,6 @@ function MessageBubble({ message }: { message: Message }) {
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 const MENSAJE_BIENVENIDA =
   "¡Hola! Soy la IA de tusPruebas. Para poder ayudarte, primero elegí una prueba: buscala en el panel de la izquierda (colegio, año y materia) y tocá \"Usar esta prueba\", o abrí una desde \"Mis pruebas\" o \"Favoritas\" con el botón \"Abrir IA →\".";
 
@@ -257,8 +244,6 @@ export default function IA() {
   const [errorPrueba, setErrorPrueba] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // ── Historial de chats (como Claude/ChatGPT): se guarda solo en el backend,
-  // acá solo mantenemos la lista para mostrarla y saber cuál está abierto. ──
   const [historialOpen, setHistorialOpen] = useState(true);
   const [historial, setHistorial] = useState<ConversacionResumen[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(true);
@@ -266,15 +251,10 @@ export default function IA() {
   const [cargandoConversacion, setCargandoConversacion] = useState(false);
   const [imagenAbierta, setImagenAbierta] = useState(false);
   const [paginaImagen, setPaginaImagen] = useState(0);
-  // Menú "⋮" de cada chat del historial (Renombrar / Borrar): guarda el id
-  // del chat cuyo menú está abierto, o null si ninguno.
   const [menuChatAbierto, setMenuChatAbierto] = useState<number | null>(null);
   const menuChatRef = useRef<HTMLDivElement>(null);
   const fotosDePrueba = (prueba?.archivos ?? []).filter((a) => a.tipo === "image");
 
-  // ── Buscador de pruebas dentro del contexto: el panel "Contexto de estudio"
-  // usa los mismos filtros que la home, así que tiene que encontrar algo de
-  // verdad en vez de ser solo texto suelto para el prompt. ──
   const [resultadosBusqueda, setResultadosBusqueda] = useState<Prueba[]>([]);
   const [buscandoPruebas, setBuscandoPruebas] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState("");
@@ -288,8 +268,6 @@ export default function IA() {
     ? SUGERENCIAS_PRUEBA
     : SUGERENCIAS[contexto.materia] ?? SUGERENCIAS.default;
 
-  // Si venimos desde una prueba ("Resolver con IA"), la cargamos para llenar el
-  // contexto. El backend además le adjunta la foto y las preguntas al modelo.
   useEffect(() => {
     if (!pruebaId) {
       setPrueba(null);
@@ -330,10 +308,6 @@ export default function IA() {
     return () => { cancelado = true; };
   }, [pruebaId]);
 
-  // Busca pruebas reales que matcheen el contexto elegido a mano, para que el
-  // panel "Contexto de estudio" haga lo que aparenta (usa los mismos filtros
-  // que la home). Solo tiene sentido cuando el chat no está ya atado a una
-  // prueba puntual (si vino de "Abrir IA →", ya sabemos cuál es).
   useEffect(() => {
     if (prueba || !contexto.año || !contexto.materia) {
       setResultadosBusqueda([]);
@@ -358,12 +332,10 @@ export default function IA() {
         .finally(() => {
           if (!cancelado) setBuscandoPruebas(false);
         });
-    }, 350); // pequeño debounce: evita disparar de más si se clickean varios filtros seguidos
+    }, 350);
     return () => { cancelado = true; clearTimeout(idTimeout); };
   }, [prueba, contexto.colegio, contexto.año, contexto.materia]);
 
-  // Carga una prueba encontrada por el buscador sin salir del chat — mismo
-  // camino que "Abrir IA →" desde el detalle de una prueba.
   const usarPruebaEncontrada = (id: number) => {
     navigate(`/ia?prueba=${id}`);
   };
@@ -377,7 +349,6 @@ export default function IA() {
       const lista = await listarConversaciones();
       setHistorial(lista);
     } catch {
-      // El historial es un extra, no algo que deba tirar abajo el chat si falla.
     }
   }, []);
 
@@ -386,8 +357,6 @@ export default function IA() {
     refrescarHistorial().finally(() => setCargandoHistorial(false));
   }, [refrescarHistorial]);
 
-  // Arranca un chat en blanco. Si hay una prueba cargada (vinimos desde
-  // "Abrir IA →"), la mantiene; si no, también borra ese contexto.
   const iniciarChatNuevo = (mantenerPrueba: boolean) => {
     setConversacionId(null);
     setImagenAbierta(false);
@@ -448,8 +417,6 @@ export default function IA() {
       setHistorial((prev) => prev.filter((c) => c.id !== id));
       if (id === conversacionId) iniciarChatNuevo(false);
     } catch {
-      // Si falla el borrado, el chat se queda en la lista tal como estaba: no
-      // hace falta un manejo especial más allá de no romper la UI.
     }
   };
 
@@ -458,8 +425,6 @@ export default function IA() {
     setMenuChatAbierto(null);
     const nuevoTitulo = window.prompt("Nuevo nombre para el chat:", c.titulo)?.trim();
     if (!nuevoTitulo || nuevoTitulo === c.titulo) return;
-    // Optimista: el nombre nuevo se ve al toque, y si falla el pedido se
-    // revierte solo (el catch deja el título viejo en el estado).
     setHistorial((prev) => prev.map((h) => (h.id === c.id ? { ...h, titulo: nuevoTitulo } : h)));
     try {
       await renombrarConversacion(c.id, nuevoTitulo);
@@ -468,7 +433,6 @@ export default function IA() {
     }
   };
 
-  // Cerrar el menú "⋮" al hacer clic afuera.
   useEffect(() => {
     if (menuChatAbierto === null) return;
     const onClick = (e: MouseEvent) => {
@@ -488,10 +452,6 @@ export default function IA() {
 
   const sendMessage = async (text?: string) => {
     const content = (text ?? input).trim();
-    // El chat solo responde con una prueba puntual cargada, para que la IA
-    // siempre tenga contexto real y no se generen respuestas genéricas que
-    // confundan al estudiante. La UI ya lo bloquea (input/botón deshabilitados
-    // y el aviso abajo); esto es solo el resguardo por si igual llega acá.
     if (!content || loading || cargandoConversacion || !prueba) return;
 
     const userMsg: Message = {
@@ -508,7 +468,6 @@ export default function IA() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
-      // El mensaje de bienvenida es de la interfaz, no parte de la conversación.
       const historialMensajes = [...messages, userMsg]
         .filter((m) => !m.id.startsWith("welcome"))
         .map((m) => ({ role: m.role, content: m.content }));
@@ -541,9 +500,6 @@ export default function IA() {
     }
   };
 
-  // Modo autoevaluación: pide ejercicios nuevos parecidos a la prueba cargada
-  // (usa el endpoint dedicado /:id/generar, no el chat general), y los deja
-  // en la conversación para poder seguir pidiendo ayuda o corrección después.
   const PEDIDO_PRACTICA = "Generame una prueba de práctica parecida a esta, para autoevaluarme.";
   const generarPractica = async () => {
     if (!prueba || loading || cargandoConversacion) return;
@@ -580,14 +536,10 @@ export default function IA() {
     }
   };
 
-  // "Corregir mi respuesta": el estudiante sube una foto de lo que ya
-  // resolvió a mano, y la IA le dice qué está bien y qué no, contra la
-  // prueba cargada. Usa el mismo endpoint de chat que sendMessage, solo que
-  // con una imagen extra adjunta.
   const MENSAJE_CORRECCION = "Corregime esta respuesta que ya resolví 📷";
   const handleArchivoCorreccion = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // permite volver a elegir el mismo archivo después
+    e.target.value = "";
     if (!file || !prueba || loading || cargandoConversacion) return;
 
     if (!esImagen(file)) {
@@ -662,7 +614,6 @@ export default function IA() {
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'DM Sans', sans-serif", backgroundColor: C.bg }}>
 
-      {/* ── Navbar ── */}
       <nav style={{
         backgroundColor: "rgba(10,14,26,0.95)",
         backdropFilter: "blur(12px)",
@@ -807,10 +758,8 @@ export default function IA() {
         </div>
       </nav>
 
-      {/* ── Body ── */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
-        {/* ── Historial de chats ── */}
         <AnimatePresence>
           {historialOpen && (
             <motion.aside
@@ -947,7 +896,6 @@ export default function IA() {
           )}
         </AnimatePresence>
 
-        {/* ── Sidebar contexto ── */}
         <AnimatePresence>
           {sidebarOpen && (
             <motion.aside
@@ -968,7 +916,6 @@ export default function IA() {
                   Contexto de estudio
                 </p>
 
-                {/* Prueba abierta desde "Resolver con IA" */}
                 {cargandoPrueba && (
                   <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "10px", border: `1px solid ${C.border}`, fontSize: "12px", color: C.gray }}>
                     Cargando la prueba...
@@ -1007,7 +954,6 @@ export default function IA() {
                   </div>
                 )}
 
-                {/* Colegio */}
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Colegio
@@ -1028,7 +974,6 @@ export default function IA() {
                   </select>
                 </div>
 
-                {/* Año */}
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Año
@@ -1056,7 +1001,6 @@ export default function IA() {
                   </div>
                 </div>
 
-                {/* Materia */}
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Materia
@@ -1088,7 +1032,6 @@ export default function IA() {
                   )}
                 </div>
 
-                {/* Pruebas encontradas con este contexto */}
                 {!prueba && contexto.año && contexto.materia && (
                   <div style={{ marginBottom: "20px" }}>
                     <p style={{ fontSize: "11px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
@@ -1155,7 +1098,6 @@ export default function IA() {
                   </div>
                 )}
 
-                {/* Profesor */}
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Profesor/a
@@ -1177,7 +1119,6 @@ export default function IA() {
                   />
                 </div>
 
-                {/* Tema */}
                 <div style={{ marginBottom: "24px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 600, color: C.text, display: "block", marginBottom: "6px" }}>
                     Tema de la prueba
@@ -1199,7 +1140,6 @@ export default function IA() {
                   />
                 </div>
 
-                {/* Estado contexto */}
                 <div style={{
                   padding: "12px",
                   borderRadius: "10px",
@@ -1229,13 +1169,10 @@ export default function IA() {
           )}
         </AnimatePresence>
 
-        {/* ── Chat area ── */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-          {/* Messages */}
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px" }}>
 
-            {/* Sugerencias iniciales */}
             {messages.length === 1 && prueba && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -1274,7 +1211,6 @@ export default function IA() {
               <MessageBubble key={msg.id} message={msg} />
             ))}
 
-            {/* Typing indicator */}
             <AnimatePresence>
               {loading && (
                 <motion.div
@@ -1307,13 +1243,11 @@ export default function IA() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* ── Input area ── */}
           <div style={{
             borderTop: `1px solid ${C.border}`,
             backgroundColor: C.bgCard,
             padding: "16px 32px 20px",
           }}>
-            {/* Sugerencias rápidas */}
             {messages.length > 1 && prueba && (
               <div style={{ display: "flex", gap: "6px", marginBottom: "12px", overflowX: "auto", paddingBottom: "4px" }}>
                 {sugerencias.slice(0, 3).map((s) => (
@@ -1338,8 +1272,6 @@ export default function IA() {
               </div>
             )}
 
-            {/* Aviso: sin una prueba elegida, no se puede chatear — así no se
-                generan respuestas genéricas que confundan al estudiante. */}
             {!prueba && !cargandoPrueba && (
               <div style={{
                 display: "flex", alignItems: "center", gap: "8px",
@@ -1421,7 +1353,6 @@ export default function IA() {
         </div>
       </div>
 
-      {/* ── Lightbox: la(s) foto(s) de la prueba, a pedido, no metidas en el chat ── */}
       <AnimatePresence>
         {imagenAbierta && fotosDePrueba.length > 0 && (
           <motion.div

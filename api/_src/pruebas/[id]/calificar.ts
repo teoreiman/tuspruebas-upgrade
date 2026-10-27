@@ -14,9 +14,6 @@ function leerBody(req: VercelRequest): Record<string, unknown> {
   }
 }
 
-// POST /api/pruebas/:id/calificar — { puntaje: 1..5 }. Un solo puntaje por
-// usuario y prueba: calificar de nuevo reemplaza el anterior. puntaje null/0
-// borra la calificación (para poder "deshacer" desde la estrella).
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 

@@ -1,7 +1,5 @@
 import pool from "./db.js";
 
-// Misma idea que las demás tablas "lazy": se crea sola la primera vez que
-// hace falta. Mismo esquema que el Express local (models/Calificacion.js).
 let calificacionesReady: Promise<void> | null = null;
 
 const YA_EXISTE = new Set(["23505", "42P07", "42710"]);
@@ -41,8 +39,6 @@ export function ensureCalificacionesTable(): Promise<void> {
   return calificacionesReady;
 }
 
-// SQL reutilizable: mismo patrón que el EXISTS(...) de favoritos, pero de
-// promedio/cantidad. Se pega como fragmento en cada SELECT que liste pruebas.
 export const CALIFICACION_JOIN = `
   LEFT JOIN (
     SELECT prueba_id, ROUND(AVG(puntaje)::numeric, 1) AS promedio, COUNT(*)::int AS cantidad

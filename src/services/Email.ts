@@ -1,25 +1,3 @@
-// EmailJS REST API — no SDK needed.
-//
-// Para activar notificaciones:
-// 1. Creá una cuenta gratis en https://emailjs.com
-// 2. Agregá un servicio de email (Gmail, Outlook, etc.)
-// 3. Creá un template con estas variables:
-//    {{usuario_nombre}}, {{usuario_email}}, {{colegio}}, {{año}},
-//    {{materia}}, {{profesor}}, {{tema}}, {{notas}},
-//    {{archivo_nombre}}, {{fecha}}, {{admin_link}}
-// 4. Creá el archivo .env.local en la raíz del proyecto con:
-//    VITE_EMAILJS_SERVICE_ID=service_xxxxxxx
-//    VITE_EMAILJS_TEMPLATE_ID=template_xxxxxxx
-//    VITE_EMAILJS_PUBLIC_KEY=tu_public_key
-//
-// Para avisarle al estudiante cuando se aprueba/rechaza su prueba, hace falta
-// un SEGUNDO template (uno propio, con otro texto — "tu prueba fue aprobada"
-// en vez de "llegó una prueba nueva"), con estas variables:
-//    {{to_name}}, {{to_email}}, {{materia}}, {{año}}, {{colegio}}, {{tema}},
-//    {{estado}} ("aprobada" o "rechazada"), {{fecha}}, {{ver_link}}
-// y agregar en .env.local:
-//    VITE_EMAILJS_TEMPLATE_ESTADO_ID=template_yyyyyyy
-
 const SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID  || "";
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "";
 const TEMPLATE_ESTADO_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ESTADO_ID || "";
@@ -91,9 +69,6 @@ export interface NotifyEstadoParams {
   estado: "aprobada" | "rechazada";
 }
 
-// Le avisa a quien subió la prueba que un admin la aprobó o rechazó. Usa un
-// template distinto al de "aviso al admin" de arriba — ver el comentario del
-// principio del archivo para configurarlo.
 export async function notifyUserPruebaEstado(params: NotifyEstadoParams): Promise<void> {
   if (!SERVICE_ID || !TEMPLATE_ESTADO_ID || !PUBLIC_KEY) {
     console.info(
@@ -101,7 +76,6 @@ export async function notifyUserPruebaEstado(params: NotifyEstadoParams): Promis
     );
     return;
   }
-  // Sin el email de quien subió (pruebas viejas o anónimas) no hay a quién avisarle.
   if (!params.usuario_email) return;
 
   const fecha = new Date().toLocaleDateString("es-AR", {

@@ -4,8 +4,8 @@ import { motion, useAnimation, useInView, Variants } from "framer-motion";
 interface SplitTextProps {
   text: string;
   className?: string;
-  delay?: number;       // ms entre cada letra
-  duration?: number;    // duración de cada letra en segundos
+  delay?: number;
+  duration?: number;
   ease?: string | number[];
   splitBy?: "chars" | "words";
   style?: React.CSSProperties;

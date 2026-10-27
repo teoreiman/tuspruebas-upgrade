@@ -34,7 +34,6 @@ function mapResumen(raw: Record<string, unknown>): ConversacionResumen {
   };
 }
 
-/** Historial de chats del usuario, más reciente primero. */
 export async function listarConversaciones(): Promise<ConversacionResumen[]> {
   const res = await apiFetch(`${API_URL}/ia/conversaciones`, { headers: jsonHeaders() });
   if (!res.ok) throw new Error(await mensajeDeError(res, "No se pudo cargar el historial"));
@@ -42,7 +41,6 @@ export async function listarConversaciones(): Promise<ConversacionResumen[]> {
   return (data?.data ?? []).map(mapResumen);
 }
 
-/** Un chat completo, con todos sus mensajes, para retomarlo. */
 export async function obtenerConversacion(id: number): Promise<ConversacionCompleta> {
   const res = await apiFetch(`${API_URL}/ia/conversaciones/${id}`, { headers: jsonHeaders() });
   if (!res.ok) throw new Error(await mensajeDeError(res, "No se pudo abrir la conversación"));

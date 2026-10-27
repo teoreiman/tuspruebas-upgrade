@@ -4,12 +4,9 @@ import { getAuthUser } from "../../lib/auth.js";
 import { LIMITE_DIARIO, usoUltimas24hs, registrarUso } from "../../lib/iaUso.js";
 import { crearConversacion, agregarMensaje, conversacionPerteneceA } from "../../lib/conversaciones.js";
 
-// La IA corre en el backend: la API key nunca sale del servidor.
 export const config = { maxDuration: 60 };
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-// Con foto (modo visión) medimos respuestas reales de 20-48s. Dejamos margen
-// bajo el maxDuration de 60s de la función.
 const TIMEOUT_MS = 55_000;
 const MAX_ARCHIVO_BYTES = 15 * 1024 * 1024;
 
@@ -21,12 +18,6 @@ function apiKey(): string | null {
   return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || null;
 }
 
-// gemini-2.0-flash quedó dado de baja (Google responde 404 "no longer
-// available", confirmado en prod el 07/10/2026). Lista más larga a propósito:
-// cuando Gemini satura uno (503 "high demand", confirmado el 19/10/2026 en
-// varios modelos a la vez) el handler sigue probando el siguiente.
-// Verificado contra la API antes de hardcodear — no de memoria, los modelos
-// de Gemini rotan seguido.
 function modelosACandidatos(): string[] {
   const preferido = process.env.GEMINI_MODEL?.trim();
   const lista = [
@@ -46,7 +37,6 @@ function safeJson(raw: unknown): Record<string, unknown> {
   }
 }
 
-/** Convierte el archivo de la prueba en una parte que Gemini pueda "ver". */
 async function archivoComoParte(
   archivoUrl: string | undefined,
   archivoTipo: string | undefined
@@ -80,7 +70,6 @@ async function archivoComoParte(
   }
 }
 
-/** Todas las fotos de la prueba (puede tener varias hojas) como partes de Gemini. */
 async function archivosComoPartes(contenido: Record<string, unknown>): Promise<ParteArchivo[]> {
   const lista = Array.isArray(contenido.archivos)
     ? (contenido.archivos as Record<string, unknown>[])
@@ -92,10 +81,6 @@ async function archivosComoPartes(contenido: Record<string, unknown>): Promise<P
   return partes.filter((p): p is ParteArchivo => p !== null);
 }
 
-// Prompt de una sola vuelta: pide ejercicios NUEVOS parecidos a los de la
-// prueba, no las resoluciones. El formato de salida va explícito y al final:
-// si no, el modelo tiende a copiar la estructura del pedido en vez de generar
-// la prueba en sí.
 function construirPrompt(prueba: Record<string, unknown>, contenido: Record<string, unknown>, cantidadFotos: number): string {
   const partes = [
     `Generá una prueba escolar NUEVA de ${(prueba.materia as string) || "la materia"} para ` +
@@ -120,9 +105,6 @@ interface RespuestaGemini {
   error?: { message?: string; status?: string };
 }
 
-// Los campos van todos siempre, en vez de una unión discriminada por `ok`: el
-// type-check que corre Vercel sobre /api no usa `strict`, y sin strictNullChecks
-// no estrecha la unión en la rama de error (r.status / r.mensaje dan TS2339).
 type ResultadoGemini = { ok: boolean; texto: string; status: number; mensaje: string };
 
 async function llamarGemini(
@@ -173,12 +155,7 @@ async function llamarGemini(
   }
 }
 
-// POST /api/ia/:id/generar — "Modo autoevaluación": genera ejercicios nuevos
-// parecidos a los de la prueba, y lo deja guardado en la conversación para
-// poder seguir pidiendo ayuda o corrección ahí mismo después.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Reloj propio para repartir el tiempo entre varios modelos sin pasarnos del
-  // maxDuration de la función (60s).
   const inicio = Date.now();
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 
@@ -249,9 +226,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const r = await llamarGemini(modelo, key, payload, Math.min(TIMEOUT_MS, restante));
       if (!r.ok) {
         ultimoError = { status: r.status, mensaje: r.mensaje };
-        // Modelo dado de baja, o saturado (503/429 "high demand"/"overloaded"):
-        // en los dos casos probamos el siguiente — antes solo cascadeaba en
-        // el primer caso.
         const modeloInvalido = r.status === 404 || /not found|not supported|is not available/i.test(r.mensaje);
         const saturado = r.status === 503 || r.status === 429 || /high demand|overloaded|unavailable/i.test(r.mensaje);
         if (modeloInvalido || saturado) continue;

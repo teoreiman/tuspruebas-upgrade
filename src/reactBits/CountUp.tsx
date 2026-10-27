@@ -6,7 +6,7 @@ interface CountUpProps {
   to: number;
   separator?: string;
   direction?: "up" | "down";
-  duration?: number; // seconds
+  duration?: number;
   className?: string;
   suffix?: string;
   prefix?: string;

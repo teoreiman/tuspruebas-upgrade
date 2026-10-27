@@ -2,9 +2,6 @@ import { useState } from "react";
 
 const C = { gold: "#f59e0b", empty: "rgba(255,255,255,0.18)", gray: "#8A8A8A" };
 
-// Estrellas de 1 a 5. En modo lectura (sin onCalificar) solo muestra el
-// promedio. En modo interactivo, click califica; click de nuevo en la misma
-// estrella que ya tenías puesta la saca (null).
 export default function EstrellasCalificacion({
   promedio, cantidad, miCalificacion = null, onCalificar, tamaño = "md",
 }: {

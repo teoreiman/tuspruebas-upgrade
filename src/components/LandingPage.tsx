@@ -24,7 +24,6 @@ const C = {
   text:      "#c8cdd8",
 };
 
-// ── Laptop Mockup ─────────────────────────────────────────────────────────────
 function LaptopMockup() {
   return (
     <motion.div
@@ -33,7 +32,6 @@ function LaptopMockup() {
       transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
       style={{ position: "relative", width: "100%", maxWidth: "580px" }}
     >
-      {/* Big blue glow */}
       <div style={{
         position: "absolute", top: "15%", left: "5%",
         width: "90%", height: "70%",
@@ -41,9 +39,7 @@ function LaptopMockup() {
         filter: "blur(40px)", zIndex: 0, pointerEvents: "none",
       }} />
 
-      {/* Laptop */}
       <div style={{ position: "relative", zIndex: 1 }}>
-        {/* Screen */}
         <div style={{
           backgroundColor: "#0d1728",
           borderRadius: "18px 18px 0 0",
@@ -52,14 +48,11 @@ function LaptopMockup() {
           padding: "10px 10px 0",
           boxShadow: "0 0 80px rgba(16,99,239,0.2)",
         }}>
-          {/* Camera notch */}
           <div style={{ display: "flex", justifyContent: "center", paddingBottom: "8px" }}>
             <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.15)" }} />
           </div>
 
-          {/* Screen content */}
           <div style={{ backgroundColor: "#060e1c", borderRadius: "10px 10px 0 0", overflow: "hidden", minHeight: "300px" }}>
-            {/* Topbar inside screen */}
             <div style={{ backgroundColor: "#0a1525", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <div style={{ width: "22px", height: "22px", borderRadius: "5px", backgroundColor: C.blue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: 900, color: "#fff" }}>TP</div>
@@ -74,7 +67,6 @@ function LaptopMockup() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 0, minHeight: "260px" }}>
-              {/* Sidebar */}
               <div style={{ backgroundColor: "#0a1422", borderRight: "1px solid rgba(255,255,255,0.05)", padding: "12px 10px" }}>
                 <p style={{ fontSize: "8px", fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>Materias</p>
                 {[
@@ -92,11 +84,9 @@ function LaptopMockup() {
                 ))}
               </div>
 
-              {/* Main content */}
               <div style={{ padding: "12px", backgroundColor: "#060e1c" }}>
                 <p style={{ fontSize: "9px", color: C.gray, marginBottom: "10px" }}>¿Qué pruebas estudiás hoy?</p>
 
-                {/* Cards grid */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", marginBottom: "12px" }}>
                   {[
                     { label: "Matemática", color: "#1063EF", sub: "5to · García" },
@@ -116,7 +106,6 @@ function LaptopMockup() {
                   ))}
                 </div>
 
-                {/* Progress / chart area */}
                 <div style={{ backgroundColor: "rgba(16,99,239,0.06)", borderRadius: "8px", padding: "10px", border: "1px solid rgba(16,99,239,0.15)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                     <p style={{ fontSize: "8px", color: C.gray }}>Tu progreso esta semana</p>
@@ -124,7 +113,6 @@ function LaptopMockup() {
                       <div style={{ width: "28px", height: "28px", borderRadius: "50%", border: `2px solid ${C.blue}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7px", fontWeight: 900, color: C.blue }}>72%</div>
                     </div>
                   </div>
-                  {/* Mini bar chart */}
                   <div style={{ display: "flex", alignItems: "flex-end", gap: "3px", height: "30px" }}>
                     {[40, 65, 45, 80, 55, 90, 72].map((h, i) => (
                       <motion.div key={i}
@@ -140,7 +128,6 @@ function LaptopMockup() {
           </div>
         </div>
 
-        {/* Base */}
         <div style={{ backgroundColor: "#111d30", height: "16px", borderRadius: "0 0 6px 6px", border: "2px solid rgba(255,255,255,0.08)", borderTop: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <div style={{ width: "50px", height: "3px", borderRadius: "2px", backgroundColor: "rgba(255,255,255,0.06)" }} />
         </div>
@@ -150,11 +137,9 @@ function LaptopMockup() {
   );
 }
 
-// ── Step ──────────────────────────────────────────────────────────────────────
 function Step({ num, icon, title, desc, isLast }: { num: string; icon: React.ReactNode; title: string; desc: string; isLast?: boolean }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", flex: 1, position: "relative" }}>
-      {/* Dashed connector */}
       {!isLast && (
         <div style={{
           position: "absolute", top: "36px",
@@ -165,7 +150,6 @@ function Step({ num, icon, title, desc, isLast }: { num: string; icon: React.Rea
         }} />
       )}
 
-      {/* Icon circle */}
       <div style={{
         width: "72px", height: "72px", borderRadius: "50%",
         backgroundColor: "rgba(16,99,239,0.1)",
@@ -186,7 +170,6 @@ function Step({ num, icon, title, desc, isLast }: { num: string; icon: React.Rea
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const navigate = useNavigate();
 
@@ -232,7 +215,6 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: C.bg, fontFamily: "'DM Sans', sans-serif", overflowX: "hidden" }}>
 
-      {/* ── NAVBAR ── */}
       <motion.header
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -277,18 +259,14 @@ export default function LandingPage() {
         </div>
       </motion.header>
 
-      {/* ── HERO ── */}
       <section style={{ position: "relative", overflow: "hidden", backgroundColor: C.bg, minHeight: "90vh", display: "flex", alignItems: "center" }}>
         <Aurora colorStops={["#1063EF", "#070b14", "#0050EF", "#4782E5"]} amplitude={1.0} speed={0.3} style={{ opacity: 0.5 }} />
 
-        {/* Subtle grid */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.02, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "52px 52px" }} />
 
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "60px 40px 80px", display: "flex", alignItems: "center", gap: "48px", position: "relative", zIndex: 1, width: "100%" }}>
 
-          {/* Left */}
           <div style={{ flex: "0 0 460px" }}>
-            {/* Main headline — SplitText */}
             <div style={{ marginBottom: "16px" }}>
               <SplitText
                 text="Estudiá mejor."
@@ -323,7 +301,6 @@ export default function LandingPage() {
               </motion.p>
             </div>
 
-            {/* Subtitle */}
             <FadeContent delay={0.7}>
               <p style={{ fontSize: "15px", color: C.gray, lineHeight: 1.75, margin: "18px 0 32px", maxWidth: "380px" }}>
                 <ShinyText speed={8} style={{ color: C.gray }}>
@@ -332,7 +309,6 @@ export default function LandingPage() {
               </p>
             </FadeContent>
 
-            {/* CTAs */}
             <FadeContent delay={0.85}>
               <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
                 <ClickSpark sparkColor={C.blue} sparkCount={10}>
@@ -378,14 +354,12 @@ export default function LandingPage() {
             </FadeContent>
           </div>
 
-          {/* Right — Laptop */}
           <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
             <LaptopMockup />
           </div>
         </div>
       </section>
 
-      {/* ── CARACTERÍSTICAS ── */}
       <section id="caracteristicas" style={{ backgroundColor: C.bg, padding: "80px 40px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <FadeContent delay={0}>
@@ -414,7 +388,6 @@ export default function LandingPage() {
                     minHeight: "180px",
                   }}
                 >
-                  {/* Glow top right */}
                   <div style={{ position: "absolute", top: "-10px", right: "-10px", width: "80px", height: "80px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.08)", filter: "blur(16px)", pointerEvents: "none" }} />
 
                   <div style={{ position: "relative", zIndex: 1 }}>
@@ -436,7 +409,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CÓMO FUNCIONA ── */}
       <section id="como-funciona" style={{ backgroundColor: C.bgSection, padding: "80px 40px", borderTop: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <FadeContent delay={0}>
@@ -502,7 +474,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA FINAL ── */}
       <section style={{ backgroundColor: C.bgSection, padding: "60px 40px 80px", borderTop: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <FadeContent delay={0}>
@@ -519,10 +490,8 @@ export default function LandingPage() {
               overflow: "hidden",
               boxShadow: "0 0 60px rgba(16,99,239,0.08), inset 0 0 80px rgba(16,99,239,0.04)",
             }}>
-              {/* Aurora inside card */}
               <Aurora colorStops={["#0a3abf", "#0a1428", "#1063EF"]} amplitude={0.7} speed={0.25} style={{ opacity: 0.4, borderRadius: "20px" }} />
 
-              {/* Dots decoration */}
               <div style={{ position: "absolute", top: "20px", right: "260px", opacity: 0.3 }}>
                 {[0,1,2].map((row) => (
                   <div key={row} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
@@ -533,7 +502,6 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              {/* Left text */}
               <div style={{ position: "relative", zIndex: 1, maxWidth: "480px" }}>
                 <h2 style={{ fontSize: "36px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif", marginBottom: "14px", lineHeight: 1.2 }}>
                   ¿Listo para mejorar tus resultados?
@@ -561,12 +529,9 @@ export default function LandingPage() {
                 </ClickSpark>
               </div>
 
-              {/* Right — 3D Check */}
               <div style={{ position: "relative", zIndex: 1, flexShrink: 0 }}>
-                {/* Outer glow rings */}
                 <div style={{ position: "absolute", inset: "-30px", borderRadius: "50%", background: "radial-gradient(circle, rgba(16,99,239,0.2) 0%, transparent 70%)", pointerEvents: "none" }} />
                 <div style={{ position: "relative" }}>
-                  {/* Orbiting dots */}
                   {[0, 1, 2, 3].map((i) => {
                     const angle = (i / 4) * 360;
                     const rad = (angle * Math.PI) / 180;
@@ -625,7 +590,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
       <footer style={{ backgroundColor: C.bg, borderTop: `1px solid ${C.border}`, padding: "16px 40px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" />

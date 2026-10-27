@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import pool, { ensureFavoritosTable } from "../lib/db.js";
 import { getAuthUser, isAdminUser } from "../lib/auth.js";
 import { ensureCalificacionesTable, CALIFICACION_JOIN, CALIFICACION_SELECT } from "../lib/calificaciones.js";
+import { ensureAvatarColumn } from "../lib/usuarios.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = Number(req.query.id);
@@ -12,10 +13,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       await ensureFavoritosTable();
       await ensureCalificacionesTable();
+      await ensureAvatarColumn();
       const { rows } = await pool.query(
         `SELECT p.*,
           COALESCE(u.nombre, p.contenido->>'usuario_nombre') AS usuario_nombre,
           COALESCE(u.email,  p.contenido->>'usuario_email')  AS usuario_email,
+          u.avatar AS usuario_avatar,
           EXISTS(
             SELECT 1 FROM favoritos f WHERE f.prueba_id = p.id AND f.usuario_id = $2
           ) AS favorito,

@@ -92,7 +92,6 @@ export default function TrueFocus({
         );
       })}
 
-      {/* Focus border box */}
       <div
         style={{
           position: "absolute",

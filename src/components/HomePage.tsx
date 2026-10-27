@@ -7,6 +7,7 @@ import { useFavorito } from "../services/Favoritos";
 import Logo from "./logo";
 import NotificacionesBell from "./NotificacionesBell";
 import EstrellasCalificacion from "./EstrellasCalificacion";
+import Avatar from "./Avatar";
 
 const C = {
   bg:       "#0a0e1a",
@@ -83,7 +84,6 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
         cursor: "pointer",
       }}
     >
-      {/* Left accent bar */}
       <div style={{
         position: "absolute", left: 0, top: "16px", bottom: "16px",
         width: "3px", borderRadius: "0 3px 3px 0",
@@ -104,7 +104,6 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
         </motion.button>
       </div>
 
-      {/* File preview */}
       {prueba.archivo_url && prueba.archivo_tipo === "image" && (
         <div style={{ paddingLeft: "8px", paddingRight: "0" }}>
           <img
@@ -118,7 +117,6 @@ function PruebaCard({ prueba }: { prueba: Prueba }) {
           />
         </div>
       )}
-      {/* Imagen guardada como base64: URL no está en el listado, mostrar indicador */}
       {!prueba.archivo_url && prueba.archivo_tipo === "image" && (
         <div style={{
           marginLeft: "8px",
@@ -238,7 +236,6 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: C.bg, fontFamily: "'DM Sans', sans-serif" }}>
-      {/* Navbar */}
       <nav style={{ position: "sticky", top: 0, zIndex: 40, backgroundColor: "rgba(10,14,26,0.95)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.border}`, padding: "0 48px" }}>
         <div style={{ maxWidth: "1400px", margin: "0 auto", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" onClick={() => navigate("/")} />
@@ -270,9 +267,9 @@ export default function HomePage() {
             </motion.button>
 
             <div style={{ position: "relative" }}>
-              <motion.button onClick={() => setShowUserMenu(!showUserMenu)} whileHover={{ opacity: 0.85 }}
-                style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: C.blue, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", color: C.white, fontWeight: 700 }}>
-                {user?.nombre?.charAt(0).toUpperCase() ?? "U"}
+              <motion.button onClick={() => setShowUserMenu(!showUserMenu)} whileHover={{ opacity: 0.85 }} title="Mi cuenta"
+                style={{ width: "36px", height: "36px", borderRadius: "50%", padding: 0, border: "none", backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                <Avatar nombre={user?.nombre} foto={user?.avatar} tamaño={36} fondo={C.blue} />
               </motion.button>
 
               <AnimatePresence>
@@ -324,7 +321,6 @@ export default function HomePage() {
       </nav>
 
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "40px 48px" }}>
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "32px" }}>
           <div>
             <h1 style={{ fontSize: "28px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif", marginBottom: "4px" }}>Explorar pruebas</h1>
@@ -340,7 +336,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Año tabs */}
         <div style={{ display: "flex", gap: "4px", marginBottom: "20px", backgroundColor: C.bgCard, padding: "4px", borderRadius: "12px", width: "fit-content", border: `1px solid ${C.border}` }}>
           {AÑOS_TABS.map((tab) => (
             <motion.button key={tab} onClick={() => { setAñoTab(tab); setMateriaFiltro("Todas"); }} whileTap={{ scale: 0.96 }}
@@ -350,7 +345,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Materia chips */}
         {sinMaterias ? (
           <div style={{ marginBottom: "28px", padding: "12px 16px", backgroundColor: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "10px", fontSize: "13px", color: "#fbbf24" }}>
             Las materias de <strong>{escuela}</strong> todavía no están cargadas.
@@ -377,7 +371,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Search */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "28px" }}>
           <div style={{ position: "relative", flex: 1, maxWidth: "480px" }}>
             <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", color: C.gray }}>🔍</span>
@@ -397,7 +390,6 @@ export default function HomePage() {
           </AnimatePresence>
         </div>
 
-        {/* Grid */}
         <AnimatePresence mode="popLayout">
           {loadingPruebas ? (
             <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}>

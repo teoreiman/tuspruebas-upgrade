@@ -54,9 +54,6 @@ export function ensureConversacionesTables(): Promise<void> {
   return tablasListas;
 }
 
-// Título corto a partir de la primera pregunta, como hacen Claude/ChatGPT
-// antes de generar uno con el modelo (acá no vale la pena gastar una llamada
-// a la IA solo para titular el chat).
 function tituloDesde(texto: string): string {
   const limpio = (texto || "").trim().replace(/\s+/g, " ");
   if (!limpio) return "Nueva conversación";

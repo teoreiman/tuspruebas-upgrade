@@ -88,7 +88,6 @@ function PruebaCard({
         transition: "border-color 0.2s",
       }}
     >
-      {/* Barra de color lateral */}
       <div style={{
         position: "absolute", left: 0, top: "16px", bottom: "16px",
         width: "3px", borderRadius: "0 3px 3px 0",
@@ -135,7 +134,6 @@ function PruebaCard({
         <p style={{ marginLeft: "8px", fontSize: "11px", color: "#f87171" }}>{errorFav}</p>
       )}
 
-      {/* Preview imagen */}
       {prueba.archivo_url && prueba.archivo_tipo === "image" && (
         <div style={{ paddingLeft: "8px" }}>
           <img
@@ -148,7 +146,6 @@ function PruebaCard({
           />
         </div>
       )}
-      {/* Imagen guardada como base64: URL no está en el listado, mostrar indicador */}
       {!prueba.archivo_url && prueba.archivo_tipo === "image" && (
         <div style={{
           paddingLeft: "8px", display: "flex", alignItems: "center", gap: "8px",
@@ -262,7 +259,6 @@ export default function Favoritas() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: C.bg, fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Navbar */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 40,
         backgroundColor: "rgba(10,14,26,0.95)", backdropFilter: "blur(12px)",
@@ -285,7 +281,6 @@ export default function Favoritas() {
 
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "40px 48px" }}>
 
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "32px" }}>
           <div>
             <h1 style={{
@@ -312,7 +307,6 @@ export default function Favoritas() {
           </motion.button>
         </div>
 
-        {/* Buscador */}
         <AnimatePresence>
           {!loading && pruebas.length > 0 && (
             <motion.div
@@ -343,7 +337,6 @@ export default function Favoritas() {
           )}
         </AnimatePresence>
 
-        {/* Contenido */}
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}>
             <motion.div

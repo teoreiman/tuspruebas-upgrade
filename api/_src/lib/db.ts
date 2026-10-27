@@ -17,15 +17,8 @@ function getPool(): Pool {
 
 const db = getPool();
 
-// No hay sistema de migraciones en este proyecto: la tabla "favoritos" se
-// crea sola la primera vez que una función serverless la necesita, en vez de
-// depender de que alguien la haya creado a mano en la consola de Postgres.
-// El resultado se cachea por instancia de lambda para no pagar el costo en
-// cada request.
 let favoritosReady: Promise<void> | null = null;
 
-// Dos lambdas corriendo CREATE ... IF NOT EXISTS a la vez pueden chocar en el
-// catálogo de Postgres: el error es benigno (el objeto quedó creado igual).
 const YA_EXISTE = new Set(["23505", "42P07", "42710"]);
 
 function ignorarSiYaExiste(e: unknown): void {
@@ -54,10 +47,6 @@ async function crearTablaFavoritos(): Promise<void> {
     `)
     .catch(ignorarSiYaExiste);
 
-  // La tabla puede venir de una versión anterior sin la restricción única, y sin
-  // ella un doble click deja dos filas y la prueba aparece duplicada en
-  // "guardadas". Creamos el índice único aparte; si hay duplicados viejos, los
-  // limpiamos y reintentamos.
   try {
     await db.query(
       `CREATE UNIQUE INDEX IF NOT EXISTS favoritos_usuario_prueba_idx
@@ -66,7 +55,6 @@ async function crearTablaFavoritos(): Promise<void> {
   } catch (e) {
     const code = (e as { code?: string } | null)?.code;
     if (code !== "23505") {
-      // No son duplicados: si el error es "ya existe" lo ignoramos, si no, sube.
       ignorarSiYaExiste(e);
       return crearIndicePorUsuario();
     }
@@ -91,8 +79,6 @@ async function crearTablaFavoritos(): Promise<void> {
 export function ensureFavoritosTable(): Promise<void> {
   if (!favoritosReady) {
     favoritosReady = crearTablaFavoritos().catch((e) => {
-      // Si falla, permitir reintentar en la próxima invocación en vez de
-      // quedar rota para siempre en esta instancia de lambda.
       favoritosReady = null;
       throw e;
     });

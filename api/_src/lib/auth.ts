@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import type { VercelRequest } from "@vercel/node";
 
 const SECRET = process.env.JWT_SECRET!;
-const SUPER_ADMIN_EMAIL = "manu@tuspruebas.com";
+export const SUPER_ADMIN_EMAIL = "manu@tuspruebas.com";
 
 export interface JwtPayload {
   id: number;

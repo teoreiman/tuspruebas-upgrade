@@ -6,6 +6,7 @@ import { uploadPrueba, fetchPruebas, encontrarDuplicados, esImagen, MAX_FOTO_BYT
 import { notifyAdminNewPrueba } from "../services/Email";
 import Logo from "./logo";
 import NotificacionesBell from "./NotificacionesBell";
+import Avatar from "./Avatar";
 
 const C = {
   bg: "#070b14", bgCard: "#0d1526",
@@ -81,8 +82,6 @@ function StepIndicator({ current, total, labels }: { current: number; total: num
   );
 }
 
-// Miniaturas de las páginas elegidas (fotos) o el nombre del archivo (PDF/Word),
-// con botón para quitar cada una y, si son todas fotos, para agregar más.
 function PaginasSeleccionadas({
   archivos, onQuitar, onAgregar,
 }: {
@@ -96,7 +95,6 @@ function PaginasSeleccionadas({
     const urls = archivos.map((f) => (esImagen(f) ? URL.createObjectURL(f) : ""));
     setPreviews(urls);
     return () => { urls.forEach((u) => u && URL.revokeObjectURL(u)); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [archivos]);
 
   return (
@@ -199,9 +197,6 @@ export default function SubirPrueba() {
     tieneContenido,
   ];
 
-  // Aviso (no bloqueante) de que ya existe una prueba con datos parecidos:
-  // evita subidas repetidas por error, sin impedir subir una versión distinta
-  // de un profesor distinto.
   const [duplicados, setDuplicados] = useState<Prueba[]>([]);
   useEffect(() => {
     const tema = form.tema.trim();
@@ -242,7 +237,6 @@ export default function SubirPrueba() {
       setPruebaId(nueva.id);
       setSubmitted(true);
 
-      // Notificar al admin por email (no bloquea si falla)
       notifyAdminNewPrueba({
         usuario_nombre: user.nombre,
         usuario_email:  user.email,
@@ -323,9 +317,7 @@ export default function SubirPrueba() {
 
         {user && (
           <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", backgroundColor: C.bgCard, border: `1px solid ${C.border}`, borderRadius: "10px", marginBottom: "20px" }}>
-            <div style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: C.blue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", color: C.white, fontWeight: 700 }}>
-              {user.nombre.charAt(0).toUpperCase()}
-            </div>
+            <Avatar nombre={user.nombre} foto={user.avatar} tamaño={36} fondo={C.blue} />
             <div>
               <p style={{ fontSize: "13px", fontWeight: 600, color: C.white }}>{user.nombre}</p>
               <p style={{ fontSize: "11px", color: C.gray }}>La prueba quedará asociada a tu cuenta</p>
@@ -416,13 +408,11 @@ export default function SubirPrueba() {
                   </motion.div>
                 )}
                 <Field label={`Fotos de la prueba${form.archivos.length > 1 ? ` (${form.archivos.length} páginas)` : ""}`} required={!form.preguntas.trim()}>
-                  {/* Windows a veces no reporta el MIME type de .jpg/.jpeg, así que
-                      además de image/* listamos las extensiones una por una. */}
                   <input ref={fileRef} type="file" multiple
                     accept="image/*,.jpg,.jpeg,.jpe,.png,.webp,.heic,.heif,.avif,.bmp,.gif,.tif,.tiff,.pdf,.doc,.docx"
                     onChange={(e) => {
                       const nuevos = Array.from(e.target.files ?? []);
-                      e.target.value = ""; // permite volver a elegir el mismo archivo después
+                      e.target.value = "";
                       if (nuevos.length === 0) return;
 
                       for (const f of nuevos) {
@@ -443,8 +433,6 @@ export default function SubirPrueba() {
 
                       setError("");
                       setForm((prev) => {
-                        // Un archivo no-foto (PDF/Word) siempre reemplaza todo: no se
-                        // puede combinar con otras páginas.
                         const base = nuevosSonFotos ? prev.archivos.filter(esImagen) : [];
                         const combinados = [...base, ...nuevos].slice(0, MAX_PAGINAS);
                         return { ...prev, archivos: combinados };
@@ -501,7 +489,6 @@ export default function SubirPrueba() {
                     onBlur={(e) => (e.currentTarget.style.borderColor = C.border)} />
                 </Field>
 
-                {/* Resumen */}
                 <div style={{ backgroundColor: "rgba(255,255,255,0.02)", borderRadius: "12px", padding: "16px 18px", border: `1px solid ${C.border}` }}>
                   <p style={{ fontSize: "11px", fontWeight: 700, color: C.gray, marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Resumen</p>
                   {[

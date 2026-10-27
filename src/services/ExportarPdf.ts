@@ -9,15 +9,11 @@ function cargarImagen(url: string): Promise<HTMLImageElement> {
   });
 }
 
-// Nombre de archivo sin caracteres que rompan la descarga en Windows/Mac.
 function nombreArchivo(prueba: Prueba): string {
   const base = `${prueba.materia || "prueba"}${prueba.tema ? ` - ${prueba.tema}` : ""}`;
   return base.replace(/[\\/:*?"<>|]/g, "").trim() || "prueba";
 }
 
-// Junta todas las fotos de una prueba (una prueba de varias hojas) en un solo
-// PDF, una página por foto. jsPDF se importa dinámico: pesa bastante y la
-// mayoría de las visitas al detalle de una prueba nunca lo usan.
 export async function exportarPruebaComoPdf(prueba: Prueba): Promise<void> {
   const fotos = (prueba.archivos ?? []).filter((a) => a.tipo === "image" && a.url);
   if (fotos.length === 0) {

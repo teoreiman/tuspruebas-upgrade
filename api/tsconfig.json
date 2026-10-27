@@ -1,8 +1,3 @@
-// Las funciones de /api las compila Vercel (@vercel/node), no el `tsc -b` del
-// frontend: tsconfig.app.json sólo incluye "src". Sin este archivo, Vercel cae
-// al tsconfig.json de la raíz, que no tiene compilerOptions, y entonces las
-// funciones se chequean sin `strict` (se pierde el narrowing de uniones
-// discriminadas) y con moduleResolution node16 (exige extensiones .js).
 {
   "compilerOptions": {
     "target": "ES2022",

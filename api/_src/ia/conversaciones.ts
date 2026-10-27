@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAuthUser } from "../lib/auth.js";
 import { listarConversacionesDeUsuario } from "../lib/conversaciones.js";
 
-// GET /api/ia/conversaciones — historial de chats del usuario, más nuevo primero.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
 

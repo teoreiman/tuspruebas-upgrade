@@ -4,21 +4,12 @@ import { getAuthUser } from "./lib/auth.js";
 import { LIMITE_DIARIO, usoUltimas24hs, registrarUso } from "./lib/iaUso.js";
 import { crearConversacion, agregarMensaje, conversacionPerteneceA } from "./lib/conversaciones.js";
 
-// La IA corre en el backend: la API key nunca sale del servidor y el modelo
-// puede ver la foto de la prueba (que está guardada como base64 en la base y
-// nunca tendría que viajar al navegador sólo para reenviarla).
 export const config = { maxDuration: 60 };
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-// Con foto (modo visión) medimos respuestas reales de 20-48s. Dejamos margen
-// bajo el maxDuration de 60s de la función (unos segundos para parsear el
-// body, escribir en la base y serializar la respuesta).
 const TIMEOUT_MS = 55_000;
 const MAX_ARCHIVO_BYTES = 15 * 1024 * 1024;
 
-// Materias donde las respuestas suelen tener fórmulas/cálculos: ahí conviene
-// el formato con LaTeX y pasos numerados. El chat renderiza Markdown + LaTeX
-// (remark-math/rehype-katex), así que tiene sentido pedírselo al modelo.
 const MATERIAS_CON_FORMULAS = new Set(["Matemática", "Física", "Química", "Físico-Química"]);
 
 interface MensajeCliente {
@@ -47,33 +38,14 @@ function apiKey(): string | null {
   );
 }
 
-// Respaldo: antes de pelearse con los modelos de Gemini, probamos NVIDIA una
-// vez (mismo proveedor que ya usa el backend Express local). Si NVIDIA_API_KEY
-// no está configurada en Vercel, este bloque no hace nada y el chat sigue
-// funcionando solo con Gemini como hasta ahora.
 function nvidiaApiKey(): string | null {
   return process.env.NVIDIA_API_KEY || null;
 }
 
-// "meta/llama-3.1-8b-instruct" y "nvidia/nemotron-nano-12b-v2-vl" (los que usa
-// el Express local) están dados de baja/inexistentes en esta cuenta gratuita.
-// Probé contra la API real el 19/10/2026: de 8 modelos candidatos (chat y
-// visión), 7 dieron 404 "Not found for account" (la cuenta free no tiene
-// acceso) y uno solo respondió bien — y sirve para los dos casos, texto y
-// foto, en menos de 1 segundo. Por eso un solo modelo para ambos en vez de
-// uno por caso.
 function modeloNvidia(_hayImagenes: boolean): string {
   return process.env.NVIDIA_MODEL_VISION || process.env.NVIDIA_MODEL_CHAT || "meta/llama-3.2-11b-vision-instruct";
 }
 
-// gemini-2.0-flash quedó dado de baja (Google responde 404 "no longer
-// available", confirmado en prod el 07/10/2026). Lista de candidatos más
-// larga a propósito: cuando Gemini satura uno (503 "high demand", confirmado
-// el 19/10/2026 en varios modelos a la vez) el handler ahora sigue probando
-// el siguiente en vez de rendirse. "gemini-flash-latest" va al final como red
-// de contención — Google lo apunta siempre al flash recomendado del momento.
-// Verificado contra la API antes de hardcodear — no de memoria, los modelos
-// de Gemini rotan seguido.
 function modelosACandidatos(): string[] {
   const preferido = process.env.GEMINI_MODEL?.trim();
   const lista = [
@@ -104,7 +76,6 @@ function leerBody(req: VercelRequest): Record<string, unknown> {
   }
 }
 
-/** Convierte el archivo de la prueba en una parte que Gemini pueda "ver". */
 async function archivoComoParte(
   archivoUrl: string | undefined,
   archivoTipo: string | undefined
@@ -123,8 +94,6 @@ async function archivoComoParte(
 
   if (!/^https?:\/\//i.test(archivoUrl)) return null;
 
-  // Archivo alojado afuera (Cloudinary): lo bajamos acá para poder mandárselo
-  // al modelo. Gemini acepta imágenes y PDFs inline.
   try {
     const res = await fetch(archivoUrl);
     if (!res.ok) return null;
@@ -140,12 +109,6 @@ async function archivoComoParte(
   }
 }
 
-/**
- * URLs de las fotos de la prueba, tal cual están guardadas (data: URL o, para
- * las viejas, una URL http subida a Cloudinary). A diferencia de
- * archivosComoPartes (que arma el formato inlineData de Gemini), estas sirven
- * directo para la API de NVIDIA (formato OpenAI: image_url.url acepta las dos).
- */
 function urlsDeImagenes(contenido: Record<string, unknown>): string[] {
   const lista = Array.isArray(contenido.archivos)
     ? (contenido.archivos as Record<string, unknown>[])
@@ -155,7 +118,6 @@ function urlsDeImagenes(contenido: Record<string, unknown>): string[] {
     .map((a) => a.url as string);
 }
 
-/** Todas las fotos de la prueba (puede tener varias hojas) como partes de Gemini. */
 async function archivosComoPartes(contenido: Record<string, unknown>): Promise<ParteArchivo[]> {
   const lista = Array.isArray(contenido.archivos)
     ? (contenido.archivos as Record<string, unknown>[])
@@ -258,9 +220,6 @@ interface RespuestaGemini {
   error?: { message?: string; status?: string };
 }
 
-// Los campos van todos siempre, en vez de una unión discriminada por `ok`: el
-// type-check que corre Vercel sobre /api no usa `strict`, y sin strictNullChecks
-// no estrecha la unión en la rama de error (r.status / r.mensaje dan TS2339).
 type ResultadoGemini = { ok: boolean; texto: string; status: number; mensaje: string };
 
 async function llamarGemini(
@@ -373,9 +332,6 @@ async function llamarNvidia(
   }
 }
 
-/** Mismos mensajes que van a Gemini, pero en formato OpenAI (role/content),
- * que es lo que espera la API de NVIDIA. Las fotos van en el primer turno del
- * usuario, igual que con Gemini. */
 function mensajesParaNvidia(limpios: MensajeCliente[], systemPrompt: string, imagenesUrls: string[]): unknown[] {
   const mensajes: Record<string, unknown>[] = [{ role: "system", content: systemPrompt }];
   let fotoYaAdjuntada = false;
@@ -398,9 +354,6 @@ function mensajesParaNvidia(limpios: MensajeCliente[], systemPrompt: string, ima
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Reloj propio para repartir el tiempo entre NVIDIA y varios modelos de
-  // Gemini sin pasarnos del maxDuration de la función (60s): si no, Vercel
-  // corta en seco a mitad de un intento en vez de devolver un error prolijo.
   const inicio = Date.now();
   const PRESUPUESTO_MS = 52_000;
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
@@ -430,7 +383,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pruebaId = Number(pruebaIdRaw);
   const conversacionIdRaw = body.conversacion_id;
 
-  // "Corregir mi respuesta": foto de lo que el estudiante ya resolvió a mano.
   const imagenRespuestaRaw = body.imagen_respuesta;
   const imagenRespuesta = typeof imagenRespuestaRaw === "string" && imagenRespuestaRaw.startsWith("data:image")
     ? imagenRespuestaRaw
@@ -438,7 +390,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const limpios = mensajes
     .filter((m) => typeof m?.content === "string" && m.content.trim())
-    .slice(-20); // sólo las últimas vueltas: alcanza y no infla el pedido
+    .slice(-20);
 
   if (limpios.length === 0) {
     return res.status(400).json({ message: "No hay ningún mensaje para responder" });
@@ -451,15 +403,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       prueba = rows[0] ?? null;
     }
 
-    // Corregir solo tiene sentido con una prueba cargada: si no, no hay nada
-    // contra qué comparar la respuesta del estudiante.
     if (imagenRespuesta && !prueba) {
       return res.status(400).json({ message: "Para corregir una respuesta necesitás tener una prueba cargada." });
     }
 
-    // El historial se guarda solo (como en Claude/ChatGPT): el último mensaje
-    // del array es siempre el que el estudiante acaba de escribir, el resto ya
-    // está guardado de vueltas anteriores.
     const nuevoMensaje = limpios[limpios.length - 1];
     let conversacionId = Number(conversacionIdRaw);
     const esConversacionNueva = !Number.isInteger(conversacionId) || conversacionId <= 0;
@@ -479,15 +426,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const contenido = prueba ? safeJson(prueba.contenido) : {};
     const partesArchivo = prueba ? await archivosComoPartes(contenido) : [];
-    // La foto de la respuesta del estudiante va última: así el modelo lee
-    // primero la prueba (consignas) y recién después lo que el alumno escribió.
     if (imagenRespuesta) {
       const parteRespuesta = await archivoComoParte(imagenRespuesta, "image");
       if (parteRespuesta) partesArchivo.push(parteRespuesta);
     }
 
-    // Mismas fotos, pero como URLs directas (para NVIDIA, que no necesita el
-    // formato inlineData de Gemini).
     const imagenesUrls = prueba ? urlsDeImagenes(contenido) : [];
     if (imagenRespuesta) imagenesUrls.push(imagenRespuesta);
 
@@ -496,8 +439,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       parts: [{ text: m.content!.trim() }] as ({ text: string } | ParteArchivo)[],
     }));
 
-    // Las fotos se adjuntan al primer turno del usuario (todas, en orden):
-    // quedan en el contexto de toda la conversación sin repetirse en cada mensaje.
     if (partesArchivo.length > 0) {
       const primerUsuario = contents.find((c) => c.role === "user");
       if (primerUsuario) primerUsuario.parts.unshift(...partesArchivo);
@@ -505,16 +446,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const systemPrompt = construirSystemPrompt(contexto, prueba, !!imagenRespuesta);
 
-    // NVIDIA como primer intento, si está configurada: mismo proveedor que ya
-    // usa el backend Express local. Sin estado de cooldown entre pedidos (cada
-    // invocación de Vercel puede ser una instancia nueva, así que no serviría
-    // de nada) — un timeout corto alcanza para no comerse medio presupuesto si
-    // NVIDIA está caída, y si falla simplemente seguimos de largo al cascade
-    // de Gemini de abajo, sin cortar la respuesta.
-    // Diagnóstico temporal: por qué NVIDIA no contestó, para poder ver desde
-    // afuera (sin acceso a los logs de Vercel) si ni se intentó, si colgó, o
-    // si contestó con un error puntual. Viaja solo en la respuesta de error,
-    // nunca en una exitosa.
     const diagNvidia: { configurada: boolean; intentada: boolean; ms: number | null; error: string | null } = {
       configurada: false, intentada: false, ms: null, error: null,
     };
@@ -551,11 +482,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const restante = PRESUPUESTO_MS - (Date.now() - inicio);
       if (restante < 5_000) break;
 
-      // Los modelos "flash" piensan antes de responder (no solo el viejo 2.5):
-      // con el presupuesto de pensamiento en 0 responden más rápido y no se
-      // comen el límite de tokens antes de escribir la respuesta. No hace daño
-      // intentarlo siempre — si el modelo no soporta la opción, el catch de
-      // abajo reintenta sin ella.
       let sinPensamiento = /flash/.test(modelo);
       let seguirConOtroModelo = true;
 
@@ -574,8 +500,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const timeoutEsteIntento = Math.min(TIMEOUT_MS, PRESUPUESTO_MS - (Date.now() - inicio));
         const r = await llamarGemini(modelo, key, payload, timeoutEsteIntento);
         if (r.ok) {
-          // Se cuenta recién si la IA respondió bien: un error nuestro o de la
-          // API no debería gastarle cupo al estudiante.
           await registrarUso(user.id).catch(() => {});
           await agregarMensaje(conversacionId, "assistant", r.texto).catch(() => {});
           return res.status(200).json({
@@ -594,10 +518,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           continue;
         }
 
-        // Modelo inexistente/dado de baja, o saturado (503/429 "high demand",
-        // "overloaded"): en los dos casos probamos el siguiente de la lista —
-        // antes solo cascadeaba en el primer caso, así que un modelo saturado
-        // cortaba la respuesta en seco en vez de probar otro.
         const modeloInvalido = r.status === 404 || /not found|not supported|is not available/i.test(r.mensaje);
         const saturado = r.status === 503 || r.status === 429 || /high demand|overloaded|unavailable/i.test(r.mensaje);
         seguirConOtroModelo = modeloInvalido || saturado;

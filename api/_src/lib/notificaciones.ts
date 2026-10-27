@@ -1,8 +1,5 @@
 import pool from "./db.js";
 
-// Misma idea que favoritos (en db.ts): la tabla se crea sola la primera vez
-// que una función serverless la necesita. Mismo esquema que usa el Express
-// local (models/Notificacion.js), porque comparten la misma base de Neon.
 let notificacionesReady: Promise<void> | null = null;
 
 const YA_EXISTE = new Set(["23505", "42P07", "42710"]);
@@ -36,7 +33,7 @@ async function crearTablaNotificaciones(): Promise<void> {
 export function ensureNotificacionesTable(): Promise<void> {
   if (!notificacionesReady) {
     notificacionesReady = crearTablaNotificaciones().catch((e) => {
-      notificacionesReady = null; // permitir reintentar en la próxima invocación
+      notificacionesReady = null;
       throw e;
     });
   }
@@ -53,7 +50,6 @@ export interface Notificacion {
   created_at: string;
 }
 
-// Pruebas subidas por alguien sin cuenta (usuarioId null) no generan aviso.
 export async function crearNotificacion(opts: {
   usuarioId: number | null;
   tipo: string;

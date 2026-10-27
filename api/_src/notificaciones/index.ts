@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAuthUser } from "../lib/auth.js";
 import { listarNotificaciones, contarNoLeidas } from "../lib/notificaciones.js";
 
-// GET /api/notificaciones — las últimas del usuario logueado + cuántas no leyó.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
 

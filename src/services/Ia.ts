@@ -18,23 +18,11 @@ export interface RespuestaIA {
   conversacionId: number;
 }
 
-/**
- * Manda la conversación al backend (/api/ia). La clave de la IA vive en el
- * servidor: el navegador nunca la ve. Si la conversación referencia una prueba,
- * el backend le adjunta la foto y las preguntas al modelo.
- *
- * El backend guarda el historial solo: pasale el conversacionId que te haya
- * devuelto la vez anterior para seguir el mismo chat, o dejalo en null para
- * arrancar uno nuevo.
- */
 export async function enviarMensajeIA(params: {
   mensajes: MensajeIA[];
   contexto: ContextoIA;
   pruebaId?: number | null;
   conversacionId?: number | null;
-  // "Corregir mi respuesta": foto de lo que el estudiante ya resolvió a mano,
-  // como data URL. El backend la adjunta después de la prueba y le pide a la
-  // IA que corrija en vez de resolver desde cero.
   imagenRespuesta?: string | null;
 }): Promise<RespuestaIA> {
   const res = await apiFetch(`${API_URL}/ia`, {
@@ -64,12 +52,6 @@ export async function enviarMensajeIA(params: {
   return { reply: data.reply, conversacionId: data.conversacion_id ?? 0 };
 }
 
-/**
- * Modo autoevaluación: le pide al backend que genere ejercicios nuevos
- * parecidos a los de la prueba (no las resoluciones, solo consignas nuevas
- * para practicar). Queda guardado en la misma conversación, así después se
- * puede seguir chateando ahí para pedir ayuda o corregir las respuestas.
- */
 export async function generarPruebaPractica(
   pruebaId: number,
   conversacionId?: number | null

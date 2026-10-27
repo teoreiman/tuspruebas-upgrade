@@ -2,8 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import pool, { ensureFavoritosTable } from "../../lib/db.js";
 import { getAuthUser } from "../../lib/auth.js";
 
-// El body puede llegar como objeto (Vercel parsea application/json) o como
-// string si el cliente no mandó el Content-Type.
 function leerBody(req: VercelRequest): Record<string, unknown> {
   const raw = req.body;
   if (!raw) return {};
@@ -44,15 +42,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ favorito: await esFavorito(user.id, pruebaId) });
     }
 
-    // Un favorito de una prueba borrada quedaría huérfano y rompería el listado.
     const existe = await pool.query("SELECT 1 FROM pruebas WHERE id = $1", [pruebaId]);
     if (existe.rowCount === 0) {
       return res.status(404).json({ message: "Prueba no encontrada" });
     }
 
-    // El cliente manda el estado que quiere ({ favorito: true|false }); si no
-    // manda nada, se comporta como toggle. Mandar el estado explícito hace que
-    // dos clicks rápidos converjan al mismo resultado en vez de pisarse.
     const body = leerBody(req);
     const deseado =
       metodo === "DELETE"
@@ -75,7 +69,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]);
     }
 
-    // Devolvemos lo que quedó realmente guardado, no lo que pidió el cliente.
     return res.status(200).json({ favorito: await esFavorito(user.id, pruebaId) });
   } catch (e) {
     console.error("favorito:", e);

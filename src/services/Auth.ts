@@ -4,7 +4,7 @@ export interface User {
   id: number;
   nombre: string;
   email: string;
-  avatar?: string;
+  avatar?: string | null;
   rol?: string;
 }
 
@@ -41,7 +41,6 @@ export function isAdmin(): boolean {
   return getUser()?.rol === "admin";
 }
 
-// Único usuario habilitado para moderar (aprobar/rechazar) pruebas
 const SUPER_ADMIN_EMAIL = "manu@tuspruebas.com";
 
 export function isSuperAdmin(): boolean {
@@ -59,7 +58,6 @@ export async function loginWithEmail(email: string, password: string): Promise<A
     throw new Error(err.message ?? "Credenciales incorrectas");
   }
   const data = await res.json();
-  // Backend returns { ok, token, usuario }
   const user: User = data.usuario ?? data.user;
   return { token: data.token, user };
 }
@@ -74,7 +72,6 @@ export async function registerUser(nombre: string, email: string, password: stri
     const err = await res.json().catch(() => ({ message: "Error al registrarse" }));
     throw new Error(err.message ?? "No se pudo crear la cuenta");
   }
-  // Backend register no devuelve token; hacer login inmediatamente
   return loginWithEmail(email, password);
 }
 

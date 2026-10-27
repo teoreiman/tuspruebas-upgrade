@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import bcrypt from "bcryptjs";
 import pool from "../lib/db.js";
 import { signToken } from "../lib/auth.js";
+import { usuarioPublico } from "../lib/usuarios.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
@@ -21,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       ok: true,
       token,
-      usuario: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
+      usuario: usuarioPublico(user),
     });
   } catch (e) {
     console.error(e);

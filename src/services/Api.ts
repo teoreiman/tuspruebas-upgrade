@@ -20,9 +20,6 @@ export async function apiFetch(url: string, options?: RequestInit): Promise<Resp
   return res;
 }
 
-// Si las funciones serverless no están desplegadas, el rewrite del SPA devuelve
-// index.html con status 200: res.json() explota con un error de sintaxis que no
-// le dice nada al usuario. Por eso distinguimos ese caso.
 async function leerJson(res: Response): Promise<Record<string, unknown> | null> {
   const texto = await res.text().catch(() => "");
   if (!texto) return null;
@@ -33,7 +30,6 @@ async function leerJson(res: Response): Promise<Record<string, unknown> | null> 
   }
 }
 
-/** Mensaje de error del backend, o uno genérico si no vino ninguno. */
 export async function mensajeDeError(res: Response, fallback: string): Promise<string> {
   const body = await leerJson(res);
   const message = body?.message;

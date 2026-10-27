@@ -9,6 +9,7 @@ import { getUser, isAdmin, isSuperAdmin } from "../services/Auth";
 import Logo from "./logo";
 import NotificacionesBell from "./NotificacionesBell";
 import EstrellasCalificacion from "./EstrellasCalificacion";
+import Avatar from "./Avatar";
 
 const C = {
   bg: "#070b14", bgCard: "#0d1526", bgSection: "#080d18",
@@ -59,8 +60,6 @@ const IconoCompartir = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
-// Visor a pantalla completa para mirar la foto en grande. Si hay varias
-// páginas, se puede seguir pasando de una a otra sin cerrar el zoom.
 function Lightbox({
   url, nombre, onClose, pagina, total, onPrev, onNext,
 }: {
@@ -178,7 +177,6 @@ function FileViewer({
 
   const [imgError, setImgError] = useState(false);
   const [zoom, setZoom] = useState(false);
-  // Cambiar de página no debería arrastrar el error de la foto anterior.
   useEffect(() => setImgError(false), [url]);
 
   const isPdf = tipo === "pdf" || nombre?.toLowerCase().endsWith(".pdf");
@@ -328,7 +326,6 @@ function FileViewer({
     );
   }
 
-  // Fallback para DOC u otros
   return (
     <div style={{ width: "100%", borderRadius: "12px", border: `1px solid ${C.border}`, backgroundColor: C.bgCard, padding: "48px 24px", textAlign: "center" }}>
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.gray} strokeWidth="1.5" style={{ margin: "0 auto 16px", display: "block" }}>
@@ -343,7 +340,6 @@ function FileViewer({
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function DetallePrueba() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -409,12 +405,6 @@ export default function DetallePrueba() {
   const puedeEliminar = !!prueba && !!user && (user.id === prueba.usuario_id || isAdmin() || isSuperAdmin());
   const fotosImagen = archivos.filter((a) => a.tipo === "image");
 
-  // Arma el link con el dominio actual (funciona igual en producción que en
-  // local). Antes abría wa.me directo, pero algunas redes (como la de un
-  // colegio) bloquean ese dominio y el botón quedaba roto ahí — ahora usa el
-  // share nativo del sistema (en el celu deja elegir WhatsApp o cualquier
-  // otra app, sin pasar por wa.me) y, si no está disponible, copia el texto
-  // al portapapeles en vez de depender de un dominio que puede estar bloqueado.
   const handleCompartir = async () => {
     if (!prueba) return;
     const url = `${window.location.origin}/prueba/${prueba.id}`;
@@ -426,8 +416,6 @@ export default function DetallePrueba() {
         await navigator.share({ text: texto });
         return;
       } catch {
-        // Cancelado por el usuario, o no soportado en la práctica: seguimos
-        // con el fallback de copiar en vez de dejarlo sin nada.
       }
     }
 
@@ -436,7 +424,6 @@ export default function DetallePrueba() {
       setCopiadoCompartir(true);
       setTimeout(() => setCopiadoCompartir(false), 2500);
     } catch {
-      // Último recurso, por si tampoco hay clipboard disponible.
       window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
     }
   };
@@ -465,7 +452,6 @@ export default function DetallePrueba() {
         calificacion_cantidad: r.calificacion_cantidad,
       });
     } catch {
-      // Silencioso: la estrella vuelve sola al valor real en el próximo render.
     }
   };
 
@@ -475,7 +461,6 @@ export default function DetallePrueba() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: C.bg, fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Navbar */}
       <nav style={{ position: "sticky", top: 0, zIndex: 40, backgroundColor: "rgba(7,11,20,0.92)", backdropFilter: "blur(16px)", borderBottom: `1px solid ${C.border}`, padding: "0 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="sm" onClick={() => navigate("/home")} />
@@ -492,7 +477,6 @@ export default function DetallePrueba() {
         </div>
       </nav>
 
-      {/* Loading */}
       {loading && (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -500,7 +484,6 @@ export default function DetallePrueba() {
         </div>
       )}
 
-      {/* Error */}
       {error && !loading && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: "16px" }}>
           <p style={{ fontSize: "18px", fontWeight: 700, color: C.white }}>{error}</p>
@@ -511,15 +494,12 @@ export default function DetallePrueba() {
         </div>
       )}
 
-      {/* Content */}
       {prueba && !loading && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
           style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 48px" }}>
 
-          {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "24px", marginBottom: "32px" }}>
             <div style={{ flex: 1 }}>
-              {/* Materia badge */}
               <div style={{ marginBottom: "14px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "12px", fontWeight: 700, padding: "4px 12px", borderRadius: "999px", backgroundColor: s!.bg, color: s!.text, border: `1px solid ${s!.border}` }}>
                   {prueba.materia}
@@ -536,12 +516,10 @@ export default function DetallePrueba() {
                 )}
               </div>
 
-              {/* Título */}
               <h1 style={{ fontSize: "32px", fontWeight: 900, color: C.white, fontFamily: "'Syne', sans-serif", marginBottom: "10px", lineHeight: 1.2 }}>
                 {prueba.tema}
               </h1>
 
-              {/* Meta */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
                 {[
                   { icon: "🏫", text: prueba.escuela },
@@ -566,9 +544,7 @@ export default function DetallePrueba() {
               </div>
             </div>
 
-            {/* Acciones */}
             <div style={{ display: "flex", gap: "10px", flexShrink: 0 }}>
-              {/* Favorito */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -591,7 +567,6 @@ export default function DetallePrueba() {
                 {saved ? "Guardada" : "Guardar"}
               </motion.button>
 
-              {/* Compartir */}
               <motion.button
                 whileHover={{ scale: 1.05, borderColor: copiadoCompartir ? undefined : "rgba(37,211,102,0.4)", color: copiadoCompartir ? undefined : "#25D366" }}
                 whileTap={{ scale: 0.95 }}
@@ -612,7 +587,6 @@ export default function DetallePrueba() {
                 {copiadoCompartir ? "¡Copiado!" : "Compartir"}
               </motion.button>
 
-              {/* Descargar */}
               {archivos.length > 0 && (
                 <motion.button
                   onClick={handleDescargar}
@@ -635,8 +609,6 @@ export default function DetallePrueba() {
                 </motion.button>
               )}
 
-              {/* Exportar a PDF: solo tiene sentido con varias fotos — una
-                  sola página ya se descarga tal cual con el botón de arriba. */}
               {fotosImagen.length > 1 && (
                 <motion.button
                   onClick={handleExportarPdf}
@@ -661,7 +633,6 @@ export default function DetallePrueba() {
                 </motion.button>
               )}
 
-              {/* Eliminar */}
               {puedeEliminar && (
                 <motion.button
                   whileHover={{ scale: 1.05, borderColor: "rgba(239,68,68,0.4)", color: "#f87171" }}
@@ -710,11 +681,8 @@ export default function DetallePrueba() {
             </div>
           )}
 
-          {/* Subido por */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "28px" }}>
-            <div style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: C.blue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: C.white, fontWeight: 700, flexShrink: 0 }}>
-              {prueba.usuario_nombre.charAt(0).toUpperCase()}
-            </div>
+            <Avatar nombre={prueba.usuario_nombre} foto={prueba.usuario_avatar} tamaño={32} fondo={C.blue} />
             <div>
               <p style={{ fontSize: "12px", color: C.gray }}>Subida por</p>
               <p style={{ fontSize: "13px", fontWeight: 600, color: C.white }}>{prueba.usuario_nombre}</p>

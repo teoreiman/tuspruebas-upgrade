@@ -2,8 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAuthUser } from "../../lib/auth.js";
 import { obtenerConversacionConMensajes, renombrarConversacion, eliminarConversacion } from "../../lib/conversaciones.js";
 
-// GET /api/ia/conversaciones/:id — un chat completo con todos sus mensajes.
-// DELETE /api/ia/conversaciones/:id
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = getAuthUser(req);
   if (!user) return res.status(401).json({ message: "No autenticado" });
@@ -31,8 +29,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const titulo = typeof body.titulo === "string" ? body.titulo.trim() : "";
       if (!titulo) return res.status(400).json({ message: "El nombre no puede estar vacío" });
 
-      // Mismo límite que la columna (VARCHAR(120)): cortamos acá para no
-      // depender de que Postgres tire el error.
       const renombrada = await renombrarConversacion(id, user.id, titulo.slice(0, 120));
       if (!renombrada) return res.status(404).json({ message: "Conversación no encontrada" });
       return res.status(200).json({ ok: true });

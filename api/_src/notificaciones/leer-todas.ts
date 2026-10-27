@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAuthUser } from "../lib/auth.js";
 import { marcarTodasLeidas } from "../lib/notificaciones.js";
 
-// PATCH /api/notificaciones/leer-todas
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "PATCH") return res.status(405).json({ message: "Method not allowed" });
 

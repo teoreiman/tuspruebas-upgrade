@@ -5,7 +5,7 @@ interface ScrollFloatProps {
   children: ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  offset?: number;  // how many px to float (default 40)
+  offset?: number;
 }
 
 export default function ScrollFloat({
